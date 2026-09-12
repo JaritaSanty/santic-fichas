@@ -47,6 +47,26 @@ describe('SheetSvg', () => {
     expect(html).toContain('href="/brand/mark-gray.svg"');
   });
 
+  it('dibuja el rect de la primitiva con sus atributos', () => {
+    const html = render('fluid');
+    const rectTag = html.match(/<rect[^>]*rx="1"[^>]*>/)?.[0];
+    expect(rectTag).toBeDefined();
+    expect(rectTag).toContain('x="10"');
+    expect(rectTag).toContain('y="10"');
+    expect(rectTag).toContain('width="20"');
+    expect(rectTag).toContain('height="5"');
+    expect(rectTag).toContain('rx="1"');
+    expect(rectTag).toContain('fill="none"');
+    expect(rectTag).toContain('stroke="#4d4d4d"');
+    expect(rectTag).toContain('stroke-width="0.3"');
+  });
+
+  it('pinta el fondo de la página en blanco', () => {
+    const html = render('fluid');
+    const backgroundTag = html.match(/<rect[^>]*fill="#ffffff"[^>]*>/)?.[0];
+    expect(backgroundTag).toBeDefined();
+  });
+
   it('expone una etiqueta accesible', () => {
     expect(render('fluid')).toMatch(/role="img"[^>]*aria-label="Ficha"|aria-label="Ficha"[^>]*role="img"/);
   });
