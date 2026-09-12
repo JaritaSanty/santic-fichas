@@ -23,7 +23,21 @@ const GENERATORS = ['wordsearch', 'crossword', 'arithmetic'];
 export default defineConfig([
   ...nextVitals,
   ...nextTs,
-  globalIgnores(['.next/**', 'out/**', 'next-env.d.ts', 'coverage/**', 'playwright-report/**', 'test-results/**']),
+  globalIgnores([
+    '.next/**',
+    'out/**',
+    'next-env.d.ts',
+    'coverage/**',
+    'playwright-report/**',
+    'test-results/**',
+    '.agent/**',
+    '.agents/**',
+    '.claude/**',
+    '.codex/**',
+    '.gemini/**',
+    '.superpowers/**',
+    'img/**',
+  ]),
   { files: ['src/**/*.{ts,tsx}'], rules: { 'no-console': 'error' } },
 
   boundary(['src/**/*.{ts,tsx}'], []),
