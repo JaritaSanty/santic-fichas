@@ -1,0 +1,29 @@
+# Dependencias
+node_modules/
+
+# Builds de Next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Pruebas
+coverage/
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Variables de entorno
+.env
+.env.*
+!.env.example
+
+# Configuración local de herramientas
+.claude/settings.local.json
+.impeccable/*.local.json
+.codegraph/
+
+# Sistema
+.DS_Store
+Thumbs.db
+*.log
