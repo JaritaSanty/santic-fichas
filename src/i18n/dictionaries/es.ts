@@ -4,12 +4,12 @@ export const es: Dictionary = {
   meta: {
     siteName: 'Santic Education',
     homeTitle: 'Fichas imprimibles para el aula',
-    homeDescription: 'Crea sopas de letras, crucigramas y cuadernillos de operaciones listos para imprimir. Todo se genera en tu navegador.',
+    homeDescription: 'Sopas de letras, crucigramas y cuadernillos de operaciones listos para imprimir, generados en el navegador.',
   },
   nav: { languageSwitch: 'Idioma', languageName: { es: 'Español', en: 'English' }, skipToContent: 'Saltar al contenido', home: 'Inicio' },
-  home: { heading: 'Fichas imprimibles para el aula', intro: 'Elige un generador, ajusta la ficha e imprímela o descárgala en PDF. Lo que escribes no sale de tu navegador.', open: 'Abrir' },
+  home: { heading: 'Fichas imprimibles para el aula', intro: 'Generadores de fichas con vista previa, impresión directa y descarga en PDF. El contenido de cada ficha se procesa en el navegador y no se envía a ningún servidor.', open: 'Abrir' },
   sections: {
-    wordsearch: { title: 'Sopa de letras', description: 'Con tu propio vocabulario, cuadrícula a medida y hoja de soluciones.' },
+    wordsearch: { title: 'Sopa de letras', description: 'Vocabulario propio, cuadrícula a medida y hoja de soluciones.' },
   },
   sheet: { name: 'Nombre', date: 'Fecha', solutions: 'Soluciones', defaultTitle: 'Sopa de letras', previewLabel: 'Vista previa de la ficha' },
   tool: {

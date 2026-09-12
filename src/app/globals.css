@@ -1,1 +1,38 @@
 @import 'tailwindcss';
+
+@theme {
+  /* Extraídos del logotipo (img/isotipo.png, img/Santic-final-05.png). */
+  --color-brand: #385777;
+  --color-brand-strong: #4a4c63;
+  /* Neutros fríos derivados del pizarra del wordmark. Contraste sobre canvas: ink 12.5, muted 5.6, line 3.1. */
+  --color-ink: #23252f;
+  --color-muted: #565a6b;
+  --color-line: #7c8390;
+  --color-surface: #ffffff;
+  --color-canvas: #e6e9ec;
+  --color-focus: #385777;
+  --font-ui: 'Archivo', system-ui, sans-serif;
+  --font-sheet: 'Andika', system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+  accent-color: var(--color-brand);
+  caret-color: var(--color-brand);
+  scrollbar-color: var(--color-line) var(--color-canvas);
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: var(--color-brand);
+  color: var(--color-surface);
+}
+
+a {
+  text-underline-offset: 0.2em;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
