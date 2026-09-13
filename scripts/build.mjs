@@ -3,7 +3,9 @@ import { spawn } from 'node:child_process';
 // Líneas de salida de next build que se aceptan aunque contengan "warn". Añadir solo con justificación.
 const ALLOWED_WARNINGS = [];
 // Pasos post-build en orden. Tareas posteriores añaden entradas: { name, cmd, args }.
-const POST_BUILD_STEPS = [];
+const POST_BUILD_STEPS = [
+  { name: 'Service worker', cmd: 'node', args: ['scripts/build-sw.mjs'] },
+];
 
 function run(cmd, args, { capture = false } = {}) {
   return new Promise((resolve, reject) => {
