@@ -77,3 +77,17 @@ describe('fillAlphabet', () => {
     expect(fillAlphabet('en')).not.toContain('Ñ');
   });
 });
+
+describe('endurecimiento Fase 2', () => {
+  it('rechaza caracteres de control, incluido el marcador interno U+0001', () => {
+    expect(normalizeWord('año\u0001z', 'es')).toEqual({ ok: false, code: 'invalid-chars' });
+    expect(normalizeWord('sol\tluna', 'es')).toEqual({ ok: false, code: 'invalid-chars' });
+    expect(normalizeWord('ro\u007Fjo', 'es')).toEqual({ ok: false, code: 'invalid-chars' });
+  });
+
+  it('añade la Ñ al relleno inglés solo si alguna palabra la contiene', () => {
+    expect(fillAlphabet('en', ['JALAPEÑO', 'CAT'])).toContain('Ñ');
+    expect(fillAlphabet('en', ['CAT'])).not.toContain('Ñ');
+    expect(fillAlphabet('es', [])).toContain('Ñ');
+  });
+});

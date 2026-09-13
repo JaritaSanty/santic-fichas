@@ -87,3 +87,13 @@ export function parseSeedCode(code: string): { version: number; body: string } |
   if (!match) return null;
   return { version: Number(match[1]), body: (match[2] as string).toUpperCase() };
 }
+
+/** Forma canónica de un código de semilla escrito por el docente, o null si no es válido. */
+export function canonicalSeedCode(code: string): string | null {
+  const parsed = parseSeedCode(code);
+  return parsed ? formatSeedCode(parsed.version, parsed.body) : null;
+}
+
+export function newSeedCode(version: number): string {
+  return formatSeedCode(version, randomSeedBody());
+}

@@ -8,12 +8,15 @@ export type NormalizeError = 'empty' | 'invalid-chars' | 'too-short';
 const ENYE_MARK = '\u0001';
 const JOINERS = /[\s\-‐‑–'’]/g;
 const VALID = /^[A-ZÑ]+$/;
+// Caracteres de control C0/C1: nunca son letras y U+0001 es el marcador interno de la Ñ.
+const CONTROL = /[\u0000-\u001F\u007F-\u009F]/;
 
 /**
  * Normaliza una palabra para la cuadrícula: mayúsculas, sin tildes ni diéresis, Ñ conservada,
  * espacios/guiones/apóstrofos eliminados. Ver spec §5.1.
  */
 export function normalizeWord(raw: string, lang: Lang): { ok: true; value: string } | { ok: false; code: NormalizeError } {
+  if (CONTROL.test(raw)) return { ok: false, code: 'invalid-chars' };
   const value = raw
     .normalize('NFC')
     .trim()
@@ -76,6 +79,7 @@ export function parseWordList(text: string, lang: Lang): { entries: WordEntry[];
 const BASE_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const ES_ALPHABET = [...BASE_ALPHABET.slice(0, 14), 'Ñ', ...BASE_ALPHABET.slice(14)];
 
-export function fillAlphabet(lang: Lang): readonly string[] {
-  return lang === 'es' ? ES_ALPHABET : BASE_ALPHABET;
+export function fillAlphabet(lang: Lang, words: readonly string[] = []): readonly string[] {
+  // En inglés la Ñ solo aparece si una palabra la usa; si no, cada Ñ delataría una solución.
+  return lang === 'es' || words.some((word) => word.includes('Ñ')) ? ES_ALPHABET : BASE_ALPHABET;
 }
