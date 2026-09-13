@@ -14,17 +14,27 @@ export function ToolPageLayout({ title, intro, tool, article, adLabel }: {
   adLabel: string;
 }) {
   const showAnchor = isAdVisible(adsConfig, 'anchor', adsConfig.slots.anchor);
+  const showSidebar = isAdVisible(adsConfig, 'sidebar', adsConfig.slots.sidebar);
   return (
     <>
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <div
+        className={[
+          'mx-auto grid max-w-7xl gap-8 px-4 py-6',
+          showSidebar ? 'lg:grid-cols-[minmax(0,1fr)_300px]' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
         <section data-tool-canvas aria-labelledby="tool-title" className="min-w-0">
           <h1 id="tool-title" className="text-2xl font-bold text-brand-strong">{title}</h1>
           <p className="mt-2 text-muted">{intro}</p>
           <div className="mt-6">{tool}</div>
         </section>
-        <div className="no-print hidden lg:block">
-          <AdSlot format="sidebar" slot={adsConfig.slots.sidebar} label={adLabel} />
-        </div>
+        {showSidebar && (
+          <div className="no-print hidden lg:block">
+            <AdSlot format="sidebar" slot={adsConfig.slots.sidebar} label={adLabel} />
+          </div>
+        )}
       </div>
 
       {article && (
