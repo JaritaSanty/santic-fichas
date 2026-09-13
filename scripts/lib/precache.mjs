@@ -1,10 +1,13 @@
 const EXCLUDED = [/^sw\.js$/, /\.(br|gz)$/, /(^|\/)\.DS_Store$/];
 
 // Next.js codifica los segmentos de ruta dinámicos (p. ej. "[lang]") al referenciarlos desde el
-// HTML y el runtime de webpack. Hay que igualar esa codificación aquí o la clave cacheada en
-// `install` no coincidirá con la petición real en tiempo de ejecución.
+// HTML y el runtime de webpack, pero las cargas RSC usan caracteres como "$" o "!" sin codificar
+// (p. ej. "__next.$d$lang.__PAGE__.txt", "__next.!KHJvb3Qp.__PAGE__.txt") y el router cliente las
+// solicita tal cual. `encodeURI` codifica lo primero (corchetes) y deja intacto lo segundo — a
+// diferencia de `encodeURIComponent` por segmento, que escaparía también "$" y rompería esas
+// claves —, igualando exactamente lo que se pide en tiempo de ejecución. `encodeURI` no toca "/".
 function encodePath(file) {
-  return file.split('/').map(encodeURIComponent).join('/');
+  return encodeURI(file);
 }
 
 export function precacheUrls(files, basePath) {

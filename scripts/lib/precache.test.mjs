@@ -25,4 +25,17 @@ describe('precacheUrls', () => {
       '/fichas/%5Blang%5D/',
     ]);
   });
+
+  it('deja intactos los tokens "$" y "!" de las cargas RSC, que el router cliente solicita sin codificar', () => {
+    expect(
+      precacheUrls(
+        ['es/__next.$d$lang.__PAGE__.txt', 'es/sopa-de-letras/__next.$d$lang.$d$section.__PAGE__.txt', '__next.!KHJvb3Qp.__PAGE__.txt'],
+        '/fichas',
+      ),
+    ).toEqual([
+      '/fichas/es/__next.$d$lang.__PAGE__.txt',
+      '/fichas/es/sopa-de-letras/__next.$d$lang.$d$section.__PAGE__.txt',
+      '/fichas/__next.!KHJvb3Qp.__PAGE__.txt',
+    ]);
+  });
 });
