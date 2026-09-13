@@ -1,0 +1,1 @@
+export { WordSearchTool } from './WordSearchTool';

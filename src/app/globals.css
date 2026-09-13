@@ -36,3 +36,45 @@ a {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
+
+#print-root {
+  display: none;
+}
+
+@media print {
+  .no-print,
+  .ad-slot,
+  ins.adsbygoogle,
+  [data-ad-anchor] {
+    display: none !important;
+  }
+
+  /* Con una hoja montada, todo lo que no sea la hoja desaparece (incluido lo que inyecte AdSense en body). */
+  html[data-print-sheet] body > :not(#print-root) {
+    display: none !important;
+  }
+
+  html[data-print-sheet] body {
+    margin: 0;
+    background: #fff;
+  }
+
+  html[data-print-sheet] #print-root {
+    display: block;
+  }
+
+  #print-root .print-page {
+    overflow: hidden;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  #print-root .print-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  #print-root svg {
+    display: block;
+  }
+}
