@@ -2473,6 +2473,7 @@ Expected: PASS, incluida la paridad de claves de `src/i18n/i18n.test.ts`.
 ```bash
 git add src/i18n src/tools/wordsearch/messages.ts src/tools/wordsearch/messages.test.ts
 git commit -m "feat(i18n): textos de la sopa de letras y de la prueba de imprenta con mensajes concretos"
+```
 
 ---
 
