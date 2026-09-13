@@ -29,8 +29,8 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: { sheet: 
   }, [paper, header, lang, labels.sheet]);
 
   return (
-    <div className="grid gap-6 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
-      <form className="grid content-start gap-5 border border-line bg-surface p-5" onSubmit={(e) => e.preventDefault()}>
+    <div className="grid gap-6 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+      <form className="grid content-start gap-5 self-start border border-line bg-surface p-5" onSubmit={(e) => e.preventDefault()}>
         <SheetHeaderFields value={header} onChange={setHeader} labels={{ legend: labels.tool.headerLegend, title: labels.tool.titleLabel, school: labels.tool.schoolLabel }} />
         <PaperSelect value={paper} onChange={setPaper} labels={{ paper: labels.tool.paperLabel, a4: labels.tool.paperA4, letter: labels.tool.paperLetter }} />
       </form>

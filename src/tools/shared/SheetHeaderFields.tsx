@@ -9,7 +9,7 @@ export function SheetHeaderFields({ value, onChange, labels }: {
 }) {
   return (
     <fieldset className="grid gap-3">
-      <legend className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">{labels.legend}</legend>
+      <legend className="mb-3 text-base font-semibold text-ink">{labels.legend}</legend>
       <label className="grid gap-1 text-sm">
         <span className="text-xs font-semibold uppercase tracking-wide text-muted">{labels.title}</span>
         <input

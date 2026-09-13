@@ -26,7 +26,7 @@ export function ToolPageLayout({ title, intro, tool, article, adLabel }: {
           .join(' ')}
       >
         <section data-tool-canvas aria-labelledby="tool-title" className="min-w-0">
-          <h1 id="tool-title" className="text-2xl font-bold text-brand-strong">{title}</h1>
+          <h1 id="tool-title" className="text-3xl font-semibold text-brand-strong">{title}</h1>
           <p className="mt-2 text-muted">{intro}</p>
           <div className="mt-6">{tool}</div>
         </section>

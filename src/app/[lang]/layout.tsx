@@ -33,12 +33,12 @@ export default async function LangLayout({ children, params }: { children: React
   const dict = getDictionary(lang);
   return (
     <html lang={lang}>
-      <body className="min-h-dvh bg-canvas font-ui text-ink antialiased">
+      <body className="flex min-h-dvh flex-col bg-canvas font-ui text-ink antialiased">
         <a href="#contenido" className="no-print sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:border focus:border-line focus:bg-surface focus:px-3 focus:py-2">
           {dict.nav.skipToContent}
         </a>
         <SiteHeader lang={lang} dict={dict} />
-        <main id="contenido">{children}</main>
+        <main id="contenido" className="flex-1">{children}</main>
         <SiteFooter dict={dict} />
         <RegisterServiceWorker />
         <AdsenseScript />
