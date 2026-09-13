@@ -124,7 +124,7 @@ components:
 
 **Creative North Star: "La mesa de pruebas"**
 
-La interfaz es una mesa gris fría sobre la que descansa una hoja blanca a escala: la prueba de imprenta que el docente aprueba antes de fotocopiar. Todo lo que no es la hoja se comporta como un parte de trabajo técnico: filetes de 1 px, esquinas rectas, etiquetas en versalitas, cifras tabulares. La densidad es media y ordenada; nada decora, todo encuadra la hoja.
+La interfaz es una mesa gris fría sobre la que descansa una hoja blanca a escala: la prueba de imprenta que el docente aprueba antes de fotocopiar. Todo lo que no es la hoja se comporta como un parte de trabajo técnico: filetes de 1 px, esquinas rectas, etiquetas en mayúsculas con tracking, cifras tabulares. La densidad es media y ordenada; nada decora, todo encuadra la hoja.
 
 Hay dos mundos cromáticos separados por construcción. La interfaz usa los colores del logotipo (azul acero y pizarra) sobre neutros fríos derivados del wordmark. La hoja usa únicamente cuatro grises definidos en código y compartidos por el renderizado SVG y el PDF, porque se imprime y se fotocopia. La profundidad no existe como sombra: la jerarquía es tonal (mesa frente a papel) y lineal (filetes).
 
@@ -228,7 +228,7 @@ Sólidos, rectos y sin adorno.
 ### Inputs / Fields
 Campos de parte de trabajo.
 - **Style:** fondo papel, filete de 1 px en `line`, esquina recta, 8px × 12px, texto 1rem en tinta; `select` nativo con el mismo trazo.
-- **Label:** etiqueta encima en versalitas (0.75rem, 600, 0.025em, `muted`), 4px de separación.
+- **Label:** etiqueta encima en mayúsculas con tracking (0.75rem, 600, 0.025em, `muted`), 4px de separación.
 - **Focus:** contorno global de 3 px en azul acero; caret azul acero.
 - **Error / Disabled:** aún no existen.
 
@@ -255,7 +255,7 @@ Elementos del contrato de dirección que aún no existen en la construcción y n
 - **Do** reservar el azul acero para la acción primaria, el foco y la selección; titulares en pizarra `brand-strong`.
 - **Do** usar Archivo solo en 400 y 600, y Andika solo dentro de la hoja.
 - **Do** dibujar la hoja exclusivamente con los grises de `TONE_HEX` y medidas en mm.
-- **Do** etiquetar cada campo con su etiqueta visible en versalitas de 0.75rem.
+- **Do** etiquetar cada campo con su etiqueta visible en mayúsculas con tracking de 0.75rem.
 - **Do** cambiar estados en seco, sin transiciones.
 
 ### Don't:

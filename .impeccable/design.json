@@ -275,7 +275,7 @@
       "name": "Text Field",
       "kind": "input",
       "refersTo": "input-field",
-      "description": "Campo del parte de trabajo con etiqueta en versalitas.",
+      "description": "Campo del parte de trabajo con etiqueta en mayúsculas con tracking.",
       "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Título</span><input class=\"ds-input\" type=\"text\" value=\"Sopa de letras\"></label>",
       "css": ".ds-field { display: grid; gap: 4px; font-family: Archivo, system-ui, sans-serif; } .ds-field-label { font-size: 0.75rem; line-height: 1.333; font-weight: 600; text-transform: uppercase; letter-spacing: 0.025em; color: var(--color-muted, #565a6b); } .ds-input { border: 1px solid var(--color-line, #7c8390); border-radius: 0; background: var(--color-surface, #fff); color: var(--color-ink, #23252f); padding: 8px 12px; font: inherit; font-size: 1rem; line-height: 1.5; caret-color: #385777; } .ds-input:focus-visible { outline: 3px solid var(--color-focus, #385777); outline-offset: 2px; }"
     },
@@ -322,7 +322,7 @@
   ],
   "narrative": {
     "northStar": "La mesa de pruebas",
-    "overview": "La interfaz es una mesa gris fría sobre la que descansa una hoja blanca a escala: la prueba de imprenta que el docente aprueba antes de fotocopiar. Todo lo que no es la hoja se comporta como un parte de trabajo técnico: filetes de 1 px, esquinas rectas, etiquetas en versalitas, cifras tabulares. La densidad es media y ordenada; nada decora, todo encuadra la hoja.\n\nHay dos mundos cromáticos separados por construcción. La interfaz usa los colores del logotipo (azul acero y pizarra) sobre neutros fríos derivados del wordmark. La hoja usa únicamente cuatro grises definidos en código y compartidos por el renderizado SVG y el PDF, porque se imprime y se fotocopia. La profundidad no existe como sombra: la jerarquía es tonal (mesa frente a papel) y lineal (filetes).\n\nEl movimiento es seco: los cambios de estado (hover, idioma actual) se producen sin transiciones ni easing. La construcción rechaza el panel SaaS de tarjetas redondeadas con sombra y la estética infantil de lápices de colores.",
+    "overview": "La interfaz es una mesa gris fría sobre la que descansa una hoja blanca a escala: la prueba de imprenta que el docente aprueba antes de fotocopiar. Todo lo que no es la hoja se comporta como un parte de trabajo técnico: filetes de 1 px, esquinas rectas, etiquetas en mayúsculas con tracking, cifras tabulares. La densidad es media y ordenada; nada decora, todo encuadra la hoja.\n\nHay dos mundos cromáticos separados por construcción. La interfaz usa los colores del logotipo (azul acero y pizarra) sobre neutros fríos derivados del wordmark. La hoja usa únicamente cuatro grises definidos en código y compartidos por el renderizado SVG y el PDF, porque se imprime y se fotocopia. La profundidad no existe como sombra: la jerarquía es tonal (mesa frente a papel) y lineal (filetes).\n\nEl movimiento es seco: los cambios de estado (hover, idioma actual) se producen sin transiciones ni easing. La construcción rechaza el panel SaaS de tarjetas redondeadas con sombra y la estética infantil de lápices de colores.",
     "keyCharacteristics": [
       "Mesa `canvas` gris fría bajo papel `surface` blanco; ninguna sombra.",
       "Filetes de 1 px en `line` como único recurso de separación y contención.",
@@ -375,7 +375,7 @@
       "**Do** reservar el azul acero para la acción primaria, el foco y la selección; titulares en pizarra `brand-strong`.",
       "**Do** usar Archivo solo en 400 y 600, y Andika solo dentro de la hoja.",
       "**Do** dibujar la hoja exclusivamente con los grises de `TONE_HEX` y medidas en mm.",
-      "**Do** etiquetar cada campo con su etiqueta visible en versalitas de 0.75rem.",
+      "**Do** etiquetar cada campo con su etiqueta visible en mayúsculas con tracking de 0.75rem.",
       "**Do** cambiar estados en seco, sin transiciones."
     ],
     "donts": [
