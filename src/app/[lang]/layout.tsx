@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { AdsenseScript } from '@/ads/AdsenseScript';
 import { SiteFooter } from '@/components/shell/SiteFooter';
 import { SiteHeader } from '@/components/shell/SiteHeader';
 import { isLang, LANGS } from '@/core/lang';
@@ -38,6 +39,7 @@ export default async function LangLayout({ children, params }: { children: React
         <SiteHeader lang={lang} dict={dict} />
         <main id="contenido">{children}</main>
         <SiteFooter dict={dict} />
+        <AdsenseScript />
       </body>
     </html>
   );

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { ToolPageLayout } from '@/components/shell/ToolPageLayout';
 import { isLang } from '@/core/lang';
 import { getDictionary } from '@/i18n/dictionary';
 import { sectionFromSlug, sectionParams } from '@/i18n/routes';
@@ -29,9 +30,11 @@ export default async function SectionPage({ params }: { params: Params }) {
   if (!r) notFound();
   const { dict, key } = r;
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6">
-      <h1 className="text-2xl font-bold text-brand-strong">{dict.sections[key].title}</h1>
-      <p className="mt-2 text-muted">{dict.sections[key].description}</p>
-    </div>
+    <ToolPageLayout
+      title={dict.sections[key].title}
+      intro={dict.sections[key].description}
+      adLabel={dict.ads.label}
+      tool={null}
+    />
   );
 }
