@@ -5,6 +5,7 @@ const ALLOWED_WARNINGS = [];
 // Pasos post-build en orden. Tareas posteriores añaden entradas: { name, cmd, args }.
 const POST_BUILD_STEPS = [
   { name: 'Service worker', cmd: 'node', args: ['scripts/build-sw.mjs'] },
+  { name: 'Precompresión', cmd: 'node', args: ['scripts/compress.mjs'] },
 ];
 
 function run(cmd, args, { capture = false } = {}) {
