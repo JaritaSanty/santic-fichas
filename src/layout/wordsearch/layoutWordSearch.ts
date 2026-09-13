@@ -61,12 +61,13 @@ function capsules(result: WordSearchResult, g: GridGeometry): Primitive[] {
     const last = p.entry.normalized.length - 1;
     const r1 = p.row + p.dr * last;
     const c1 = p.col + p.dc * last;
+    const width = g.cell * WORDSEARCH_LAYOUT.capsuleRatio;
     return {
       t: 'capsule',
       cx: g.x + ((p.col + c1) / 2 + 0.5) * g.cell,
       cy: g.y + ((p.row + r1) / 2 + 0.5) * g.cell,
-      length: Math.hypot(c1 - p.col, r1 - p.row) * g.cell + g.cell * 0.8,
-      width: g.cell * WORDSEARCH_LAYOUT.capsuleRatio,
+      length: Math.hypot(c1 - p.col, r1 - p.row) * g.cell + width,
+      width,
       angleDeg: (Math.atan2(r1 - p.row, c1 - p.col) * 180) / Math.PI,
       stroke: 'muted',
       strokeWidth: 0.35,

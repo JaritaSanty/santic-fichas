@@ -26,7 +26,16 @@ function bounds(p: Primitive): Array<[number, number]> {
     }
     case 'rect': return [[p.x, p.y], [p.x + p.w, p.y + p.h]];
     case 'line': return [[p.x1, p.y1], [p.x2, p.y2]];
-    case 'capsule': return [[p.cx, p.cy]];
+    case 'capsule': {
+      const a = (p.angleDeg * Math.PI) / 180;
+      const half = p.length / 2 - p.width / 2;
+      const r = p.width / 2;
+      const ends: Array<[number, number]> = [
+        [p.cx - half * Math.cos(a), p.cy - half * Math.sin(a)],
+        [p.cx + half * Math.cos(a), p.cy + half * Math.sin(a)],
+      ];
+      return ends.flatMap(([x, y]) => [[x - r, y - r], [x + r, y + r]] as Array<[number, number]>);
+    }
     case 'image': return [[p.x, p.y], [p.x + p.w, p.y + p.h]];
   }
 }
@@ -72,6 +81,34 @@ describe.each(['a4', 'letter'] as PaperSize[])('layoutWordSearch en %s', (paper)
     const border = out.doc.pages[0]!.primitives.find((p): p is Extract<Primitive, { t: 'rect' }> => p.t === 'rect');
     expect(border!.w / 25).toBeGreaterThanOrEqual(WORDSEARCH_LAYOUT.minCellMm);
   });
+
+  it('las cápsulas que llegan hasta el borde de la cuadrícula (diagonal, horizontal o vertical) no sobresalen del margen', () => {
+    const fake: WordSearchResult = {
+      size: 25,
+      cells: new Array(625).fill('A'),
+      placements: [
+        { entry: { line: 1, original: 'abcde', normalized: 'ABCDE' }, row: 20, col: 20, dr: 1, dc: 1 },
+        { entry: { line: 2, original: 'edcba', normalized: 'EDCBA' }, row: 4, col: 4, dr: -1, dc: -1 },
+        { entry: { line: 3, original: 'fghij', normalized: 'FGHIJ' }, row: 12, col: 20, dr: 0, dc: 1 },
+        { entry: { line: 4, original: 'klmno', normalized: 'KLMNO' }, row: 20, col: 12, dr: 1, dc: 0 },
+      ],
+      unplaced: [],
+      seedCode: 'v1-DIAG',
+    };
+    const out = layoutWordSearch({ result: fake, header, labels, paper, lang: 'es', includeSolutions: true });
+    if (!out.ok) throw new Error('layout');
+    const { widthMm, heightMm } = PAPER[paper];
+    const capsules = out.doc.pages.flatMap((page) => page.primitives.filter((p): p is Extract<Primitive, { t: 'capsule' }> => p.t === 'capsule'));
+    expect(capsules.length).toBeGreaterThan(0);
+    for (const c of capsules) {
+      for (const [x, y] of bounds(c)) {
+        expect(x).toBeGreaterThanOrEqual(SHEET_MARGIN_MM - 1e-6);
+        expect(x).toBeLessThanOrEqual(widthMm - SHEET_MARGIN_MM + 1e-6);
+        expect(y).toBeGreaterThanOrEqual(SHEET_MARGIN_MM - 1e-6);
+        expect(y).toBeLessThanOrEqual(heightMm - SHEET_MARGIN_MM + 1e-6);
+      }
+    }
+  });
 });
 
 describe('lista de palabras y soluciones', () => {
@@ -82,6 +119,21 @@ describe('lista de palabras y soluciones', () => {
     const listed = out.doc.pages[0]!.primitives.filter((p): p is Extract<Primitive, { t: 'text' }> => p.t === 'text' && r.placements.some((pl) => pl.entry.original === p.text)).map((p) => p.text);
     expect(listed).toEqual(r.placements.map((p) => p.entry.original).sort((a, b) => a.localeCompare(b, 'es')));
     expect(listed).toContain('ñandú');
+  });
+
+  it('ordena la lista con las reglas de orden alfabético del español', () => {
+    const words = ['oso', 'árbol', 'ñandú', 'nube', 'zorro'];
+    const fake: WordSearchResult = {
+      size: 8,
+      cells: new Array(64).fill('A'),
+      placements: words.map((w, i) => ({ entry: { line: i + 1, original: w, normalized: w.toUpperCase() }, row: 0, col: 0, dr: 0, dc: 1 })),
+      unplaced: [],
+      seedCode: 'v1-ORDEN',
+    };
+    const out = layoutWordSearch({ result: fake, header, labels, paper: 'a4', lang: 'es', includeSolutions: false });
+    if (!out.ok) throw new Error('layout');
+    const listed = out.doc.pages[0]!.primitives.filter((p): p is Extract<Primitive, { t: 'text' }> => p.t === 'text' && words.includes(p.text)).map((p) => p.text);
+    expect(listed).toEqual(['árbol', 'nube', 'ñandú', 'oso', 'zorro']);
   });
 
   it('dibuja una cápsula por palabra centrada dentro de la cuadrícula', () => {
