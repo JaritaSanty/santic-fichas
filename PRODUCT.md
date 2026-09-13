@@ -24,6 +24,7 @@ Todo se procesa en el navegador: el vocabulario, los nombres y los enunciados de
 
 ## Operating Context
 
+- Superficies: portada con los tres generadores, una página por generador y páginas de contenido editorial por intención, cada una en español (`/es/…`) e inglés (`/en/…`).
 - La hoja se imprime y se fotocopia: las fichas son en escala de grises y deben seguir siendo legibles tras varias copias.
 - Dos salidas equivalentes: impresión directa desde el navegador (`@media print`) y PDF con tipografías incrustadas.
 - Papel A4 o Carta, según la región del navegador y elegible por el docente.
@@ -48,14 +49,14 @@ Todo se procesa en el navegador: el vocabulario, los nombres y los enunciados de
 - Nombre: Santic Education.
 - Logotipo en `img/`: isotipo (S con birrete) y wordmark «SANTIC / EDUCATION».
 - Colores oficiales de la identidad base: azul acero `#385777` (isotipo) y pizarra `#4A4C63` (wordmark).
-- La variante terracota `#D57044` (`img/Santic-final-01.png`) es una variante puntual, no parte de la identidad base de esta herramienta.
-- Existen versiones monocromas negra y gris del logotipo e isotipo, y un SVG monocromo del isotipo (`img/safari-pinned-tab.svg`).
+- La variante terracota `#D57044` del wordmark es una variante puntual, no parte de la identidad base de esta herramienta.
+- Recursos fuente en `img/`: isotipo a 2481 px (`isotipo.png`), SVG monocromo del isotipo (`safari-pinned-tab.svg`), composición horizontal (`Santic-final-05.png`) e icono táctil (`apple-touch-icon.png`).
 - La herramienta es independiente: marca propia discreta; solo el pie de la ficha y un enlace discreto remiten a santiceducation.com. No es un embudo hacia los cursos.
 - Voz en español: impersonal, sin tuteo ni usted («Palabras de la ficha», «Descargar PDF», «Imprimir»). En inglés, equivalente neutro y directo.
 
 ## Evidence on Hand
 
-- Recursos de marca en `img/` (PNG a 2481 px, favicons, SVG del isotipo).
+- Recursos de marca en `img/` y derivados en `public/brand/` (logotipo horizontal, isotipo gris en SVG y PNG, favicon).
 - No existen testimonios, cifras de uso, clientes ni reseñas: no se deben inventar.
 - Credenciales del autor y textos legales: pendientes del operador; no se inventan.
 
