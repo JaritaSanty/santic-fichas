@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { normalizeBasePath } from '../src/core/paths.ts';
 
 // Líneas de salida de next build que se aceptan aunque contengan "warn". Añadir solo con justificación.
 const ALLOWED_WARNINGS = [];
@@ -8,9 +9,14 @@ const POST_BUILD_STEPS = [
   { name: 'Precompresión', cmd: 'node', args: ['scripts/compress.mjs'] },
 ];
 
+// Normalizado una sola vez aquí y propagado a todos los hijos: build-sw.mjs y serve-out.mjs
+// también saben normalizar por su cuenta (misma implementación) para poder ejecutarse sueltos.
+const NORMALIZED_BASE_PATH = normalizeBasePath(process.env.NEXT_PUBLIC_BASE_PATH);
+const childEnv = { ...process.env, NEXT_PUBLIC_BASE_PATH: NORMALIZED_BASE_PATH };
+
 function run(cmd, args, { capture = false } = {}) {
   return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args, { stdio: capture ? ['inherit', 'pipe', 'pipe'] : 'inherit', env: process.env });
+    const child = spawn(cmd, args, { stdio: capture ? ['ignore', 'pipe', 'pipe'] : ['ignore', 'inherit', 'inherit'], env: childEnv });
     let output = '';
     if (capture) {
       child.stdout.on('data', (d) => { output += d; process.stdout.write(d); });

@@ -69,9 +69,27 @@ describe('buildFrame contenido', () => {
     expect(empty.content).toEqual(full.content);
   });
 
-  it('recorta título y centro a su longitud máxima', () => {
+  it('recorta título y centro a su propia longitud máxima', () => {
     const long = 'x'.repeat(200);
     const { primitives } = buildFrame({ paper: 'a4', header: { title: long, school: long }, labels, role: 'student' });
-    for (const t of texts(primitives)) expect(t.length).toBeLessThanOrEqual(Math.max(HEADER_LIMITS.title, HEADER_LIMITS.school));
+    const [title, school] = texts(primitives);
+    expect(title).toHaveLength(HEADER_LIMITS.title);
+    expect(school).toHaveLength(HEADER_LIMITS.school);
+  });
+
+  it('recorta por puntos de código: un emoji en el límite no deja un surrogate huérfano', () => {
+    // '🧑' (U+1F9D1) es un par suplente (2 unidades UTF-16); se coloca justo cruzando el límite.
+    const title = `${'x'.repeat(HEADER_LIMITS.title - 1)}🧑`;
+    const school = `${'x'.repeat(HEADER_LIMITS.school - 1)}🧑`;
+    const { primitives } = buildFrame({ paper: 'a4', header: { title, school }, labels, role: 'student' });
+    const [shownTitle, shownSchool] = texts(primitives);
+    // Array.from cuenta puntos de código: el emoji completo entra y el texto tiene un carácter
+    // (punto de código) más de longitud UTF-16 que el límite, pero ningún surrogate solitario.
+    expect(Array.from(shownTitle ?? '')).toHaveLength(HEADER_LIMITS.title);
+    expect(Array.from(shownSchool ?? '')).toHaveLength(HEADER_LIMITS.school);
+    for (const ch of [shownTitle, shownSchool]) {
+      expect(ch).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/); // surrogate alto huérfano
+      expect(ch).not.toMatch(/(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/); // surrogate bajo huérfano
+    }
   });
 });

@@ -7,7 +7,10 @@ export interface FrameLabels { name: string; date: string; solutions: string }
 export interface ContentBox { x: number; y: number; w: number; h: number }
 export interface Frame { primitives: Primitive[]; content: ContentBox }
 
-export const HEADER_LIMITS = { title: 80, school: 80 } as const;
+// title = 40: límite provisional hasta que la Fase 2 mida con métricas reales de la tipografía
+// de ficha (Andika Bold a 7 mm ≈ 3,47 mm/carácter; 80 caracteres ≈ 278 mm sobre 186 mm de ancho
+// de contenido, solo caben ~50). school se mantiene en 80 (Andika a 3,5 mm, cabe sin desbordar).
+export const HEADER_LIMITS = { title: 40, school: 80 } as const;
 
 // Geometría del marco en mm, relativa al margen superior o inferior.
 const TITLE_BASELINE = 7;
@@ -31,8 +34,10 @@ export function buildFrame(input: {
 }): Frame {
   const { widthMm: W, heightMm: H } = PAPER[input.paper];
   const m = SHEET_MARGIN_MM;
-  const title = input.header.title.trim().slice(0, HEADER_LIMITS.title);
-  const school = input.header.school.trim().slice(0, HEADER_LIMITS.school);
+  // Recorte por puntos de código, no por unidades UTF-16: slice() partiría un par suplente
+  // (p. ej. un emoji) dejando una unidad huérfana en el texto final.
+  const title = Array.from(input.header.title.trim()).slice(0, HEADER_LIMITS.title).join('');
+  const school = Array.from(input.header.school.trim()).slice(0, HEADER_LIMITS.school).join('');
   const primitives: Primitive[] = [];
 
   const shownTitle = input.role === 'solution' ? [title, input.labels.solutions].filter(Boolean).join(' — ') : title;

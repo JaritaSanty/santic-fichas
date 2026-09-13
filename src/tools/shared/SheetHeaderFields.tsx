@@ -29,7 +29,7 @@ export function SheetHeaderFields({ value, onChange, labels }: {
           maxLength={HEADER_LIMITS.school}
           onChange={(e) => onChange({ ...value, school: e.target.value })}
           className="border border-line bg-surface px-3 py-2 text-base text-ink"
-          autoComplete="organization"
+          autoComplete="off"
         />
       </label>
     </fieldset>

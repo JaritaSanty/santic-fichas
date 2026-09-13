@@ -1,10 +1,12 @@
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import path from 'node:path';
+import { normalizeBasePath } from '../src/core/paths.ts';
 
 const OUT = path.resolve('out');
 const PORT = Number(process.env.PORT ?? 4173);
-const BASE = (process.env.NEXT_PUBLIC_BASE_PATH ?? '').trim().replace(/\/+$/, '');
+// Normaliza también aquí (no solo en build.mjs) para que ejecutar este script suelto sea seguro.
+const BASE = normalizeBasePath(process.env.NEXT_PUBLIC_BASE_PATH);
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -13,8 +15,24 @@ const TYPES = {
 };
 
 function send(res, status, file) {
-  res.writeHead(status, { 'Content-Type': TYPES[path.extname(file)] ?? 'application/octet-stream', 'Cache-Control': 'no-store' });
-  createReadStream(file).pipe(res);
+  const stream = createReadStream(file);
+  // Un fichero que desaparece entre el statSync/existsSync y la apertura del stream no debe
+  // tumbar el proceso: si aún no se enviaron cabeceras, responde 500; si ya se enviaron
+  // (error a media lectura), corta el socket.
+  stream.on('error', () => {
+    if (!res.headersSent) {
+      res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+      res.end('Internal Server Error');
+    } else {
+      res.destroy();
+    }
+  });
+  // Cabeceras solo tras abrir el fd con éxito: si falla, 'error' llega antes que 'open'
+  // y headersSent sigue en false.
+  stream.on('open', () => {
+    res.writeHead(status, { 'Content-Type': TYPES[path.extname(file)] ?? 'application/octet-stream', 'Cache-Control': 'no-store' });
+  });
+  stream.pipe(res);
 }
 
 function sendText(res, status, body) {
