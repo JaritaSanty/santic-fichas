@@ -4,7 +4,8 @@ import { TONE_HEX, type Primitive, type SheetPage } from '@/core/sheet';
 
 export const BRAND_MARK_SRC = '/brand/mark-gray.svg';
 
-const FONT_STYLE = { fontFamily: 'var(--font-sheet)' } as const;
+// Sin kerning ni ligaduras: la maquetación mide con la suma de avances, igual que el PDF.
+const FONT_STYLE = { fontFamily: 'var(--font-sheet)', fontKerning: 'none', fontVariantLigatures: 'none' } as const;
 
 function PrimitiveNode({ p }: { p: Primitive }) {
   switch (p.t) {
