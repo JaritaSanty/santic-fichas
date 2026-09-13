@@ -1,0 +1,389 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-13T15:19:52.405Z",
+  "title": "Design System: Santic Education — Generador de fichas",
+  "extensions": {
+    "colorMeta": {
+      "brand": {
+        "role": "primary",
+        "displayName": "Azul acero del isotipo",
+        "canonical": "#385777",
+        "tonalRamp": [
+          "#000a25",
+          "#062542",
+          "#234260",
+          "#416081",
+          "#6383a6",
+          "#83a5c9",
+          "#a8cbf0",
+          "#cff3ff"
+        ]
+      },
+      "brand-strong": {
+        "role": "primary",
+        "displayName": "Pizarra del wordmark",
+        "canonical": "#4a4c63",
+        "tonalRamp": [
+          "#09091b",
+          "#212236",
+          "#3c3e54",
+          "#595b73",
+          "#7c7e97",
+          "#9d9fba",
+          "#c2c5e0",
+          "#e9ecff"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Tinta pizarra",
+        "canonical": "#23252f",
+        "tonalRamp": [
+          "#090a13",
+          "#21232d",
+          "#3d3f4a",
+          "#5a5d69",
+          "#7d7f8c",
+          "#9ea1ae",
+          "#c4c7d4",
+          "#ebeefc"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Pizarra atenuado",
+        "canonical": "#565a6b",
+        "tonalRamp": [
+          "#080a17",
+          "#202332",
+          "#3b3f4f",
+          "#595d6e",
+          "#7b7f91",
+          "#9ca1b3",
+          "#c2c6da",
+          "#e9eeff"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Filete frío",
+        "canonical": "#7c8390",
+        "tonalRamp": [
+          "#070b14",
+          "#1f242f",
+          "#3a404b",
+          "#575e6a",
+          "#79808d",
+          "#9aa2af",
+          "#c0c8d6",
+          "#e7effd"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Papel",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#262626",
+          "#424242",
+          "#5e5e5e",
+          "#7a7a7a",
+          "#999999",
+          "#b5b5b5",
+          "#d4d4d4",
+          "#f2f2f2"
+        ]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Mesa gris fría",
+        "canonical": "#e6e9ec",
+        "tonalRamp": [
+          "#090b0d",
+          "#222426",
+          "#3e4042",
+          "#5b5e60",
+          "#7e8083",
+          "#9fa2a5",
+          "#c5c8ca",
+          "#eceff2"
+        ]
+      },
+      "focus": {
+        "role": "primary",
+        "displayName": "Foco (alias de azul acero)",
+        "canonical": "#385777",
+        "tonalRamp": [
+          "#000a25",
+          "#062542",
+          "#234260",
+          "#416081",
+          "#6383a6",
+          "#83a5c9",
+          "#a8cbf0",
+          "#cff3ff"
+        ]
+      },
+      "sheet-ink": {
+        "role": "sheet",
+        "displayName": "Negro de hoja",
+        "canonical": "#000000",
+        "tonalRamp": [
+          "#262626",
+          "#424242",
+          "#5e5e5e",
+          "#7a7a7a",
+          "#999999",
+          "#b5b5b5",
+          "#d4d4d4",
+          "#f2f2f2"
+        ]
+      },
+      "sheet-muted": {
+        "role": "sheet",
+        "displayName": "Gris medio de hoja",
+        "canonical": "#4d4d4d",
+        "tonalRamp": [
+          "#262626",
+          "#424242",
+          "#5e5e5e",
+          "#7a7a7a",
+          "#999999",
+          "#b5b5b5",
+          "#d4d4d4",
+          "#f2f2f2"
+        ]
+      },
+      "sheet-faint": {
+        "role": "sheet",
+        "displayName": "Gris claro de hoja",
+        "canonical": "#b3b3b3",
+        "tonalRamp": [
+          "#262626",
+          "#424242",
+          "#5e5e5e",
+          "#7a7a7a",
+          "#999999",
+          "#b5b5b5",
+          "#d4d4d4",
+          "#f2f2f2"
+        ]
+      },
+      "sheet-paper": {
+        "role": "sheet",
+        "displayName": "Blanco de hoja",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#262626",
+          "#424242",
+          "#5e5e5e",
+          "#7a7a7a",
+          "#999999",
+          "#b5b5b5",
+          "#d4d4d4",
+          "#f2f2f2"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "h1 de portada y generador, en pizarra."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "h2 «Vista previa» y nombre de generador en portada."
+      },
+      "legend": {
+        "displayName": "Legend",
+        "purpose": "Leyenda de grupo del parte de trabajo."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Introducciones, valores de campo; botón en 600."
+      },
+      "body-sm": {
+        "displayName": "Body small",
+        "purpose": "Descripciones, pie, selector de idioma."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Etiqueta visible en mayúsculas de cada campo."
+      },
+      "sheet-title": {
+        "displayName": "Sheet title",
+        "purpose": "Título de la hoja, Andika 700 a 7 mm."
+      },
+      "sheet-body": {
+        "displayName": "Sheet body",
+        "purpose": "Centro, rótulos Nombre/Fecha a 3.5 mm."
+      },
+      "sheet-footer": {
+        "displayName": "Sheet footer",
+        "purpose": "Dominio en el pie de hoja a 2.5 mm (≈7 pt)."
+      }
+    },
+    "shadows": [],
+    "focus": [
+      {
+        "name": "focus-ring",
+        "value": "outline: 3px solid #385777; outline-offset: 2px",
+        "purpose": "Único estado de foco global (:focus-visible)."
+      }
+    ],
+    "motion": [
+      {
+        "name": "dry-step",
+        "value": "none",
+        "purpose": "Los cambios de estado son instantáneos; no hay transiciones en la construcción."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
+    ],
+    "pending": [
+      "Marcas de corte en L y cruces de registro en azul acero",
+      "Línea de trabajo con papel, páginas y semilla; Imprimir/PDF al inicio",
+      "Zoom en escalas enteras nombradas y «Ampliar» en móvil",
+      "Parpadeo seco (≤ 90 ms) de las marcas de registro",
+      "Cuña de 5 grises como leyenda de tono",
+      "Parte de trabajo plegable en móvil",
+      "Acción secundaria con filete (PDF)"
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Acción primaria (Imprimir): relleno azul acero, esquina recta, hover seco a pizarra.",
+      "html": "<button type=\"button\" class=\"ds-btn-primary\">Imprimir</button>",
+      "css": ".ds-btn-primary { background: var(--color-brand, #385777); color: #fff; font-family: Archivo, system-ui, sans-serif; font-size: 1rem; line-height: 1.5; font-weight: 600; padding: 8px 16px; border: 0; border-radius: 0; cursor: pointer; } .ds-btn-primary:hover { background: var(--color-brand-strong, #4a4c63); } .ds-btn-primary:focus-visible { outline: 3px solid var(--color-focus, #385777); outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Campo del parte de trabajo con etiqueta en mayúsculas con tracking.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Título</span><input class=\"ds-input\" type=\"text\" value=\"Sopa de letras\"></label>",
+      "css": ".ds-field { display: grid; gap: 4px; font-family: Archivo, system-ui, sans-serif; } .ds-field-label { font-size: 0.75rem; line-height: 1.333; font-weight: 600; text-transform: uppercase; letter-spacing: 0.025em; color: var(--color-muted, #565a6b); } .ds-input { border: 1px solid var(--color-line, #7c8390); border-radius: 0; background: var(--color-surface, #fff); color: var(--color-ink, #23252f); padding: 8px 12px; font: inherit; font-size: 1rem; line-height: 1.5; caret-color: #385777; } .ds-input:focus-visible { outline: 3px solid var(--color-focus, #385777); outline-offset: 2px; }"
+    },
+    {
+      "name": "Paper Select",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Selector nativo de papel, mismo trazo que el campo, en grupo separado por filete.",
+      "html": "<div class=\"ds-group\"><label class=\"ds-field\"><span class=\"ds-field-label\">Papel</span><select class=\"ds-select\"><option>A4</option><option>Carta</option></select></label></div>",
+      "css": ".ds-group { border-top: 1px solid var(--color-line, #7c8390); padding-top: 16px; } .ds-field { display: grid; gap: 4px; font-family: Archivo, system-ui, sans-serif; } .ds-field-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.025em; color: var(--color-muted, #565a6b); } .ds-select { border: 1px solid var(--color-line, #7c8390); border-radius: 0; background: #fff; color: var(--color-ink, #23252f); padding: 8px 12px; font: inherit; font-size: 1rem; accent-color: #385777; } .ds-select:focus-visible { outline: 3px solid #385777; outline-offset: 2px; }"
+    },
+    {
+      "name": "Language Switch",
+      "kind": "nav",
+      "refersTo": "lang-switch-current",
+      "description": "Idioma actual en recuadro de papel; los demás ganan filete y tinta al pasar el cursor.",
+      "html": "<nav class=\"ds-lang\" aria-label=\"Idioma\"><span class=\"ds-lang-current\" aria-current=\"true\">Español</span><a class=\"ds-lang-link\" href=\"#\" hreflang=\"en\">English</a></nav>",
+      "css": ".ds-lang { display: flex; align-items: center; gap: 4px; font-family: Archivo, system-ui, sans-serif; font-size: 0.875rem; line-height: 1.43; } .ds-lang-current { border: 1px solid var(--color-line, #7c8390); background: #fff; padding: 4px 8px; font-weight: 600; color: var(--color-ink, #23252f); } .ds-lang-link { border: 1px solid transparent; padding: 4px 8px; color: var(--color-muted, #565a6b); text-decoration: none; } .ds-lang-link:hover { border-color: var(--color-line, #7c8390); color: var(--color-ink, #23252f); } .ds-lang-link:focus-visible { outline: 3px solid #385777; outline-offset: 2px; }"
+    },
+    {
+      "name": "Docket",
+      "kind": "card",
+      "refersTo": "docket",
+      "description": "Parte de trabajo: formulario en papel con filete, máx. 22rem, anclado arriba.",
+      "html": "<form class=\"ds-docket\"><fieldset class=\"ds-fieldset\"><legend class=\"ds-legend\">Encabezado de la ficha</legend><label class=\"ds-field\"><span class=\"ds-field-label\">Título</span><input class=\"ds-input\" value=\"Sopa de letras\"></label></fieldset></form>",
+      "css": ".ds-docket { max-width: 22rem; display: grid; gap: 20px; align-self: start; background: #fff; border: 1px solid var(--color-line, #7c8390); border-radius: 0; padding: 20px; font-family: Archivo, system-ui, sans-serif; } .ds-fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 12px; } .ds-legend { margin-bottom: 12px; font-size: 1rem; font-weight: 600; color: var(--color-ink, #23252f); } .ds-field { display: grid; gap: 4px; } .ds-field-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.025em; color: var(--color-muted, #565a6b); } .ds-input { border: 1px solid var(--color-line, #7c8390); padding: 8px 12px; font: inherit; color: var(--color-ink, #23252f); } .ds-input:focus-visible { outline: 3px solid #385777; outline-offset: 2px; }"
+    },
+    {
+      "name": "Sheet Proof Card",
+      "kind": "custom",
+      "refersTo": "sheet-proof",
+      "description": "Prueba de hoja A4 en portada con passe-partout de 8px; título subrayado al pasar el cursor.",
+      "html": "<a class=\"ds-proof\" href=\"#\"><div class=\"ds-proof-frame\"><svg viewBox=\"0 0 210 297\" width=\"100%\" role=\"img\" aria-label=\"Sopa de letras\"><rect width=\"210\" height=\"297\" fill=\"#fff\"/><text x=\"105\" y=\"19\" font-size=\"7\" font-weight=\"700\" text-anchor=\"middle\" fill=\"#000\" font-family=\"Andika, system-ui, sans-serif\">Sopa de letras</text><text x=\"12\" y=\"35\" font-size=\"3.5\" fill=\"#000\" font-family=\"Andika, system-ui, sans-serif\">Nombre:</text><line x1=\"34\" y1=\"35.8\" x2=\"138\" y2=\"35.8\" stroke=\"#000\" stroke-width=\"0.2\"/><line x1=\"12\" y1=\"40\" x2=\"198\" y2=\"40\" stroke=\"#b3b3b3\" stroke-width=\"0.3\"/><line x1=\"12\" y1=\"277\" x2=\"198\" y2=\"277\" stroke=\"#b3b3b3\" stroke-width=\"0.2\"/><text x=\"20\" y=\"283.2\" font-size=\"2.5\" fill=\"#4d4d4d\" font-family=\"Andika, system-ui, sans-serif\">santiceducation.com</text></svg></div><h2 class=\"ds-proof-title\">Sopa de letras</h2><p class=\"ds-proof-desc\">Vocabulario propio, cuadrícula a medida y hoja de soluciones.</p></a>",
+      "css": ".ds-proof { display: block; color: inherit; text-decoration: none; font-family: Archivo, system-ui, sans-serif; } .ds-proof-frame { max-width: 16rem; border: 1px solid var(--color-line, #7c8390); background: #fff; padding: 8px; } .ds-proof-title { margin: 12px 0 0; font-size: 1.125rem; line-height: 1.556; font-weight: 600; color: var(--color-ink, #23252f); text-underline-offset: 4px; } .ds-proof:hover .ds-proof-title { text-decoration: underline; } .ds-proof-desc { margin: 4px 0 0; font-size: 0.875rem; color: var(--color-muted, #565a6b); } .ds-proof:focus-visible { outline: 3px solid #385777; outline-offset: 2px; }"
+    },
+    {
+      "name": "Ad Placeholder",
+      "kind": "custom",
+      "refersTo": "ad-placeholder",
+      "description": "Hueco publicitario reservado fuera del lienzo; único borde discontinuo.",
+      "html": "<aside class=\"ds-ad\" aria-label=\"Publicidad\"><div class=\"ds-ad-box\">Publicidad · 300px × 600px</div></aside>",
+      "css": ".ds-ad { width: 300px; max-width: 100%; height: 600px; } .ds-ad-box { display: flex; height: 100%; align-items: center; justify-content: center; border: 1px dashed var(--color-line, #7c8390); background: var(--color-canvas, #e6e9ec); color: var(--color-muted, #565a6b); font-family: Archivo, system-ui, sans-serif; font-size: 0.75rem; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "La mesa de pruebas",
+    "overview": "La interfaz es una mesa gris fría sobre la que descansa una hoja blanca a escala: la prueba de imprenta que el docente aprueba antes de fotocopiar. Todo lo que no es la hoja se comporta como un parte de trabajo técnico: filetes de 1 px, esquinas rectas, etiquetas en mayúsculas con tracking, cifras tabulares. La densidad es media y ordenada; nada decora, todo encuadra la hoja.\n\nHay dos mundos cromáticos separados por construcción. La interfaz usa los colores del logotipo (azul acero y pizarra) sobre neutros fríos derivados del wordmark. La hoja usa únicamente cuatro grises definidos en código y compartidos por el renderizado SVG y el PDF, porque se imprime y se fotocopia. La profundidad no existe como sombra: la jerarquía es tonal (mesa frente a papel) y lineal (filetes).\n\nEl movimiento es seco: los cambios de estado (hover, idioma actual) se producen sin transiciones ni easing. La construcción rechaza el panel SaaS de tarjetas redondeadas con sombra y la estética infantil de lápices de colores.",
+    "keyCharacteristics": [
+      "Mesa `canvas` gris fría bajo papel `surface` blanco; ninguna sombra.",
+      "Filetes de 1 px en `line` como único recurso de separación y contención.",
+      "Esquinas rectas en toda la interfaz.",
+      "Archivo (400/600) para la interfaz, Andika (400/700) solo dentro de la hoja.",
+      "Cifras tabulares globales.",
+      "Hoja en escala de grises con geometría en milímetros.",
+      "Cambios de estado secos, sin transiciones."
+    ],
+    "rules": [
+      {
+        "name": "The Steel Is for Action Rule",
+        "body": "El azul acero rellena solo la acción primaria, el foco y la selección. Los titulares van en pizarra, no en azul.",
+        "section": "colors"
+      },
+      {
+        "name": "The Grayscale Sheet Rule",
+        "body": "Dentro de la hoja solo existen los cuatro grises de `TONE_HEX`. Ningún token de interfaz entra en la hoja y ningún gris de hoja se usa en la interfaz.",
+        "section": "colors"
+      },
+      {
+        "name": "The 600 Ceiling Rule",
+        "body": "Archivo solo se carga en 400 y 600; ningún texto de interfaz usa 700. La negrita 700 es exclusiva de Andika en la hoja.",
+        "section": "typography"
+      },
+      {
+        "name": "The Two Faces Rule",
+        "body": "Archivo nunca aparece en la hoja; Andika nunca aparece en la interfaz.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Figures Rule",
+        "body": "`font-variant-numeric: tabular-nums` está activo en la raíz; toda cantidad se alinea en columnas.",
+        "section": "typography"
+      },
+      {
+        "name": "The Off-Canvas Ads Rule",
+        "body": "Los anuncios solo ocupan la columna lateral de 300px, el anclaje inferior móvil o el cuerpo del artículo; nunca el lienzo de la herramienta, nunca junto a acciones y nunca en impresión.",
+        "section": "layout"
+      },
+      {
+        "name": "The Filete Rule",
+        "body": "Contener es trazar: un borde de 1 px en `line` delimita campos, parte de trabajo, hoja, cabecera y pie. No se usan sombras ni fondos tintados para separar.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** poner la hoja blanca con filete de 1 px sobre la mesa `canvas` como centro de cada superficie de herramienta.",
+      "**Do** delimitar con bordes de 1 px en `line` y esquinas rectas (0px).",
+      "**Do** reservar el azul acero para la acción primaria, el foco y la selección; titulares en pizarra `brand-strong`.",
+      "**Do** usar Archivo solo en 400 y 600, y Andika solo dentro de la hoja.",
+      "**Do** dibujar la hoja exclusivamente con los grises de `TONE_HEX` y medidas en mm.",
+      "**Do** etiquetar cada campo con su etiqueta visible en mayúsculas con tracking de 0.75rem.",
+      "**Do** cambiar estados en seco, sin transiciones."
+    ],
+    "donts": [
+      "**Don't** añadir sombras ni esquinas redondeadas a la interfaz.",
+      "**Don't** usar `font-bold` (700) con Archivo: no está cargado y el navegador lo sintetiza.",
+      "**Don't** introducir colores de interfaz, ni la variante terracota #D57044, en la hoja o en la paleta de la herramienta.",
+      "**Don't** usar `line` como color de texto: no alcanza contraste de texto.",
+      "**Don't** colocar anuncios dentro del lienzo de la herramienta, junto a acciones o en impresión."
+    ]
+  }
+}

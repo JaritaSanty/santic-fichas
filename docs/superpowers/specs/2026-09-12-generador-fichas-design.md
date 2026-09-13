@@ -218,11 +218,11 @@ Unidades en milímetros; origen arriba a la izquierda. Los renderizadores traduc
 - Fuente: material de marca en `img/` (pendiente de aporte del operador). Referencia provisional: `brand-logo.png` del repositorio SanTIC-Education, isotipo azul acero ≈ `#385070` y wordmark pizarra ≈ `#484860`. La paleta definitiva se extrae de los ficheros de `img/`, no se inventa.
 - `PRODUCT.md` y `DESIGN.md` se escriben en la Fase 1 mediante impeccable.
 - Páginas de generador en modo *Operate*; páginas de contenido en modo *Read*.
-- Tipografías servidas localmente con @fontsource, subconjuntos latin y latin-ext: una de interfaz y una de ficha legible para lectores iniciales, elegidas en la Fase 1.
+- Tipografías servidas localmente con @fontsource: una de interfaz y una de ficha legible para lectores iniciales, elegidas en la Fase 1. **En la Fase 1 solo se sirve el subconjunto `latin`**; las letras fuera de Latin-1 usan la tipografía de reserva del sistema, tanto en pantalla como en impresión directa. La Fase 2 decide `latin-ext` mediante `@font-face` escrito a mano con `unicode-range` (coste cero en la primera vista mientras no se use) junto con el subconjunto del PDF, y enseña al script de presupuesto a saltarse los rangos no latinos.
 
 ### 7.2 Disposición
 
-- **Escritorio (≥ 1024 px):** cabecera (logo, selector de idioma) → lienzo de herramienta (parámetros + vista previa) con columna derecha de 300 px (anuncio 1) → contenido explicativo con anuncio in-article (anuncio 2) → pie web.
+- **Escritorio (≥ 1024 px):** cabecera (logo, selector de idioma) → lienzo de herramienta (parámetros + vista previa) con columna derecha de 300 px (anuncio 1) → contenido explicativo con anuncio in-article (anuncio 2) → pie web. La columna lateral de escritorio **solo existe** cuando el anuncio lateral es visible (`isAdVisible(adsConfig, 'sidebar', ...)`, una constante resuelta en build); sin anuncio el lienzo ocupa todo el ancho. Al resolverse en build y no en cliente, no hay salto de layout (CLS).
 - **Móvil (360 px):** parámetros → Generar → vista previa (con acciones Imprimir y Descargar PDF en su cabecera) → contenido. Botón «Ampliar» abre la hoja a tamaño real con zoom táctil. Anclaje inferior (anuncio 3) si está activado.
 - Los botones de acción nunca son fijos (`position: fixed/sticky`).
 
@@ -270,7 +270,7 @@ Unidades en milímetros; origen arriba a la izquierda. Los renderizadores traduc
 - Se registra tras el evento `load`; en `install` precarga en segundo plano todo el HTML, JS, CSS y tipografías de `out/` (incluidos módulo de PDF y fuentes TTF). No cuenta para el presupuesto de primera vista.
 - Estrategias: recursos con huella → caché primero; navegaciones → red primero con respaldo en caché.
 - Nunca cachea peticiones de otros orígenes (AdSense).
-- Actualización: nueva versión del SW por despliegue; activación en la siguiente navegación.
+- Actualización: nueva versión del SW por despliegue; activación en la siguiente navegación. El nuevo service worker **no** llama a `skipWaiting`; se activa solo cuando ninguna pestaña sigue usando la versión anterior — llamar a `skipWaiting` borraría cachés que las páginas antiguas todavía podrían necesitar para sus fragmentos (chunks) diferidos.
 
 ## 11. Privacidad
 
@@ -296,7 +296,7 @@ Las variables `NEXT_PUBLIC_*` son argumentos de build; cambiarlas implica recons
 - `Cache-Control: public, max-age=31536000, immutable` en `<basePath>/_next/static/` y `<basePath>/fonts/` (ficheros con huella). `no-cache` en HTML y `sw.js`.
 - `set_real_ip_from <CIDR de la red de NPM>; real_ip_header X-Forwarded-For;` y `limit_req_zone $binary_remote_addr zone=static:10m rate=20r/s;` con `burst=60 nodelay` y estado 429.
 - Redirección de `/` por `Accept-Language`.
-- Cabeceras: CSP aplicada con `'self'` más la lista de dominios de AdSense y CMP mantenida en un único fichero (`deploy/nginx/csp.conf`) y contrastada con la documentación vigente de Google en la Fase 6; `'unsafe-inline'` en `script-src` es necesario para los scripts en línea de la exportación estática de Next.js. `X-Content-Type-Options`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` restrictiva.
+- Cabeceras: CSP aplicada con `'self'` más la lista de dominios de AdSense y CMP mantenida en un único fichero (`deploy/nginx/csp.conf`) y contrastada con la documentación vigente de Google en la Fase 6; `'unsafe-inline'` en `script-src` es necesario para los scripts en línea de la exportación estática de Next.js. `X-Content-Type-Options`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` restrictiva. `style-src 'self' 'unsafe-inline'` también es necesario (atributos `style` en línea de SVG y `AdSlot`, el estilo en línea de la página 404 por defecto de Next.js, y el `<style id="print-page-size">` dinámico); la Fase 6 debe ejecutar una pasada e2e completa con la cabecera CSP real activada.
 - Log de acceso con formato propio basado en `$uri`.
 
 ### 12.3 docker-compose.yml
@@ -392,3 +392,10 @@ Commits: formato de commits convencionales en español, uno por unidad de trabaj
 | Repositorio de GitHub (propietario/nombre) | Fase 6 |
 | Nombre y CIDR de la red de Nginx Proxy Manager; ruta de despliegue en el VPS; usuario SSH | Fase 6 |
 | Identificador de editor de AdSense y de bloques (cuando la cuenta se apruebe) | Tras aprobación; no bloquea ninguna fase |
+
+## 17. Enmiendas tras la Fase 1
+
+- **§12.2 CSP:** se añade `style-src 'self' 'unsafe-inline'` — es necesario para los atributos `style` en línea de SVG y `AdSlot`, el estilo en línea de la página 404 por defecto de Next.js y el `<style id="print-page-size">` dinámico; la Fase 6 debe correr una pasada e2e con la cabecera CSP real.
+- **§10 (activación del service worker):** se aclara que el nuevo SW no llama a `skipWaiting` — se activa solo cuando ninguna pestaña usa ya la versión anterior, porque `skipWaiting` borraría cachés que páginas antiguas aún podrían necesitar para fragmentos diferidos.
+- **§7.1 (subconjuntos de tipografía):** se aclara que la Fase 1 sirve únicamente el subconjunto `latin` — las letras fuera de Latin-1 caen a la tipografía de reserva del sistema en pantalla y en impresión directa; la Fase 2 decide `latin-ext` con `@font-face` manual y `unicode-range` junto con el subconjunto del PDF, y enseña al presupuesto a ignorar los rangos no latinos.
+- **§7.2 / §8 (columna lateral de escritorio):** se aclara que la columna solo existe cuando el anuncio lateral es visible (constante de build, sin salto de layout).

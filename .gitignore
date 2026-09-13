@@ -27,3 +27,7 @@ playwright/.cache/
 .DS_Store
 Thumbs.db
 *.log
+.impeccable/hook.cache.json
+.impeccable/questions/
+.impeccable/review/
+.superpowers/
