@@ -67,4 +67,19 @@ describe('renderPdf', () => {
     const expectedLeftMm = 105 - measureTextMm('ÑANDÚ pingüino ¿Qué? Nº 5 — «años»', 'sheetBold', 7) / 2;
     expect(item && 'transform' in item ? item.transform[4] : NaN).toBeCloseTo(expectedLeftMm * MM_TO_PT, 0);
   });
+
+  it('dibuja rectángulos con esquinas redondeadas sin lanzar y mantiene el número de páginas', async () => {
+    const withRadius: SheetDocument = {
+      paper: 'a4',
+      lang: 'es',
+      pages: [
+        {
+          role: 'student',
+          primitives: [{ t: 'rect', x: 20, y: 60, w: 100, h: 40, stroke: 'ink', strokeWidth: 0.4, fill: 'paper', radius: 4 }],
+        },
+      ],
+    };
+    const pdf = await open(await renderPdf(withRadius, assets));
+    expect(pdf.numPages).toBe(1);
+  });
 });
