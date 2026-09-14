@@ -74,7 +74,7 @@ export function ProofSheet({ doc, docKey, label, labels }: {
         </div>
       </div>
 
-      <dialog ref={dialogRef} aria-label={label} className="m-0 h-dvh max-h-none w-screen max-w-none bg-canvas p-0 backdrop:bg-ink/60">
+      <dialog ref={dialogRef} aria-label={label} className="m-0 h-dvh max-h-none w-screen max-w-none overflow-auto bg-canvas p-0 backdrop:bg-ink/60">
         <div className="sticky left-0 top-0 z-10 flex justify-end border-b border-line bg-canvas p-3">
           <button type="button" onClick={() => dialogRef.current?.close()} className="border border-line bg-surface px-4 py-2 font-semibold text-ink">
             {labels.close}

@@ -212,7 +212,7 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
 
         <ProofSheet
           doc={doc}
-          docKey={requestKey ?? 'frame'}
+          docKey={JSON.stringify([requestKey ?? 'frame', header.title, header.school, paper, includeSolutions])}
           label={labels.sheet.previewLabel}
           labels={{ zoomLegend: proof.zoomLegend, zoomFit: proof.zoomFit, zoomActual: proof.zoomActual, enlarge: proof.enlarge, close: proof.close }}
         />

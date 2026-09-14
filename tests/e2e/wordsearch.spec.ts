@@ -115,16 +115,40 @@ test.describe('prueba de imprenta', () => {
     expect(width).toBeGreaterThan(790);
   });
 
-  test('a 360 px «Ampliar» abre la hoja a tamaño real sin desbordar la página', async ({ page }) => {
+  test('a 360 px «Ampliar» abre la hoja a tamaño real, el diálogo se desplaza y no desborda la página', async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 740 });
     await page.goto('es/sopa-de-letras/');
     await expect(page.locator('[data-generation]')).toHaveAttribute('data-generation', 'done', { timeout: 10_000 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
     await page.getByRole('button', { name: 'Ampliar' }).click();
-    const enlarged = page.locator('dialog[open] svg[role="img"]').first();
+    const dialog = page.locator('dialog[open]');
+    const enlarged = dialog.locator('svg[role="img"]').first();
     await expect(enlarged).toBeVisible();
     expect((await enlarged.boundingBox())!.width).toBeGreaterThan(790);
+
+    const overflow = await dialog.evaluate((el) => ({ scrollHeight: el.scrollHeight, clientHeight: el.clientHeight, scrollWidth: el.scrollWidth, clientWidth: el.clientWidth }));
+    expect(overflow.scrollHeight).toBeGreaterThan(overflow.clientHeight);
+    expect(overflow.scrollWidth).toBeGreaterThan(overflow.clientWidth);
+
+    await dialog.evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+    const lastSvg = dialog.locator('svg[role="img"]').last();
+    const box = (await lastSvg.boundingBox())!;
+    const viewport = page.viewportSize()!;
+    expect(box.y).toBeLessThan(viewport.height);
+    expect(box.y + box.height).toBeGreaterThan(0);
+
     await page.getByRole('button', { name: 'Cerrar' }).click();
     await expect(page.locator('dialog[open]')).toHaveCount(0);
+  });
+
+  test('el parte plegable sigue accesible al cambiar de tamaño de viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 740 });
+    await page.goto('es/sopa-de-letras/');
+    await page.getByText('Opciones de la ficha').click();
+    await expect(page.getByLabel('Título')).toBeHidden();
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect(page.getByLabel('Título')).toBeVisible();
   });
 });
