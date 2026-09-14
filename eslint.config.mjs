@@ -5,6 +5,7 @@ import nextTs from 'eslint-config-next/typescript';
 // Regla base: nada de rutas relativas hacia directorios padre; fuera del directorio actual se usa @/.
 const NO_PARENT = { regex: '^\\.\\./', message: 'Usa el alias @/ para importar fuera del directorio actual.' };
 const REACT_OR_NEXT = { regex: '^(react|react-dom|next)(/|$)', message: 'Este módulo es lógica pura: no puede depender de React ni de Next.js.' };
+const NO_STATIC_PDF = { regex: '^@/render/pdf(/|$)', message: 'render/pdf solo se carga con import() dinámico al descargar el PDF.' };
 
 /** Solo permite importar los prefijos @/ indicados (además de paquetes npm y ./). */
 const onlyAlias = (allowed, message) => ({
@@ -60,6 +61,7 @@ export default defineConfig([
   boundary(['src/workers/**'], [onlyAlias(['core', 'generators', 'workers'], 'workers solo ejecuta generadores.'), REACT_OR_NEXT]),
   boundary(['src/tools/shared/**'], [
     onlyAlias(['core', 'layout/common', 'render', 'i18n', 'tools/shared'], 'tools/shared no puede importar ads, content, shell ni herramientas concretas.'),
+    NO_STATIC_PDF,
   ]),
   ...GENERATORS.map((g) =>
     boundary([`src/tools/${g}/**`], [
@@ -67,6 +69,7 @@ export default defineConfig([
         ['core', `generators/${g}`, 'layout/common', `layout/${g}`, 'render', 'workers', 'i18n', 'tools/shared', `tools/${g}`],
         `tools/${g} no puede importar otras herramientas, ads, content ni el shell.`,
       ),
+      NO_STATIC_PDF,
     ]),
   ),
   boundary(['src/i18n/**'], [onlyAlias(['core', 'i18n'], 'i18n solo depende de core.')]),

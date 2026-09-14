@@ -6,8 +6,8 @@ import { walk } from './lib/walk.mjs';
 
 const OUT = 'out';
 const LIMIT_BYTES = 300 * 1024;
-// Marcadores de módulos de carga diferida que no pueden aparecer en JS inicial (Fase 2: pdf-lib).
-const FORBIDDEN_INITIAL = ['PDFDocument', 'fontkit'];
+// Literales de pdf-lib que sobreviven a la minificación; no pueden aparecer en ningún chunk inicial.
+const FORBIDDEN_INITIAL = ['FontFile2', 'CIDFontType2'];
 
 const gz = (buf) => gzipSync(buf, { level: 9 }).length;
 const kb = (n) => `${(n / 1024).toFixed(1)} KB`;
