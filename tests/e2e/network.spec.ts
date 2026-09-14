@@ -22,29 +22,45 @@ test('ninguna petición sale del origen propio (sin AdSense configurado)', async
   expect([...external]).toEqual([]);
 });
 
-test('ninguna entrada del usuario aparece en consola ni en peticiones', async ({ page }) => {
-  const SENTINEL = 'ZQXCENTINELAÑ';
+test('ninguna entrada del usuario aparece en consola, peticiones, URL, almacenamiento ni cachés', async ({ page }) => {
+  // El centinela del encabezado es largo; la palabra centinela cabe en la cuadrícula para que la generación termine.
+  const HEADER_SENTINEL = 'ZQXCENTINELAÑ';
+  const WORD_SENTINEL = 'qzxñwkj';
+  const needles = [HEADER_SENTINEL, WORD_SENTINEL, WORD_SENTINEL.toUpperCase(), 'QZXNWKJ'];
   const leaks: string[] = [];
-  page.on('console', (msg) => { if (msg.text().includes(SENTINEL)) leaks.push(`console: ${msg.text()}`); });
+  const hasNeedle = (text: string) => needles.some((n) => text.includes(n) || decodeURIComponent(text).includes(n));
+  page.on('console', (msg) => {
+    if (hasNeedle(msg.text())) leaks.push(`console: ${msg.text()}`);
+  });
   page.on('request', (request) => {
-    if (request.url().includes(SENTINEL) || (request.postData() ?? '').includes(SENTINEL)) leaks.push(`request: ${request.url()}`);
+    if (hasNeedle(request.url()) || hasNeedle(request.postData() ?? '')) leaks.push(`request: ${request.url()}`);
   });
 
   await page.goto('es/sopa-de-letras/');
-  await page.getByLabel('Título').fill(SENTINEL);
-  await page.getByLabel('Centro o docente').fill(SENTINEL);
+  await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
+  await page.getByLabel('Título').fill(HEADER_SENTINEL);
+  await page.getByLabel('Centro o docente').fill(HEADER_SENTINEL);
+  await page.getByLabel('Palabras').fill(`gato\n${WORD_SENTINEL}\nperro`);
+  await expect(page.locator('[data-generation]')).toHaveAttribute('data-generation', 'done', { timeout: 10_000 });
+  await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Descargar PDF' }).click()]);
   await page.waitForLoadState('networkidle');
 
-  expect(page.url()).not.toContain(SENTINEL);
-  const stored = await page.evaluate(async (s) => {
-    const inStorage = JSON.stringify({ ...localStorage }).includes(s);
+  expect(needles.some((n) => page.url().includes(n))).toBe(false);
+  const stored = await page.evaluate(async (list) => {
+    const has = (text: string) => list.some((n) => text.includes(n));
+    const databases = (await indexedDB.databases()).map((db) => db.name ?? '');
     let inCache = false;
     for (const key of await caches.keys()) {
       const cache = await caches.open(key);
-      for (const req of await cache.keys()) if (decodeURIComponent(req.url).includes(s)) inCache = true;
+      for (const request of await cache.keys()) if (has(decodeURIComponent(request.url))) inCache = true;
     }
-    return { inStorage, inCache };
-  }, SENTINEL);
-  expect(stored).toEqual({ inStorage: false, inCache: false });
+    return {
+      inLocal: has(JSON.stringify({ ...localStorage })),
+      inSession: has(JSON.stringify({ ...sessionStorage })),
+      databases,
+      inCache,
+    };
+  }, needles);
+  expect(stored).toEqual({ inLocal: false, inSession: false, databases: [], inCache: false });
   expect(leaks).toEqual([]);
 });

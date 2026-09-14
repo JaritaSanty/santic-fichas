@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:e2e:root": "playwright test --config playwright.root.config.ts",
     "budget": "node scripts/budget.mjs",
     "metrics:fonts": "node scripts/gen-sheet-font-metrics.mjs"
   },
