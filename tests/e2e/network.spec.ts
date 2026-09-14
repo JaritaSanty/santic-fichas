@@ -26,9 +26,16 @@ test('ninguna entrada del usuario aparece en consola, peticiones, URL, almacenam
   // El centinela del encabezado es largo; la palabra centinela cabe en la cuadrícula para que la generación termine.
   const HEADER_SENTINEL = 'ZQXCENTINELAÑ';
   const WORD_SENTINEL = 'qzxñwkj';
-  const needles = [HEADER_SENTINEL, WORD_SENTINEL, WORD_SENTINEL.toUpperCase(), 'QZXNWKJ'];
+  const needles = [HEADER_SENTINEL, WORD_SENTINEL, WORD_SENTINEL.toUpperCase(), 'QZXNWKJ', 'qzxnwkj'];
   const leaks: string[] = [];
-  const hasNeedle = (text: string) => needles.some((n) => text.includes(n) || decodeURIComponent(text).includes(n));
+  const safeDecode = (text: string) => {
+    try {
+      return decodeURIComponent(text);
+    } catch {
+      return text;
+    }
+  };
+  const hasNeedle = (text: string) => needles.some((n) => text.includes(n) || safeDecode(text).includes(n));
   page.on('console', (msg) => {
     if (hasNeedle(msg.text())) leaks.push(`console: ${msg.text()}`);
   });
@@ -48,11 +55,18 @@ test('ninguna entrada del usuario aparece en consola, peticiones, URL, almacenam
   expect(needles.some((n) => page.url().includes(n))).toBe(false);
   const stored = await page.evaluate(async (list) => {
     const has = (text: string) => list.some((n) => text.includes(n));
+    const safeDecodeInPage = (text: string) => {
+      try {
+        return decodeURIComponent(text);
+      } catch {
+        return text;
+      }
+    };
     const databases = (await indexedDB.databases()).map((db) => db.name ?? '');
     let inCache = false;
     for (const key of await caches.keys()) {
       const cache = await caches.open(key);
-      for (const request of await cache.keys()) if (has(decodeURIComponent(request.url))) inCache = true;
+      for (const request of await cache.keys()) if (has(safeDecodeInPage(request.url))) inCache = true;
     }
     return {
       inLocal: has(JSON.stringify({ ...localStorage })),
