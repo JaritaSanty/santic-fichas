@@ -2,11 +2,12 @@
 
 import { useId } from 'react';
 
-export function SeedField({ value, onChange, onNewSeed, error, labels }: {
+export function SeedField({ value, onChange, onNewSeed, error, placeholder, labels }: {
   value: string;
   onChange: (next: string) => void;
   onNewSeed: () => void;
   error: string | null;
+  placeholder: string;
   labels: { label: string; help: string; newSeed: string };
 }) {
   const helpId = useId();
@@ -19,12 +20,12 @@ export function SeedField({ value, onChange, onNewSeed, error, labels }: {
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="v1-ABC234"
+          placeholder={placeholder}
           autoComplete="off"
           spellCheck={false}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? `${helpId} ${errorId}` : helpId}
-          className="border border-line bg-surface px-3 py-2 text-base tabular-nums text-ink"
+          className="border border-line bg-surface px-3 py-2 text-base tabular-nums text-ink placeholder:text-muted"
         />
       </label>
       <p id={helpId} className="text-xs text-muted">{labels.help}</p>

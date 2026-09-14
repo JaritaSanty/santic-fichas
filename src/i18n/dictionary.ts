@@ -19,6 +19,7 @@ export interface Dictionary {
     print: string;
     preview: string;
     optionsSummary: string;
+    optionsDetail: string;
     headerUnsupportedChars: string;
     headerTitleShortened: string;
   };

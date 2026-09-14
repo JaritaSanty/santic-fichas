@@ -22,6 +22,7 @@ export const es: Dictionary = {
     print: 'Imprimir',
     preview: 'Vista previa',
     optionsSummary: 'Opciones de la ficha',
+    optionsDetail: '{count} palabras · {size} × {size} · {seed}',
     headerUnsupportedChars: 'La tipografía de la ficha no incluye {chars}; esos caracteres no aparecerán en la hoja.',
     headerTitleShortened: 'El título no cabe completo en la hoja y se acortará.',
   },

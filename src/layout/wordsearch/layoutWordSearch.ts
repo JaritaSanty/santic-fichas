@@ -3,14 +3,14 @@ import { capHeightMm, measureTextMm } from '@/core/measure';
 import type { PaperSize } from '@/core/paper';
 import type { Primitive, SheetDocument, SheetPage } from '@/core/sheet';
 import type { WordSearchResult } from '@/generators/wordsearch';
-import { buildFrame, type ContentBox, type FrameLabels, type SheetHeader } from '@/layout/common/frame';
+import { buildFrame, type FrameLabels, type SheetHeader } from '@/layout/common/frame';
 
 export const WORDSEARCH_LAYOUT = {
-  maxCellMm: 12,
+  maxCellMm: 14,
   minCellMm: 6,
   gapMm: 6,
-  listSizeMm: 4,
-  listLineMm: 6.5,
+  listSizeMm: 5,
+  listLineMm: 7.5,
   listColumnGapMm: 6,
   letterRatio: 0.62,
   capsuleRatio: 0.78,
@@ -75,11 +75,11 @@ function capsules(result: WordSearchResult, g: GridGeometry): Primitive[] {
   });
 }
 
-function listPrimitives(words: readonly string[], box: ContentBox, top: number, columns: number, colWidth: number): Primitive[] {
+function listPrimitives(words: readonly string[], x: number, top: number, columns: number, colWidth: number): Primitive[] {
   const L = WORDSEARCH_LAYOUT;
   return words.map((text, k) => ({
     t: 'text',
-    x: box.x + (k % columns) * colWidth,
+    x: x + (k % columns) * colWidth,
     y: top + Math.floor(k / columns) * L.listLineMm + L.listSizeMm,
     text,
     size: L.listSizeMm,
@@ -98,11 +98,12 @@ export function layoutWordSearch(input: LayoutInput): WordSearchLayout {
   const words = result.placements.map((p) => p.entry.original).sort((a, b) => a.localeCompare(b, lang));
   const widest = words.reduce((max, w) => Math.max(max, measureTextMm(w, 'sheet', L.listSizeMm)), 0);
   const colWidth = widest + L.listColumnGapMm;
-  const columns = Math.max(1, Math.floor((box.w + L.listColumnGapMm) / colWidth));
-  const listHeight = Math.ceil(words.length / columns) * L.listLineMm;
+  // Estimación previa a conocer la cuadrícula: solo sirve para reservar alto de lista al dimensionar la celda.
+  const estimateColumns = Math.max(1, Math.floor((box.w + L.listColumnGapMm) / colWidth));
+  const estimateListHeight = Math.ceil(words.length / estimateColumns) * L.listLineMm;
 
   const byWidth = box.w / result.size;
-  const withList = Math.min(L.maxCellMm, byWidth, (box.h - L.gapMm - listHeight) / result.size);
+  const withList = Math.min(L.maxCellMm, byWidth, (box.h - L.gapMm - estimateListHeight) / result.size);
   const cell = withList >= L.minCellMm ? withList : Math.min(L.maxCellMm, byWidth, box.h / result.size);
   if (cell < L.minCellMm) {
     return { ok: false, error: { code: 'cells-too-small', maxSize: Math.floor(Math.min(box.w, box.h) / L.minCellMm) } };
@@ -110,6 +111,8 @@ export function layoutWordSearch(input: LayoutInput): WordSearchLayout {
 
   const side = cell * result.size;
   const grid: GridGeometry = { x: box.x + (box.w - side) / 2, y: box.y, cell, side };
+  // La lista final se alinea con el ancho real de la cuadrícula, no con el de la caja de contenido.
+  const columns = Math.max(1, Math.floor((grid.side + L.listColumnGapMm) / colWidth));
   const listTop = grid.y + side + L.gapMm;
   const firstLines = Math.max(0, Math.floor((box.y + box.h - listTop) / L.listLineMm));
   const firstCount = Math.min(words.length, firstLines * columns);
@@ -117,14 +120,14 @@ export function layoutWordSearch(input: LayoutInput): WordSearchLayout {
   const pages: SheetPage[] = [
     {
       role: 'student',
-      primitives: [...first.primitives, ...gridPrimitives(result, grid), ...listPrimitives(words.slice(0, firstCount), box, listTop, columns, colWidth)],
+      primitives: [...first.primitives, ...gridPrimitives(result, grid), ...listPrimitives(words.slice(0, firstCount), grid.x, listTop, columns, colWidth)],
     },
   ];
 
   const perPage = Math.max(1, Math.floor(box.h / L.listLineMm)) * columns;
   for (let start = firstCount; start < words.length; start += perPage) {
     const frame = buildFrame({ paper, header, labels, role: 'student' });
-    pages.push({ role: 'student', primitives: [...frame.primitives, ...listPrimitives(words.slice(start, start + perPage), frame.content, frame.content.y, columns, colWidth)] });
+    pages.push({ role: 'student', primitives: [...frame.primitives, ...listPrimitives(words.slice(start, start + perPage), grid.x, frame.content.y, columns, colWidth)] });
   }
 
   if (input.includeSolutions) {

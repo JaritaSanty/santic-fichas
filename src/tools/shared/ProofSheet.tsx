@@ -60,7 +60,7 @@ export function ProofSheet({ doc, docKey, label, labels }: {
         </button>
       </div>
 
-      <div className={zoom === 'actual' ? 'max-h-[80dvh] overflow-auto' : undefined}>
+      <div className={zoom === 'actual' ? 'max-h-[80dvh] overflow-auto border border-line bg-canvas [scrollbar-gutter:stable]' : undefined}>
         <div className="grid gap-6">
           {doc.pages.map((page, i) => (
             <div key={i} className={`relative p-5 ${zoom === 'actual' ? 'w-max' : ''}`}>

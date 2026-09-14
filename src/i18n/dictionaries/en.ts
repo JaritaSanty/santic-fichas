@@ -22,6 +22,7 @@ export const en: Dictionary = {
     print: 'Print',
     preview: 'Preview',
     optionsSummary: 'Worksheet options',
+    optionsDetail: '{count} words · {size} × {size} · {seed}',
     headerUnsupportedChars: 'The worksheet typeface has no {chars}; those characters will not appear on the sheet.',
     headerTitleShortened: 'The title does not fit on the sheet and will be shortened.',
   },

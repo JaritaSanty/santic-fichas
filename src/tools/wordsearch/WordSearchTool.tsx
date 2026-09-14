@@ -128,7 +128,10 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
   return (
     <div data-generation={current ? generation.status : 'pending'} className="grid gap-6 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
       <form className="md:self-start" onSubmit={(e) => e.preventDefault()}>
-        <Docket summary={labels.tool.optionsSummary}>
+        <Docket
+          summary={labels.tool.optionsSummary}
+          detail={formatMessage(labels.tool.optionsDetail, { count: lineCount, size, seed: seedCode || '—' })}
+        >
           <SheetHeaderFields
             value={header}
             onChange={setHeader}
@@ -158,6 +161,7 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
               setSeedInput('');
               setRegeneratedSeed(newSeedCode(WORDSEARCH_ALGORITHM_VERSION));
             }}
+            placeholder={seedCode || '—'}
             labels={{ label: t.seedLabel, help: t.seedHelp, newSeed: t.newSheet }}
           />
           <IncludeSolutionsField checked={includeSolutions} onChange={setIncludeSolutions} label={t.includeSolutions} />

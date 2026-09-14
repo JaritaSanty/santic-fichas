@@ -10,11 +10,12 @@ function subscribe(callback: () => void) {
   return () => mql.removeEventListener('change', callback);
 }
 
-export function Docket({ summary, children }: { summary: string; children: React.ReactNode }) {
-  // A partir de md el parte siempre está abierto (el <summary> se oculta); por debajo, su estado lo
-  // decide el toggle del usuario, para que no quede inaccesible tras cambiar de tamaño de viewport.
+export function Docket({ summary, detail, children }: { summary: string; detail: string; children: React.ReactNode }) {
+  // A partir de md el parte siempre está abierto (el <summary> se oculta); por debajo empieza plegado
+  // para dejar la hoja en el primer viewport, y a partir de ahí su estado lo decide el toggle del
+  // usuario, para que no quede inaccesible tras cambiar de tamaño de viewport.
   const isDesktop = useSyncExternalStore(subscribe, () => window.matchMedia(DESKTOP_QUERY).matches, () => false);
-  const [openOnMobile, setOpenOnMobile] = useState(true);
+  const [openOnMobile, setOpenOnMobile] = useState(false);
 
   return (
     <details
@@ -28,7 +29,10 @@ export function Docket({ summary, children }: { summary: string; children: React
       }}
       className="border border-line bg-surface"
     >
-      <summary className="cursor-pointer px-5 py-3 font-semibold text-ink md:hidden">{summary}</summary>
+      <summary className="cursor-pointer px-5 py-3 md:hidden">
+        <span className="font-semibold text-ink">{summary}</span>
+        <span className="mt-0.5 block text-xs tabular-nums text-muted">{detail}</span>
+      </summary>
       <div className="grid content-start gap-5 p-5">{children}</div>
     </details>
   );

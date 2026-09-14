@@ -15,7 +15,8 @@ async function box(locator: Locator): Promise<Box> {
 }
 
 async function expectAdsFarFromActions(page: Page) {
-  const actions = page.locator('[data-action]');
+  // Las acciones dentro del parte plegado (móvil) no tienen caja visible; solo se comprueban las visibles.
+  const actions = page.locator('[data-action]:visible');
   const ads = page.locator('.ad-slot:visible');
   for (let i = 0; i < (await actions.count()); i++) {
     const action = actions.nth(i);

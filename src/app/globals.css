@@ -23,6 +23,12 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Prueba a 100 %: la ventana de desplazamiento lleva su propia barra temática (mesa/filete). */
+[data-proof-sheet] .overflow-auto {
+  scrollbar-color: var(--color-line) var(--color-canvas);
+  scrollbar-width: thin;
+}
+
 ::selection {
   background: var(--color-brand);
   color: var(--color-surface);

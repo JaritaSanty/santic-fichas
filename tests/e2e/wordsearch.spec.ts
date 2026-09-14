@@ -146,6 +146,9 @@ test.describe('prueba de imprenta', () => {
   test('el parte plegable sigue accesible al cambiar de tamaño de viewport', async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 740 });
     await page.goto('es/sopa-de-letras/');
+    await expect(page.getByLabel('Título')).toBeHidden();
+    await page.getByText('Opciones de la ficha').click();
+    await expect(page.getByLabel('Título')).toBeVisible();
     await page.getByText('Opciones de la ficha').click();
     await expect(page.getByLabel('Título')).toBeHidden();
     await page.setViewportSize({ width: 1280, height: 900 });

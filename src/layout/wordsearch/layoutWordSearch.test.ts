@@ -82,6 +82,22 @@ describe.each(['a4', 'letter'] as PaperSize[])('layoutWordSearch en %s', (paper)
     expect(border!.w / 25).toBeGreaterThanOrEqual(WORDSEARCH_LAYOUT.minCellMm);
   });
 
+  it('la lista de palabras queda alineada con el ancho de la cuadrícula, no con el de la caja de contenido', () => {
+    const r = result(ANIMALS, 12);
+    const out = layoutWordSearch({ result: r, header, labels, paper, lang: 'es', includeSolutions: false });
+    if (!out.ok) throw new Error('layout');
+    const border = out.doc.pages[0]!.primitives.find((p): p is Extract<Primitive, { t: 'rect' }> => p.t === 'rect')!;
+    const listTexts = out.doc.pages[0]!.primitives.filter(
+      (p): p is Extract<Primitive, { t: 'text' }> => p.t === 'text' && r.placements.some((pl) => pl.entry.original === p.text),
+    );
+    expect(listTexts.length).toBeGreaterThan(0);
+    for (const text of listTexts) {
+      const width = measureTextMm(text.text, text.font, text.size);
+      expect(text.x).toBeGreaterThanOrEqual(border.x - 1e-6);
+      expect(text.x + width).toBeLessThanOrEqual(border.x + border.w + 1e-6);
+    }
+  });
+
   it('las cápsulas que llegan hasta el borde de la cuadrícula (diagonal, horizontal o vertical) no sobresalen del margen', () => {
     const fake: WordSearchResult = {
       size: 25,
