@@ -16,6 +16,8 @@ pnpm test                # Vitest (src/**/*.test.ts(x) and scripts/**/*.test.mjs
 pnpm test src/core/text.test.ts          # a single unit test file
 pnpm budget              # first-view weight per route, fails above 300 KB
 pnpm test:e2e            # Playwright (Chromium) against out/ served at /fichas
+pnpm test:e2e:root       # smoke project with empty basePath (builds out/ without basePath on port 4174)
+pnpm metrics:fonts       # regenerate src/core/sheetFontMetrics.ts after changing @fontsource/andika
 pnpm exec playwright test tests/e2e/print.spec.ts   # a single e2e spec
 ```
 
@@ -25,7 +27,10 @@ E2E runs against `out/` from `pnpm build:e2e`. If Playwright's `webServer` start
 
 - **Webpack only.** Turbopack copies `new Worker(new URL(...))` sources uncompiled; keep `--webpack` in dev and build.
 - **Static export with two root layouts:** `src/app/(root)` is the language-detection redirect for `/`; `src/app/[lang]` is the app. A single dynamic segment `[lang]/[section]` resolves translated slugs through `src/i18n/routes.ts` (`generateStaticParams` returns only the slugs of each language).
-- **One geometric source of truth for the sheet:** generators produce data → `src/layout/*` builds a `SheetDocument` of mm primitives (`src/core/sheet.ts`, text `y` is the baseline) → `src/render/svg/SheetSvg` renders it for preview and print (`render/pdf` arrives in Phase 2). Sheets are grayscale (`TONE_HEX`).
+- **One geometric source of truth for the sheet:** generators produce data → `src/layout/*` builds a `SheetDocument` of mm primitives (`src/core/sheet.ts`, text `y` is the baseline) → `src/render/svg/SheetSvg` renders it for preview and print, and `src/render/pdf` (pdf-lib) for the PDF. Sheets are grayscale (`TONE_HEX`).
+- **Text is measured, not guessed:** `src/core/measure.ts` sums glyph advances from `src/core/sheetFontMetrics.ts` (generated from Andika latin WOFF; a drift test fails if the package changes). Andika has no kerning and SVG disables kerning/ligatures, so layout, SVG and PDF agree. Header text is fitted by width (`fitHeader`) and characters without a glyph are stripped from the sheet.
+- **Word search flow:** `generators/wordsearch` (validation, seeded backtracking placement, suggestions) runs in `src/workers/wordsearch.worker.ts`; `tools/wordsearch/wordSearchClient.ts` is an external store (read with `useSyncExternalStore`) that owns the Worker, ignores stale `requestId`s and fails after 1.5 s; `layout/wordsearch` builds grid, paginated word list and solution page with capsules. Seeds are `v{algorithm version}-{body}` codes; same canonical code + parameters → same sheet.
+- **PDF:** `render/pdf` may only be loaded with `import()` (ESLint rule; `pnpm budget` fails if `FontFile2`/`CIDFontType2` appear in initial chunks). Fonts are embedded as **WOFF with `subset: true`** (WOFF2 subsetting crashes @pdf-lib/fontkit) and referenced with `new URL('@fontsource/…woff', import.meta.url)`, so webpack hashes them and the service worker precaches them.
 - **Module boundaries are enforced by ESLint** (`eslint.config.mjs`): `core` depends on nothing; `generators/X` and `layout/X` only on `core` and their own generator; `render/*` never knows generators or layout; `tools/X` never imports other tools, `ads`, `components` or `content`; `content` only uses `tools/X/index`. Parent-relative imports (`../`) are forbidden — use `@/`.
 - **Paths:** never hardcode absolute paths. Navigation goes through `next/link`; every other asset URL through `withBasePath()` (`src/core/paths.ts`). `NEXT_PUBLIC_*` values are inlined at build time, so changing them requires a rebuild; read them with literal `process.env.NEXT_PUBLIC_X` access (see `src/ads/env.ts`).
 - **Printing:** `tools/shared/PrintRoot` portals the sheet into `#print-root` as a direct child of `body`, sets `html[data-print-sheet]` and writes `<style id="print-page-size">`; the print CSS in `src/app/globals.css` hides every other body child. Pages without a mounted sheet print normally minus `.no-print` and ads.
