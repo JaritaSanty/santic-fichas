@@ -41,6 +41,26 @@ a {
   display: none;
 }
 
+/* Paso seco de las marcas de registro al cambiar la ficha (sin easing decorativo). */
+@keyframes proof-register {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.proof-marks {
+  animation: proof-register 90ms steps(2, end);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .proof-marks {
+    animation: none;
+  }
+}
+
 @media print {
   .no-print,
   .ad-slot,

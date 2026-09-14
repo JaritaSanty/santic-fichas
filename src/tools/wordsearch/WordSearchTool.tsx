@@ -17,7 +17,12 @@ import { PrintButton } from '@/tools/shared/PrintButton';
 import { PrintRoot } from '@/tools/shared/PrintRoot';
 import { SeedField } from '@/tools/shared/SeedField';
 import { SheetHeaderFields } from '@/tools/shared/SheetHeaderFields';
-import { SheetPreview } from '@/tools/shared/SheetPreview';
+import { worksheetFilename } from '@/core/filename';
+import { Docket } from '@/tools/shared/Docket';
+import { DownloadPdfButton } from '@/tools/shared/DownloadPdfButton';
+import { JobLine } from '@/tools/shared/JobLine';
+import { ProofSheet } from '@/tools/shared/ProofSheet';
+import { ToneWedge } from '@/tools/shared/ToneWedge';
 import { GridOptions } from './GridOptions';
 import { describeError, describeRejected, describeSuggestion, describeWarning } from './messages';
 import { UnplacedPanel } from './UnplacedPanel';
@@ -117,49 +122,69 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
     if (requestKey && validation.ok) client.request(requestKey, { value: validation.value, seedCode, lang });
   };
 
+  const filename = worksheetFilename(header.title, lang === 'es' ? 'ficha' : 'worksheet');
+  const proof = labels.proof;
+
   return (
     <div data-generation={current ? generation.status : 'pending'} className="grid gap-6 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-      <form className="grid content-start gap-5 self-start border border-line bg-surface p-5" onSubmit={(e) => e.preventDefault()}>
-        <SheetHeaderFields
-          value={header}
-          onChange={setHeader}
-          notices={headerNotices}
-          labels={{ legend: labels.tool.headerLegend, title: labels.tool.titleLabel, school: labels.tool.schoolLabel }}
-        />
-        <WordListField
-          value={wordsText}
-          onChange={setWordsText}
-          messages={lineMessages}
-          countLabel={formatMessage(t.wordsCount, { count: lineCount, max: WORDSEARCH_LIMITS.maxWords })}
-          labels={{ label: t.wordsLabel, help: formatMessage(t.wordsHelp, { max: WORDSEARCH_LIMITS.maxWords }) }}
-        />
-        <GridOptions
-          size={size}
-          onSizeChange={setSize}
-          directions={directions}
-          onDirectionsChange={setDirections}
-          labels={{ legend: t.gridLegend, size: t.sizeLabel, directions: t.directionsLegend, horizontal: t.horizontal, vertical: t.vertical, diagonal: t.diagonal, reversed: t.reversed }}
-        />
-        <PaperSelect value={paper} onChange={setPaper} labels={{ paper: labels.tool.paperLabel, a4: labels.tool.paperA4, letter: labels.tool.paperLetter }} />
-        <SeedField
-          value={seedInput}
-          onChange={setSeedInput}
-          error={seedInvalid ? t.seedInvalid : null}
-          onNewSeed={() => {
-            setSeedInput('');
-            setRegeneratedSeed(newSeedCode(WORDSEARCH_ALGORITHM_VERSION));
-          }}
-          labels={{ label: t.seedLabel, help: t.seedHelp, newSeed: t.newSheet }}
-        />
-        <IncludeSolutionsField checked={includeSolutions} onChange={setIncludeSolutions} label={t.includeSolutions} />
+      <form className="md:self-start" onSubmit={(e) => e.preventDefault()}>
+        <Docket summary={labels.tool.optionsSummary}>
+          <SheetHeaderFields
+            value={header}
+            onChange={setHeader}
+            notices={headerNotices}
+            labels={{ legend: labels.tool.headerLegend, title: labels.tool.titleLabel, school: labels.tool.schoolLabel }}
+          />
+          <WordListField
+            value={wordsText}
+            onChange={setWordsText}
+            messages={lineMessages}
+            countLabel={formatMessage(t.wordsCount, { count: lineCount, max: WORDSEARCH_LIMITS.maxWords })}
+            labels={{ label: t.wordsLabel, help: formatMessage(t.wordsHelp, { max: WORDSEARCH_LIMITS.maxWords }) }}
+          />
+          <GridOptions
+            size={size}
+            onSizeChange={setSize}
+            directions={directions}
+            onDirectionsChange={setDirections}
+            labels={{ legend: t.gridLegend, size: t.sizeLabel, directions: t.directionsLegend, horizontal: t.horizontal, vertical: t.vertical, diagonal: t.diagonal, reversed: t.reversed }}
+          />
+          <PaperSelect value={paper} onChange={setPaper} labels={{ paper: labels.tool.paperLabel, a4: labels.tool.paperA4, letter: labels.tool.paperLetter }} />
+          <SeedField
+            value={seedInput}
+            onChange={setSeedInput}
+            error={seedInvalid ? t.seedInvalid : null}
+            onNewSeed={() => {
+              setSeedInput('');
+              setRegeneratedSeed(newSeedCode(WORDSEARCH_ALGORITHM_VERSION));
+            }}
+            labels={{ label: t.seedLabel, help: t.seedHelp, newSeed: t.newSheet }}
+          />
+          <IncludeSolutionsField checked={includeSolutions} onChange={setIncludeSolutions} label={t.includeSolutions} />
+        </Docket>
       </form>
 
       <div className="grid content-start gap-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <h2 className="text-lg font-semibold text-ink">{labels.tool.preview}</h2>
-          <PrintButton label={labels.tool.print} />
-          <p className="text-sm tabular-nums text-muted">{seedCode}</p>
-        </div>
+        <h2 className="text-lg font-semibold text-ink">{labels.tool.preview}</h2>
+        <JobLine
+          actions={
+            <>
+              <PrintButton label={labels.tool.print} />
+              <DownloadPdfButton
+                doc={doc}
+                filename={filename}
+                disabled={!layout?.ok}
+                labels={{ download: proof.downloadPdf, preparing: proof.preparingPdf, offline: proof.pdfOffline, failed: proof.pdfFailed }}
+              />
+            </>
+          }
+          items={[
+            { label: proof.jobPaper, value: paper === 'a4' ? labels.tool.paperA4 : labels.tool.paperLetter },
+            { label: proof.jobPages, value: String(doc.pages.length) },
+            { label: proof.jobSeed, value: seedCode || '—' },
+          ]}
+        />
+        <ToneWedge label={proof.toneLegend} />
 
         {blocking.length > 0 && (
           <div role="alert" className="grid gap-2 border border-line bg-surface p-4 text-sm text-ink">
@@ -185,7 +210,12 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
           />
         )}
 
-        <SheetPreview doc={doc} label={labels.sheet.previewLabel} />
+        <ProofSheet
+          doc={doc}
+          docKey={requestKey ?? 'frame'}
+          label={labels.sheet.previewLabel}
+          labels={{ zoomLegend: proof.zoomLegend, zoomFit: proof.zoomFit, zoomActual: proof.zoomActual, enlarge: proof.enlarge, close: proof.close }}
+        />
       </div>
 
       <PrintRoot doc={doc} label={labels.sheet.previewLabel} />

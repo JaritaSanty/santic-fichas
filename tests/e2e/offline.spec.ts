@@ -9,7 +9,7 @@ test('la aplicación funciona sin red tras la primera carga', async ({ page, con
   await page.reload();
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Sopa de letras');
   await page.getByLabel('Título').fill('Sin conexión');
-  await expect(page.locator('[data-tool-canvas] svg').first()).toContainText('Sin conexión');
+  await expect(page.locator('[data-tool-canvas] svg[role="img"]').first()).toContainText('Sin conexión');
 
   // Vigila las peticiones de cargas RSC y de _next/ durante la transición de idioma: si la clave de
   // precarga no coincide byte a byte con lo que pide el router cliente (p. ej. los tokens "$" de

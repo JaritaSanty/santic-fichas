@@ -93,3 +93,38 @@ test.describe('sopa de letras', () => {
     expect(letters).not.toContain('Ñ');
   });
 });
+
+test.describe('prueba de imprenta', () => {
+  test('la línea de trabajo muestra papel, páginas y código con las acciones al inicio', async ({ page }) => {
+    await page.goto('es/sopa-de-letras/');
+    await page.getByLabel('Código de ficha').fill('v1-ABC234');
+    await expect(page.locator('[data-generation]')).toHaveAttribute('data-generation', 'done', { timeout: 10_000 });
+    const line = page.locator('[data-job-line]');
+    await expect(line).toContainText('v1-ABC234');
+    await expect(line).toContainText('2');
+    const order = await line.locator('button').evaluateAll((buttons) => buttons.map((b) => b.getAttribute('data-action')));
+    expect(order.slice(0, 2)).toEqual(['print', 'pdf']);
+  });
+
+  test('100 % muestra la hoja a tamaño físico en escritorio', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('es/sopa-de-letras/');
+    await page.getByRole('button', { name: '100 %' }).click();
+    await expect(page.getByRole('button', { name: '100 %' })).toHaveAttribute('aria-pressed', 'true');
+    const width = (await page.locator('[data-proof-sheet] svg[role="img"]').first().boundingBox())!.width;
+    expect(width).toBeGreaterThan(790);
+  });
+
+  test('a 360 px «Ampliar» abre la hoja a tamaño real sin desbordar la página', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 740 });
+    await page.goto('es/sopa-de-letras/');
+    await expect(page.locator('[data-generation]')).toHaveAttribute('data-generation', 'done', { timeout: 10_000 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+    await page.getByRole('button', { name: 'Ampliar' }).click();
+    const enlarged = page.locator('dialog[open] svg[role="img"]').first();
+    await expect(enlarged).toBeVisible();
+    expect((await enlarged.boundingBox())!.width).toBeGreaterThan(790);
+    await page.getByRole('button', { name: 'Cerrar' }).click();
+    await expect(page.locator('dialog[open]')).toHaveCount(0);
+  });
+});
