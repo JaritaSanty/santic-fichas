@@ -1,1 +1,1 @@
-export { WordSearchTool } from './WordSearchTool';
+export { WordSearchTool, type WordSearchLabels } from './WordSearchTool';
