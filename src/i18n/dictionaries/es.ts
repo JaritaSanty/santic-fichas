@@ -41,6 +41,7 @@ export const es: Dictionary = {
     seedLabel: 'Código de ficha',
     seedHelp: 'Con el mismo código y las mismas opciones se obtiene la misma ficha.',
     seedInvalid: 'Código no válido. Formato: v1-ABC234.',
+    seedOtherVersion: 'Este código es de otra versión del generador (v{found}) y no reproduciría su ficha. Se admiten códigos v{version}; «Nueva sopa» crea uno nuevo.',
     newSheet: 'Nueva sopa',
     includeSolutions: 'Incluir soluciones',
     generating: 'Generando…',

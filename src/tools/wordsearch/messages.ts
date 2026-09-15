@@ -1,4 +1,4 @@
-import type { RejectedLine, Suggestion, WordSearchError, WordSearchWarning } from '@/generators/wordsearch';
+import type { RejectedLine, SeedInput, Suggestion, WordSearchError, WordSearchWarning } from '@/generators/wordsearch';
 import { WORDSEARCH_LIMITS } from '@/generators/wordsearch';
 import type { Dictionary } from '@/i18n/dictionary';
 import { formatMessage } from '@/i18n/format';
@@ -56,5 +56,16 @@ export function describeSuggestion(s: Suggestion, t: Strings): string {
       return t.unplaced.enableReversed;
     case 'remove-words':
       return formatMessage(t.unplaced.removeWords, { words: s.words.join(', ') });
+  }
+}
+
+export function describeSeed(seed: SeedInput, t: Strings): string | null {
+  switch (seed.status) {
+    case 'invalid':
+      return t.seedInvalid;
+    case 'other-version':
+      return formatMessage(t.seedOtherVersion, { found: seed.version, version: seed.expected });
+    default:
+      return null;
   }
 }

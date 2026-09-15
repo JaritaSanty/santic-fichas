@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { getDictionary } from '@/i18n/dictionary';
-import { describeError, describeRejected, describeSuggestion, describeWarning } from './messages';
+import { readSeedInput } from '@/generators/wordsearch';
+import { describeError, describeRejected, describeSeed, describeSuggestion, describeWarning } from './messages';
 
 const es = getDictionary('es').wordsearch;
 const en = getDictionary('en').wordsearch;
@@ -22,6 +23,17 @@ describe('mensajes de la sopa de letras', () => {
   it('sugerencias', () => {
     expect(describeSuggestion({ code: 'increase-size', size: 14 }, es)).toBe('Aumentar la cuadrícula a 14.');
     expect(describeSuggestion({ code: 'remove-words', words: ['rinoceronte', 'hipopótamo'] }, es)).toBe('Retirar las más largas: rinoceronte, hipopótamo.');
+  });
+
+  it('códigos de ficha de otra versión se rechazan con un mensaje concreto', () => {
+    expect(readSeedInput(' v1-abc234 ')).toEqual({ status: 'ok', code: 'v1-ABC234' });
+    expect(readSeedInput('   ')).toEqual({ status: 'empty' });
+    expect(readSeedInput('hola')).toEqual({ status: 'invalid' });
+    expect(readSeedInput('v2-ABC234')).toEqual({ status: 'other-version', version: 2, expected: 1 });
+    expect(describeSeed(readSeedInput('v2-ABC234'), es)).toBe('Este código es de otra versión del generador (v2) y no reproduciría su ficha. Se admiten códigos v1; «Nueva sopa» crea uno nuevo.');
+    expect(describeSeed(readSeedInput('v7-XYZ'), en)).toBe('This code belongs to another version of the generator (v7) and would not reproduce its worksheet. Codes must start with v1; “New puzzle” creates a new one.');
+    expect(describeSeed(readSeedInput('hola'), es)).toBe('Código no válido. Formato: v1-ABC234.');
+    expect(describeSeed(readSeedInput('v1-ABC234'), es)).toBeNull();
   });
 
   it('ningún texto en español usa tuteo ni usted', () => {

@@ -11,5 +11,6 @@ export {
   type WordSearchWarning,
 } from './params';
 export { suggestAdjustments, type Suggestion } from './suggest';
+export { readSeedInput, type SeedInput } from './seed';
 export { placeWords, type Placement, type PlacementOutcome } from './place';
 export { generateWordSearch, PLACEMENT_ATTEMPTS, PLACEMENT_MAX_STEPS, WORDSEARCH_ALGORITHM_VERSION, type WordSearchResult } from './generate';

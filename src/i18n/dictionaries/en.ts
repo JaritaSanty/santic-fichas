@@ -41,6 +41,7 @@ export const en: Dictionary = {
     seedLabel: 'Worksheet code',
     seedHelp: 'The same code with the same options produces the same worksheet.',
     seedInvalid: 'Invalid code. Format: v1-ABC234.',
+    seedOtherVersion: 'This code belongs to another version of the generator (v{found}) and would not reproduce its worksheet. Codes must start with v{version}; “New puzzle” creates a new one.',
     newSheet: 'New puzzle',
     includeSolutions: 'Include answer key',
     generating: 'Generating…',

@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import type { Lang } from '@/core/lang';
 import { unsupportedSheetChars } from '@/core/measure';
 import { defaultPaperFor, type PaperSize } from '@/core/paper';
-import { canonicalSeedCode, newSeedCode } from '@/core/random';
+import { newSeedCode } from '@/core/random';
 import type { SheetDocument } from '@/core/sheet';
-import { suggestAdjustments, validateWordSearch, WORDSEARCH_ALGORITHM_VERSION, WORDSEARCH_LIMITS, type DirectionOptions } from '@/generators/wordsearch';
+import { readSeedInput, suggestAdjustments, validateWordSearch, WORDSEARCH_ALGORITHM_VERSION, WORDSEARCH_LIMITS, type DirectionOptions } from '@/generators/wordsearch';
 import type { Dictionary } from '@/i18n/dictionary';
 import { formatMessage } from '@/i18n/format';
 import { buildFrame, fitHeader, type SheetHeader } from '@/layout/common/frame';
@@ -24,7 +24,7 @@ import { JobLine } from '@/tools/shared/JobLine';
 import { ProofSheet } from '@/tools/shared/ProofSheet';
 import { ToneWedge } from '@/tools/shared/ToneWedge';
 import { GridOptions } from './GridOptions';
-import { describeError, describeRejected, describeSuggestion, describeWarning } from './messages';
+import { describeError, describeRejected, describeSeed, describeSuggestion, describeWarning } from './messages';
 import { UnplacedPanel } from './UnplacedPanel';
 import { createGenerationClient, type WorkerLike } from './wordSearchClient';
 import { WordListField } from './WordListField';
@@ -68,9 +68,10 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
   useEffect(() => () => client.dispose(), [client]);
 
   const validation = useMemo(() => validateWordSearch({ wordsText, size, directions }, lang), [wordsText, size, directions, lang]);
-  const typedSeed = seedInput.trim() === '' ? null : canonicalSeedCode(seedInput);
-  const seedInvalid = seedInput.trim() !== '' && typedSeed === null;
-  const seedCode = typedSeed ?? regeneratedSeed ?? initialSeedCode;
+  const seedRead = readSeedInput(seedInput);
+  const seedError = describeSeed(seedRead, t);
+  const seedInvalid = seedError !== null;
+  const seedCode = (seedRead.status === 'ok' ? seedRead.code : null) ?? regeneratedSeed ?? initialSeedCode;
   const requestKey =
     validation.ok && seedCode !== '' && !seedInvalid
       ? JSON.stringify({ words: validation.value.entries.map((e) => e.normalized), size, directions, seedCode, lang })
@@ -156,7 +157,7 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
           <SeedField
             value={seedInput}
             onChange={setSeedInput}
-            error={seedInvalid ? t.seedInvalid : null}
+            error={seedError}
             onNewSeed={() => {
               setSeedInput('');
               setRegeneratedSeed(newSeedCode(WORDSEARCH_ALGORITHM_VERSION));

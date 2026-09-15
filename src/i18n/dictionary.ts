@@ -38,6 +38,7 @@ export interface Dictionary {
     seedLabel: string;
     seedHelp: string;
     seedInvalid: string;
+    seedOtherVersion: string;
     newSheet: string;
     includeSolutions: string;
     generating: string;

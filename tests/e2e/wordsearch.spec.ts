@@ -45,6 +45,8 @@ test.describe('sopa de letras', () => {
     await page.goto('es/sopa-de-letras/');
     await page.getByLabel('Código de ficha').fill('hola');
     await expect(page.getByText('Código no válido. Formato: v1-ABC234.')).toBeVisible();
+    await page.getByLabel('Código de ficha').fill('v2-ABC234');
+    await expect(page.getByText('Este código es de otra versión del generador (v2)', { exact: false })).toBeVisible();
   });
 
   test('las líneas inválidas se rechazan sin bloquear', async ({ page }) => {
