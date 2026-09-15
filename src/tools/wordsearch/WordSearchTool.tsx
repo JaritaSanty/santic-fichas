@@ -89,6 +89,11 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
   // Mientras corre el debounce o el Worker, la vista previa conserva la ficha anterior: no se imprime ni se descarga.
   const pending = requestKey !== null && !(current && (generation.status === 'done' || generation.status === 'failed'));
   const result = requestKey && generation.response?.ok ? generation.response.result : null;
+  // Solo se imprime o descarga una ficha generada para la clave actual: nunca la anterior ni el marco vacío
+  // (código mal escrito o de otra versión, lista no válida, fallo del Worker).
+  const ready = current && generation.status === 'done' && result !== null;
+  // Con un código erróneo la ficha no corresponde a ningún código: no se muestra el anterior.
+  const shownSeed = seedInvalid || seedCode === '' ? '—' : seedCode;
   const frameLabels = useMemo(() => ({ name: labels.sheet.name, date: labels.sheet.date, solutions: labels.sheet.solutions }), [labels.sheet]);
   const layout = useMemo(
     () => (result ? layoutWordSearch({ result, header, labels: frameLabels, paper, lang, includeSolutions }) : null),
@@ -131,7 +136,7 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
       <form className="md:self-start" onSubmit={(e) => e.preventDefault()}>
         <Docket
           summary={labels.tool.optionsSummary}
-          detail={formatPlural(labels.tool.optionsDetail, wordCount, { size, seed: seedCode || '—' })}
+          detail={formatPlural(labels.tool.optionsDetail, wordCount, { size, seed: shownSeed })}
         >
           <SheetHeaderFields
             value={header}
@@ -174,22 +179,28 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
         <JobLine
           actions={
             <>
-              <PrintButton label={labels.tool.print} disabled={pending} />
+              <PrintButton label={labels.tool.print} disabled={!ready || !layout?.ok} />
               <DownloadPdfButton
                 doc={doc}
                 filename={filename}
-                disabled={pending || !layout?.ok}
+                disabled={!ready || !layout?.ok}
                 labels={{ download: proof.downloadPdf, preparing: proof.preparingPdf, offline: proof.pdfOffline, failed: proof.pdfFailed }}
               />
-              <span role="status" aria-live="polite" className="text-sm text-muted">
-                {pending ? t.generating : ''}
+              {/* Ancho reservado con una copia invisible: la línea de trabajo no cambia de medida al anunciar el estado. */}
+              <span className="inline-grid text-sm text-muted">
+                <span aria-hidden="true" className="invisible col-start-1 row-start-1">
+                  {t.generating}
+                </span>
+                <span role="status" aria-live="polite" className="col-start-1 row-start-1">
+                  {pending ? t.generating : ''}
+                </span>
               </span>
             </>
           }
           items={[
             { label: proof.jobPaper, value: paper === 'a4' ? labels.tool.paperA4 : labels.tool.paperLetter },
             { label: proof.jobPages, value: String(doc.pages.length) },
-            { label: proof.jobSeed, value: seedCode || '—' },
+            { label: proof.jobSeed, value: shownSeed },
           ]}
         />
         <ToneWedge label={proof.toneLegend} />

@@ -43,10 +43,22 @@ test.describe('sopa de letras', () => {
 
   test('un código mal escrito se indica y no genera', async ({ page }) => {
     await page.goto('es/sopa-de-letras/');
-    await page.getByLabel('Código de ficha').fill('hola');
-    await expect(page.getByText('Código no válido. Formato: v1-ABC234.')).toBeVisible();
-    await page.getByLabel('Código de ficha').fill('v2-ABC234');
-    await expect(page.getByText('Este código es de otra versión del generador (v2)', { exact: false })).toBeVisible();
+    await settle(page);
+    const jobLine = page.locator('[data-job-line]');
+    await expect(page.locator('[data-action="print"]')).toBeEnabled();
+    await expect(jobLine).toContainText(/v1-/);
+    for (const [code, message] of [
+      ['hola', 'Código no válido. Formato: v1-ABC234.'],
+      ['v2-ABC234', 'Este código es de otra versión del generador (v2)'],
+    ] as const) {
+      await page.getByLabel('Código de ficha').fill(code);
+      await expect(page.getByText(message, { exact: false })).toBeVisible();
+      // Sin ficha para el código escrito: no se imprime ni se descarga el marco vacío y no se muestra el código anterior.
+      await expect(page.locator('[data-action="print"]')).toBeDisabled();
+      await expect(page.locator('[data-action="pdf"]')).toBeDisabled();
+      await expect(jobLine).not.toContainText(/v1-/);
+      await expect(page.getByRole('status').filter({ hasText: 'Generando…' })).toHaveCount(0);
+    }
   });
 
   test('corregir solo una tilde o una mayúscula actualiza la grafía de la hoja', async ({ page }) => {
@@ -170,15 +182,20 @@ test.describe('prueba de imprenta', () => {
   });
 
   test('mientras se genera, Imprimir y Descargar PDF se deshabilitan y se anuncia el estado', async ({ page }) => {
+    // Ancho en el que la línea de trabajo llega justo a una fila: el anuncio no debe mover la vista previa.
+    await page.setViewportSize({ width: 1040, height: 900 });
     await page.goto('es/sopa-de-letras/');
     await settle(page);
     const print = page.locator('[data-action="print"]');
     const pdf = page.locator('[data-action="pdf"]');
+    const proofTop = async () => (await page.locator('[data-proof-sheet]').boundingBox())!.y;
     await expect(print).toBeEnabled();
+    const settledTop = await proofTop();
     await page.getByLabel('Palabras').fill('gato\nperro\nvaca');
     await expect(print).toBeDisabled();
     await expect(pdf).toBeDisabled();
     await expect(page.getByRole('status').filter({ hasText: 'Generando…' })).toBeVisible();
+    expect(await proofTop()).toBe(settledTop);
     await settle(page);
     await expect(print).toBeEnabled();
     await expect(pdf).toBeEnabled();

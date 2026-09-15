@@ -4,7 +4,8 @@ import { generateWordSearch } from './generate';
 import { validateWordSearch } from './params';
 
 const ALL = { horizontal: true, vertical: true, diagonal: true, reversed: true };
-const LIMIT_MS = 400;
+// Tiempo real: margen amplio en CI, donde las máquinas compartidas son más lentas y variables.
+const LIMIT_MS = process.env.CI ? 1200 : 400;
 
 function randomWords(seed: string, count: number, length: number, alphabet: string): string[] {
   const rng = createRng(seed);

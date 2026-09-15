@@ -2,6 +2,7 @@ import { BRAND_DOMAIN, BRAND_MARK_ASPECT } from '@/core/brand';
 import { fitTextToWidth, stripUnsupportedSheetChars, type FittedText } from '@/core/measure';
 import { PAPER, SHEET_MARGIN_MM, type PaperSize } from '@/core/paper';
 import type { Primitive } from '@/core/sheet';
+import { collapseSpaces } from '@/core/text';
 
 export interface SheetHeader { title: string; school: string }
 export interface FrameLabels { name: string; date: string; solutions: string }
@@ -34,7 +35,6 @@ export interface HeaderFit {
 }
 
 // Espacios en blanco colapsados (antes y después de quitar glifos ausentes): SVG los colapsa al pintar y el PDF no.
-const collapseSpaces = (text: string) => text.replace(/\s+/g, ' ').trim();
 const clip = (text: string, limit: number) => Array.from(collapseSpaces(stripUnsupportedSheetChars(collapseSpaces(text)))).slice(0, limit).join('');
 
 export function fitHeader(input: { paper: PaperSize; header: SheetHeader; labels: FrameLabels; role: 'student' | 'solution' }): HeaderFit {

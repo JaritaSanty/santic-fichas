@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useSyncExternalStore } from 'react';
+import { memo, useEffect, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { PAPER } from '@/core/paper';
 import type { SheetDocument } from '@/core/sheet';
@@ -11,7 +11,8 @@ const PAGE_SAFETY_MM = 0.5;
 
 const noopSubscribe = () => () => {};
 
-export function PrintRoot({ doc, label }: { doc: SheetDocument; label: string }) {
+// Memoizado: la copia oculta para imprimir solo se vuelve a pintar si cambia el documento (memoizado aguas arriba).
+export const PrintRoot = memo(function PrintRoot({ doc, label }: { doc: SheetDocument; label: string }) {
   // true solo en el cliente tras hidratar; sin setState dentro de efectos.
   const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
 
@@ -44,4 +45,4 @@ export function PrintRoot({ doc, label }: { doc: SheetDocument; label: string })
     </div>,
     document.body,
   );
-}
+});

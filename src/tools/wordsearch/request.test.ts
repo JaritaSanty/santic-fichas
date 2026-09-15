@@ -23,6 +23,13 @@ describe('petición de la sopa de letras', () => {
     expect(removeWordLines(text, ['PERRO'], 'es')).toBe('vaca\ngato\nconejo');
   });
 
+  it('reconoce las líneas con espacios en blanco raros igual que la validación', () => {
+    const text = 'sol\u000Bluna\ngato\nsol\u000Cluna\noso\tpolar';
+    const v = validateWordSearch({ wordsText: text, size: 10, directions: DIRS }, 'es');
+    expect(v.ok && v.value.entries.map((e) => e.normalized)).toEqual(['SOLLUNA', 'GATO', 'OSOPOLAR']);
+    expect(removeWordLines(text, ['SOLLUNA', 'OSOPOLAR'], 'es')).toBe('gato');
+  });
+
   it('quita también las repeticiones y las variantes con tilde de la palabra no colocada', () => {
     expect(removeWordLines('Ñandú\ngato\nñandu\n\naño 2', ['ÑANDU'], 'es')).toBe('gato\n\naño 2');
   });

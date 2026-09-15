@@ -36,6 +36,11 @@ export function normalizeWord(raw: string, lang: Lang): { ok: true; value: strin
   return { ok: true, value };
 }
 
+/** Colapsa cualquier secuencia de espacio en blanco (tabulador, VT, FF, CR, NBSP…) a un espacio y recorta. */
+export function collapseSpaces(text: string): string {
+  return text.replace(/\s+/g, ' ').trim();
+}
+
 export interface WordEntry {
   line: number;
   original: string;
@@ -65,7 +70,7 @@ export function parseWordList(
   text.split(/\r?\n/).forEach((rawLine, index) => {
     const line = index + 1;
     // Espacios seguidos colapsados: SVG los colapsa al pintar y el PDF no, así ambos miden y muestran lo mismo.
-    const original = rawLine.replace(/\s+/g, ' ').trim();
+    const original = collapseSpaces(rawLine);
     const result = normalizeWord(original, lang);
     if (!result.ok) {
       if (result.code !== 'empty') errors.push({ line, code: result.code });
