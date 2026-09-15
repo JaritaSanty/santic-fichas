@@ -63,6 +63,7 @@ export const en: Dictionary = {
     warnings: {
       duplicate: 'Line {line}: repeated word (same as line {other}); ignored.',
       contained: 'Line {line}: the word appears inside line {other}; the answer may be ambiguous.',
+      containedReversed: 'Line {line}: the word appears backwards inside line {other}; with reversed words the answer may be ambiguous.',
       largeList: 'For this list a grid of {size} or more is recommended.',
     },
     unplaced: {

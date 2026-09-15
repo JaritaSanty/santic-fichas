@@ -33,7 +33,9 @@ export interface HeaderFit {
   school: FittedText;
 }
 
-const clip = (text: string, limit: number) => stripUnsupportedSheetChars(Array.from(text.trim()).slice(0, limit).join(''));
+// Espacios en blanco colapsados (antes y después de quitar glifos ausentes): SVG los colapsa al pintar y el PDF no.
+const collapseSpaces = (text: string) => text.replace(/\s+/g, ' ').trim();
+const clip = (text: string, limit: number) => Array.from(collapseSpaces(stripUnsupportedSheetChars(collapseSpaces(text)))).slice(0, limit).join('');
 
 export function fitHeader(input: { paper: PaperSize; header: SheetHeader; labels: FrameLabels; role: 'student' | 'solution' }): HeaderFit {
   const { widthMm: W } = PAPER[input.paper];

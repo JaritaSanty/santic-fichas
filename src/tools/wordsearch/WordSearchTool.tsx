@@ -98,7 +98,7 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
   }, [layout, paper, lang, header, frameLabels]);
 
   const quote = (chars: string[]) => chars.map((c) => formatMessage(t.quote, { text: c })).join(' ');
-  const headerChars = unsupportedSheetChars(`${header.title}${header.school}`);
+  const headerChars = unsupportedSheetChars(`${header.title}${header.school}`.replace(/\s+/g, ' '));
   const headerFit = fitHeader({ paper, header, labels: frameLabels, role: includeSolutions ? 'solution' : 'student' });
   const headerNotices = [
     ...(headerChars.length > 0 ? [formatMessage(labels.tool.headerUnsupportedChars, { chars: quote(headerChars) })] : []),

@@ -63,6 +63,7 @@ export const es: Dictionary = {
     warnings: {
       duplicate: 'Línea {line}: palabra repetida (igual que la línea {other}); se ignora.',
       contained: 'Línea {line}: la palabra aparece dentro de la línea {other}; la solución puede ser ambigua.',
+      containedReversed: 'Línea {line}: la palabra aparece al revés dentro de la línea {other}; con palabras invertidas la solución puede ser ambigua.',
       largeList: 'Con esta lista se recomienda una cuadrícula de {size} o más.',
     },
     unplaced: {

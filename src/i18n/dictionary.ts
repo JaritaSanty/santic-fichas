@@ -57,7 +57,7 @@ export interface Dictionary {
       cellsTooSmall: string;
       workerFailed: string;
     };
-    warnings: { duplicate: string; contained: string; largeList: string };
+    warnings: { duplicate: string; contained: string; containedReversed: string; largeList: string };
     unplaced: { title: string; intro: string; increaseSize: string; enableDiagonal: string; enableReversed: string; removeWords: string; generateWithout: string };
   };
   proof: {

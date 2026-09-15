@@ -65,7 +65,25 @@ describe('parseWordList', () => {
   it('avisa de palabras contenidas en otras', () => {
     const r = parseWordList('girasol\nsol', 'es');
     expect(r.entries).toHaveLength(2);
-    expect(r.warnings).toEqual([{ code: 'contained', line: 2, containerLine: 1 }]);
+    expect(r.warnings).toEqual([{ code: 'contained', line: 2, containerLine: 1, reversed: false }]);
+  });
+
+  it('avisa de palabras contenidas al revés solo si se permiten invertidas', () => {
+    expect(parseWordList('roma\namor', 'es').warnings).toEqual([]);
+    expect(parseWordList('roma\namor', 'es', { reversed: true }).warnings).toEqual([
+      { code: 'contained', line: 1, containerLine: 2, reversed: true },
+      { code: 'contained', line: 2, containerLine: 1, reversed: true },
+    ]);
+    expect(parseWordList('girasol\nlos', 'es', { reversed: true }).warnings).toEqual([{ code: 'contained', line: 2, containerLine: 1, reversed: true }]);
+    expect(parseWordList('girasol\nsol', 'es', { reversed: true }).warnings).toEqual([{ code: 'contained', line: 2, containerLine: 1, reversed: false }]);
+  });
+
+  it('convierte tabuladores en espacios y colapsa espacios seguidos en la grafía original', () => {
+    expect(parseWordList('oso\tpolar\n  oso   pardo ', 'es').entries).toEqual([
+      { line: 1, original: 'oso polar', normalized: 'OSOPOLAR' },
+      { line: 2, original: 'oso pardo', normalized: 'OSOPARDO' },
+    ]);
+    expect(parseWordList('oso\tpolar', 'es').errors).toEqual([]);
   });
 });
 
@@ -81,7 +99,8 @@ describe('fillAlphabet', () => {
 describe('endurecimiento Fase 2', () => {
   it('rechaza caracteres de control, incluido el marcador interno U+0001', () => {
     expect(normalizeWord('año\u0001z', 'es')).toEqual({ ok: false, code: 'invalid-chars' });
-    expect(normalizeWord('sol\tluna', 'es')).toEqual({ ok: false, code: 'invalid-chars' });
+    expect(normalizeWord('sol\u0009luna', 'es')).toEqual({ ok: true, value: 'SOLLUNA' });
+    expect(normalizeWord('sol\nluna', 'es')).toEqual({ ok: false, code: 'invalid-chars' });
     expect(normalizeWord('ro\u007Fjo', 'es')).toEqual({ ok: false, code: 'invalid-chars' });
   });
 

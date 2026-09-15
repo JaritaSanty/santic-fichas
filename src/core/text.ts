@@ -10,14 +10,17 @@ const JOINERS = /[\s\-‐‑–'’]/g;
 const VALID = /^[A-ZÑ]+$/;
 // Caracteres de control C0/C1: nunca son letras y U+0001 es el marcador interno de la Ñ.
 const CONTROL = /[\u0000-\u001F\u007F-\u009F]/;
+// Tabulador (palabras pegadas desde una hoja de cálculo): cuenta como espacio antes de validar.
+const TAB = /\t/g;
 
 /**
  * Normaliza una palabra para la cuadrícula: mayúsculas, sin tildes ni diéresis, Ñ conservada,
  * espacios/guiones/apóstrofos eliminados. Ver spec §5.1.
  */
 export function normalizeWord(raw: string, lang: Lang): { ok: true; value: string } | { ok: false; code: NormalizeError } {
-  if (CONTROL.test(raw)) return { ok: false, code: 'invalid-chars' };
-  const value = raw
+  const spaced = raw.replace(TAB, ' ');
+  if (CONTROL.test(spaced)) return { ok: false, code: 'invalid-chars' };
+  const value = spaced
     .normalize('NFC')
     .trim()
     .toLocaleUpperCase(lang)
@@ -43,9 +46,17 @@ export type WordListError = { line: number; code: 'invalid-chars' | 'too-short' 
 
 export type WordListWarning =
   | { code: 'duplicate'; line: number; duplicateOf: number }
-  | { code: 'contained'; line: number; containerLine: number };
+  | { code: 'contained'; line: number; containerLine: number; reversed: boolean };
 
-export function parseWordList(text: string, lang: Lang): { entries: WordEntry[]; errors: WordListError[]; warnings: WordListWarning[] } {
+/**
+ * `reversed`: si las palabras pueden aparecer invertidas, también se avisa cuando una palabra leída al revés
+ * está dentro de otra (AMOR dentro de ROMA).
+ */
+export function parseWordList(
+  text: string,
+  lang: Lang,
+  options: { reversed?: boolean } = {},
+): { entries: WordEntry[]; errors: WordListError[]; warnings: WordListWarning[] } {
   const entries: WordEntry[] = [];
   const errors: WordListError[] = [];
   const warnings: WordListWarning[] = [];
@@ -53,7 +64,8 @@ export function parseWordList(text: string, lang: Lang): { entries: WordEntry[];
 
   text.split(/\r?\n/).forEach((rawLine, index) => {
     const line = index + 1;
-    const original = rawLine.trim();
+    // Espacios seguidos colapsados: SVG los colapsa al pintar y el PDF no, así ambos miden y muestran lo mismo.
+    const original = rawLine.replace(/\s+/g, ' ').trim();
     const result = normalizeWord(original, lang);
     if (!result.ok) {
       if (result.code !== 'empty') errors.push({ line, code: result.code });
@@ -70,7 +82,14 @@ export function parseWordList(text: string, lang: Lang): { entries: WordEntry[];
 
   for (const inner of entries) {
     const container = entries.find((outer) => outer !== inner && outer.normalized.includes(inner.normalized));
-    if (container) warnings.push({ code: 'contained', line: inner.line, containerLine: container.line });
+    if (container) {
+      warnings.push({ code: 'contained', line: inner.line, containerLine: container.line, reversed: false });
+      continue;
+    }
+    if (!options.reversed) continue;
+    const backwards = Array.from(inner.normalized).reverse().join('');
+    const reversedContainer = entries.find((outer) => outer !== inner && outer.normalized.includes(backwards));
+    if (reversedContainer) warnings.push({ code: 'contained', line: inner.line, containerLine: reversedContainer.line, reversed: true });
   }
 
   return { entries, errors, warnings };

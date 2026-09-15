@@ -44,7 +44,7 @@ export function suggestGridSize(entries: readonly WordEntry[]): number {
 }
 
 export function validateWordSearch(input: WordSearchInput, lang: Lang): WordSearchValidation {
-  const parsed = parseWordList(input.wordsText, lang);
+  const parsed = parseWordList(input.wordsText, lang, { reversed: input.directions.reversed });
   const rejected: RejectedLine[] = parsed.errors.map((e) => ({ code: e.code, line: e.line }));
   const entries: WordEntry[] = [];
   for (const e of parsed.entries) {

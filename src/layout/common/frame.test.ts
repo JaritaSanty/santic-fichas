@@ -70,6 +70,12 @@ describe('buildFrame contenido', () => {
     expect(empty.content).toEqual(full.content);
   });
 
+  it('colapsa espacios y tabuladores del encabezado para que SVG y PDF muestren lo mismo', () => {
+    const frame = buildFrame({ paper: 'a4', header: { title: ' Los\tanimales   de  granja ', school: 'Escuela\u00A0 Santa Ana' }, labels, role: 'student' });
+    expect(texts(frame.primitives)).toContain('Los animales de granja');
+    expect(texts(frame.primitives)).toContain('Escuela Santa Ana');
+  });
+
 });
 
 describe('encabezado ajustado por ancho', () => {

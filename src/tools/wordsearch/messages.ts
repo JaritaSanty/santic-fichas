@@ -40,7 +40,7 @@ export function describeWarning(warning: WordSearchWarning, t: Strings): string 
     case 'duplicate':
       return formatMessage(t.warnings.duplicate, { line: warning.line, other: warning.duplicateOf });
     case 'contained':
-      return formatMessage(t.warnings.contained, { line: warning.line, other: warning.containerLine });
+      return formatMessage(warning.reversed ? t.warnings.containedReversed : t.warnings.contained, { line: warning.line, other: warning.containerLine });
     case 'large-list':
       return formatMessage(t.warnings.largeList, { size: warning.suggestedSize });
   }
