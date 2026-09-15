@@ -1,5 +1,6 @@
 import type { Lang } from '@/core/lang';
 import type { SectionKey } from '@/i18n/routes';
+import type { PluralMessage } from './format';
 import { en } from './dictionaries/en';
 import { es } from './dictionaries/es';
 
@@ -19,7 +20,7 @@ export interface Dictionary {
     print: string;
     preview: string;
     optionsSummary: string;
-    optionsDetail: string;
+    optionsDetail: PluralMessage;
     headerUnsupportedChars: string;
     headerTitleShortened: string;
   };
@@ -58,7 +59,7 @@ export interface Dictionary {
       workerFailed: string;
     };
     warnings: { duplicate: string; contained: string; containedReversed: string; largeList: string };
-    unplaced: { title: string; intro: string; increaseSize: string; enableDiagonal: string; enableReversed: string; removeWords: string; generateWithout: string };
+    unplaced: { title: string; intro: PluralMessage; increaseSize: string; enableDiagonal: string; enableReversed: string; removeWords: string; generateWithout: string };
   };
   proof: {
     zoomLegend: string;

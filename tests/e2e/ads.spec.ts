@@ -15,7 +15,7 @@ async function box(locator: Locator): Promise<Box> {
 }
 
 async function expectAdsFarFromActions(page: Page) {
-  // Las acciones dentro del parte plegado (móvil) no tienen caja visible; solo se comprueban las visibles.
+  // Solo las acciones con caja visible se pueden medir: en móvil hay que abrir antes el parte plegado.
   const actions = page.locator('[data-action]:visible');
   const ads = page.locator('.ad-slot:visible');
   for (let i = 0; i < (await actions.count()); i++) {
@@ -57,6 +57,10 @@ test.describe('zonas publicitarias', () => {
     expect(Math.round(a.y + a.height)).toBe(740);
     await expect(page.locator('[data-tool-canvas] .ad-slot')).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+    // Abre el parte para medir también «Nueva sopa» y las demás acciones que contiene.
+    await page.getByText('Opciones de la ficha').click();
+    await expect(page.getByRole('button', { name: 'Nueva sopa' })).toBeVisible();
+    expect(await page.locator('[data-action]:visible').count()).toBeGreaterThanOrEqual(3);
     await expectAdsFarFromActions(page);
   });
 

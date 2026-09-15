@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { getDictionary } from '@/i18n/dictionary';
+import { formatPlural } from '@/i18n/format';
 import { readSeedInput } from '@/generators/wordsearch';
 import { describeError, describeRejected, describeSeed, describeSuggestion, describeWarning } from './messages';
 
@@ -36,6 +37,15 @@ describe('mensajes de la sopa de letras', () => {
     expect(describeSeed(readSeedInput('v7-XYZ'), en)).toBe('This code belongs to another version of the generator (v7) and would not reproduce its worksheet. Codes must start with v1; “New puzzle” creates a new one.');
     expect(describeSeed(readSeedInput('hola'), es)).toBe('Código no válido. Formato: v1-ABC234.');
     expect(describeSeed(readSeedInput('v1-ABC234'), es)).toBeNull();
+  });
+
+  it('recuentos con singular y plural en es y en', () => {
+    expect(formatPlural(es.unplaced.intro, 1)).toBe('No cabe 1 palabra:');
+    expect(formatPlural(es.unplaced.intro, 3)).toBe('No caben 3 palabras:');
+    expect(formatPlural(en.unplaced.intro, 1)).toBe('1 word does not fit:');
+    const tool = { es: getDictionary('es').tool, en: getDictionary('en').tool };
+    expect(formatPlural(tool.es.optionsDetail, 1, { size: 12, seed: 'v1-ABC234' })).toBe('1 palabra · 12 × 12 · v1-ABC234');
+    expect(formatPlural(tool.en.optionsDetail, 2, { size: 12, seed: 'v1-ABC234' })).toBe('2 words · 12 × 12 · v1-ABC234');
   });
 
   it('ningún texto en español usa tuteo ni usted', () => {

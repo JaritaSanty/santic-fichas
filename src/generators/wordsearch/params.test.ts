@@ -25,6 +25,11 @@ describe('validateWordSearch', () => {
     if (r.ok) expect(r.value.entries.map((e) => e.normalized)).toEqual(['GATO', 'PERRO', 'ÑANDU']);
   });
 
+  it('cuenta solo las palabras válidas, también cuando la validación bloquea', () => {
+    expect(validateWordSearch({ wordsText: 'gato\n\naño 2\nGato\nperro\nx', size: 10, directions: ALL }, 'es').wordCount).toBe(2);
+    expect(validateWordSearch({ wordsText: 'gato', size: 10, directions: { ...ALL, horizontal: false, vertical: false, diagonal: false } }, 'es')).toMatchObject({ ok: false, wordCount: 1 });
+  });
+
   it('una sola palabra es válida', () => {
     expect(validateWordSearch({ wordsText: 'sol', size: 8, directions: H_ONLY }, 'es').ok).toBe(true);
   });

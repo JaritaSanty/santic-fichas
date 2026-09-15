@@ -8,7 +8,7 @@ import { newSeedCode } from '@/core/random';
 import type { SheetDocument } from '@/core/sheet';
 import { readSeedInput, suggestAdjustments, validateWordSearch, WORDSEARCH_ALGORITHM_VERSION, WORDSEARCH_LIMITS, type DirectionOptions } from '@/generators/wordsearch';
 import type { Dictionary } from '@/i18n/dictionary';
-import { formatMessage } from '@/i18n/format';
+import { formatMessage, formatPlural } from '@/i18n/format';
 import { buildFrame, fitHeader, type SheetHeader } from '@/layout/common/frame';
 import { layoutWordSearch } from '@/layout/wordsearch';
 import { IncludeSolutionsField } from '@/tools/shared/IncludeSolutionsField';
@@ -108,7 +108,7 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
   ];
 
   const lineMessages = [...validation.rejected.map((r) => describeRejected(r, t)), ...validation.warnings.map((w) => describeWarning(w, t))];
-  const lineCount = wordsText.split(/\r?\n/).filter((line) => line.trim() !== '').length;
+  const wordCount = validation.wordCount;
   const failed = current && generation.status === 'failed';
   const blocking = [
     ...(validation.ok ? [] : validation.errors.map((e) => describeError(e, t))),
@@ -131,7 +131,7 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
       <form className="md:self-start" onSubmit={(e) => e.preventDefault()}>
         <Docket
           summary={labels.tool.optionsSummary}
-          detail={formatMessage(labels.tool.optionsDetail, { count: lineCount, size, seed: seedCode || '—' })}
+          detail={formatPlural(labels.tool.optionsDetail, wordCount, { size, seed: seedCode || '—' })}
         >
           <SheetHeaderFields
             value={header}
@@ -143,7 +143,7 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
             value={wordsText}
             onChange={setWordsText}
             messages={lineMessages}
-            countLabel={formatMessage(t.wordsCount, { count: lineCount, max: WORDSEARCH_LIMITS.maxWords })}
+            countLabel={formatMessage(t.wordsCount, { count: wordCount, max: WORDSEARCH_LIMITS.maxWords })}
             labels={{ label: t.wordsLabel, help: formatMessage(t.wordsHelp, { max: WORDSEARCH_LIMITS.maxWords }) }}
           />
           <GridOptions
@@ -214,7 +214,7 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
             words={unplaced.map((e) => e.original)}
             suggestions={suggestions}
             onRemove={removeUnplaced}
-            labels={{ title: t.unplaced.title, intro: formatMessage(t.unplaced.intro, { count: unplaced.length }), action: t.unplaced.generateWithout }}
+            labels={{ title: t.unplaced.title, intro: formatPlural(t.unplaced.intro, unplaced.length), action: t.unplaced.generateWithout }}
           />
         )}
 

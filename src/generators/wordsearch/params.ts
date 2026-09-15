@@ -33,8 +33,8 @@ export type WordSearchError =
 export type WordSearchWarning = WordListWarning | { code: 'large-list'; suggestedSize: number };
 
 export type WordSearchValidation =
-  | { ok: true; value: ValidWordSearch; rejected: RejectedLine[]; warnings: WordSearchWarning[] }
-  | { ok: false; errors: WordSearchError[]; rejected: RejectedLine[]; warnings: WordSearchWarning[] };
+  | { ok: true; value: ValidWordSearch; wordCount: number; rejected: RejectedLine[]; warnings: WordSearchWarning[] }
+  | { ok: false; errors: WordSearchError[]; wordCount: number; rejected: RejectedLine[]; warnings: WordSearchWarning[] };
 
 export function suggestGridSize(entries: readonly WordEntry[]): number {
   const longest = entries.reduce((max, e) => Math.max(max, e.normalized.length), 0);
@@ -74,6 +74,6 @@ export function validateWordSearch(input: WordSearchInput, lang: Lang): WordSear
   }
 
   return errors.length > 0
-    ? { ok: false, errors, rejected, warnings }
-    : { ok: true, value: { entries, size: input.size, directions: input.directions }, rejected, warnings };
+    ? { ok: false, errors, wordCount: entries.length, rejected, warnings }
+    : { ok: true, value: { entries, size: input.size, directions: input.directions }, wordCount: entries.length, rejected, warnings };
 }
