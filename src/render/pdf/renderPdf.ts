@@ -2,7 +2,7 @@ import fontkit from '@pdf-lib/fontkit';
 import { PDFDocument, rgb, type PDFFont, type PDFImage, type PDFPage } from 'pdf-lib';
 import { measureTextMm } from '@/core/measure';
 import { PAPER } from '@/core/paper';
-import { TONE_HEX, type Primitive, type SheetDocument, type Tone } from '@/core/sheet';
+import { DEFAULT_STROKE_WIDTH_MM, TONE_HEX, type Primitive, type SheetDocument, type Tone } from '@/core/sheet';
 import { capsulePathPt, imageBoxMm, linePointsPt, mmToPt, rectBoxPt, roundedRectPathPt } from './geometry';
 
 export interface PdfAssets {
@@ -36,7 +36,7 @@ function drawPrimitive(page: PDFPage, p: Primitive, pageHeightPt: number, fonts:
           x: 0,
           y: pageHeightPt,
           borderColor: p.stroke ? color(p.stroke) : undefined,
-          borderWidth: p.stroke ? mmToPt(p.strokeWidth ?? 0.2) : undefined,
+          borderWidth: p.stroke ? mmToPt(p.strokeWidth ?? DEFAULT_STROKE_WIDTH_MM) : undefined,
           color: p.fill ? color(p.fill) : undefined,
         });
         return;
@@ -48,7 +48,7 @@ function drawPrimitive(page: PDFPage, p: Primitive, pageHeightPt: number, fonts:
         width: box.width,
         height: box.height,
         borderColor: p.stroke ? color(p.stroke) : undefined,
-        borderWidth: p.stroke ? mmToPt(p.strokeWidth ?? 0.2) : 0,
+        borderWidth: p.stroke ? mmToPt(p.strokeWidth ?? DEFAULT_STROKE_WIDTH_MM) : 0,
         color: p.fill ? color(p.fill) : undefined,
       });
       return;

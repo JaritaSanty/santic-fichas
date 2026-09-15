@@ -15,6 +15,9 @@ export const TONE_HEX: Record<Tone, string> = {
 
 export const PT_TO_MM = 25.4 / 72;
 
+/** Grosor de trazo (mm) de un `rect` con `stroke` sin `strokeWidth`; lo aplican igual los renderizadores SVG y PDF. */
+export const DEFAULT_STROKE_WIDTH_MM = 0.2;
+
 /**
  * Primitivas en milímetros, origen arriba a la izquierda.
  * En `text`, `y` es la línea base y `size` el cuerpo tipográfico en mm.

@@ -51,8 +51,17 @@ export function imageBoxMm(
   };
 }
 
+/**
+ * Número de trazado en puntos con 3 decimales fijos y sin notación exponencial (el parser de rutas de pdf-lib no
+ * entiende `1e-16`, que aparece por errores de coma flotante en coordenadas nulas). 0.001 pt ≈ 0.0004 mm.
+ */
+export function formatPathNumber(n: number): string {
+  const rounded = Math.round(n * 1000) / 1000;
+  return Object.is(rounded, -0) ? '0' : rounded.toFixed(3).replace(/\.?0+$/, '');
+}
+
 function pathFromPoints(points: ReadonlyArray<readonly [number, number]>): string {
-  return `${points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${mmToPt(x)} ${mmToPt(y)}`).join(' ')} Z`;
+  return `${points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${formatPathNumber(mmToPt(x))} ${formatPathNumber(mmToPt(y))}`).join(' ')} Z`;
 }
 
 /** Contorno de una cápsula girada en puntos, con el eje y hacia abajo (convención de drawSvgPath). */

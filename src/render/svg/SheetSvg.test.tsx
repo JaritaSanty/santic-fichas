@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import type { SheetPage } from '@/core/sheet';
+import { DEFAULT_STROKE_WIDTH_MM, type SheetPage } from '@/core/sheet';
 import { SheetSvg } from './SheetSvg';
 
 const page: SheetPage = {
@@ -18,6 +18,14 @@ const render = (sizing: 'fluid' | 'physical', paper: 'a4' | 'letter' = 'a4') =>
   renderToStaticMarkup(<SheetSvg paper={paper} page={page} sizing={sizing} label="Ficha" />);
 
 describe('SheetSvg', () => {
+  it('un rect con trazo sin grosor usa el grosor por defecto compartido con el PDF', () => {
+    const html = renderToStaticMarkup(
+      <SheetSvg paper="a4" page={{ role: 'student', primitives: [{ t: 'rect', x: 1, y: 1, w: 5, h: 5, stroke: 'ink' }, { t: 'rect', x: 1, y: 1, w: 5, h: 5, fill: 'faint' }] }} sizing="fluid" label="Ficha" />,
+    );
+    expect(html).toContain(`stroke-width="${DEFAULT_STROKE_WIDTH_MM}"`);
+    expect(html.match(/stroke-width=/g)).toHaveLength(1);
+  });
+
   it('usa el tamaño físico del papel en milímetros', () => {
     const html = render('physical');
     expect(html).toContain('viewBox="0 0 210 297"');

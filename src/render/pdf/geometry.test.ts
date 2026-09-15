@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { capsulePathPt, imageBoxMm, linePointsPt, mmToPt, rectBoxPt, roundedRectPathPt } from './geometry';
+import { capsulePathPt, formatPathNumber, imageBoxMm, linePointsPt, mmToPt, rectBoxPt, roundedRectPathPt } from './geometry';
 
 const MM_TO_PT = 72 / 25.4;
 const A4_HEIGHT_PT = 297 * MM_TO_PT;
@@ -63,20 +63,20 @@ describe('capsulePathPt', () => {
     const points = parsePoints(capsulePathPt(50, 50, 40, 10, 0));
     const xs = points.map(([x]) => x);
     const ys = points.map(([, y]) => y);
-    expect(Math.max(...xs)).toBeCloseTo((50 + 20) * MM_TO_PT, 6);
-    expect(Math.min(...xs)).toBeCloseTo((50 - 20) * MM_TO_PT, 6);
-    expect(Math.max(...ys)).toBeCloseTo((50 + 5) * MM_TO_PT, 6);
-    expect(Math.min(...ys)).toBeCloseTo((50 - 5) * MM_TO_PT, 6);
+    expect(Math.max(...xs)).toBeCloseTo((50 + 20) * MM_TO_PT, 2);
+    expect(Math.min(...xs)).toBeCloseTo((50 - 20) * MM_TO_PT, 2);
+    expect(Math.max(...ys)).toBeCloseTo((50 + 5) * MM_TO_PT, 2);
+    expect(Math.min(...ys)).toBeCloseTo((50 - 5) * MM_TO_PT, 2);
   });
 
   it('a 90°: los extremos de los ejes x e y se intercambian', () => {
     const points = parsePoints(capsulePathPt(50, 50, 40, 10, 90));
     const xs = points.map(([x]) => x);
     const ys = points.map(([, y]) => y);
-    expect(Math.max(...xs)).toBeCloseTo((50 + 5) * MM_TO_PT, 6);
-    expect(Math.min(...xs)).toBeCloseTo((50 - 5) * MM_TO_PT, 6);
-    expect(Math.max(...ys)).toBeCloseTo((50 + 20) * MM_TO_PT, 6);
-    expect(Math.min(...ys)).toBeCloseTo((50 - 20) * MM_TO_PT, 6);
+    expect(Math.max(...xs)).toBeCloseTo((50 + 5) * MM_TO_PT, 2);
+    expect(Math.min(...xs)).toBeCloseTo((50 - 5) * MM_TO_PT, 2);
+    expect(Math.max(...ys)).toBeCloseTo((50 + 20) * MM_TO_PT, 2);
+    expect(Math.min(...ys)).toBeCloseTo((50 - 20) * MM_TO_PT, 2);
   });
 
   it('a 45°: el primer punto (tapa derecha, t=-90°) apunta abajo-derecha, como rotate() de SVG', () => {
@@ -86,8 +86,8 @@ describe('capsulePathPt', () => {
     const sin45 = Math.sin(Math.PI / 4);
     const expectedX = (50 + 15 * cos45 + 5 * sin45) * MM_TO_PT;
     const expectedY = (50 + 15 * sin45 - 5 * cos45) * MM_TO_PT;
-    expect(x0).toBeCloseTo(expectedX, 6);
-    expect(y0).toBeCloseTo(expectedY, 6);
+    expect(x0).toBeCloseTo(expectedX, 2);
+    expect(y0).toBeCloseTo(expectedY, 2);
   });
 });
 
@@ -96,12 +96,12 @@ describe('roundedRectPathPt', () => {
     const points = parsePoints(roundedRectPathPt(0, 0, 10, 10, 2));
     const maxPt = mmToPt(10);
     for (const [x, y] of points) {
-      expect(x).toBeGreaterThanOrEqual(-1e-9);
-      expect(x).toBeLessThanOrEqual(maxPt + 1e-9);
-      expect(y).toBeGreaterThanOrEqual(-1e-9);
-      expect(y).toBeLessThanOrEqual(maxPt + 1e-9);
+      expect(x).toBeGreaterThanOrEqual(-1e-3);
+      expect(x).toBeLessThanOrEqual(maxPt + 1e-3);
+      expect(y).toBeGreaterThanOrEqual(-1e-3);
+      expect(y).toBeLessThanOrEqual(maxPt + 1e-3);
     }
-    const hasPoint = (px: number, py: number) => points.some(([x, y]) => Math.abs(x - px) < 1e-6 && Math.abs(y - py) < 1e-6);
+    const hasPoint = (px: number, py: number) => points.some(([x, y]) => Math.abs(x - px) < 1e-3 && Math.abs(y - py) < 1e-3);
     expect(hasPoint(mmToPt(2), 0)).toBe(true);
     expect(hasPoint(mmToPt(10), mmToPt(2))).toBe(true);
   });
@@ -111,10 +111,27 @@ describe('roundedRectPathPt', () => {
     const maxX = mmToPt(10);
     const maxY = mmToPt(4);
     for (const [x, y] of points) {
-      expect(x).toBeGreaterThanOrEqual(-1e-9);
-      expect(x).toBeLessThanOrEqual(maxX + 1e-9);
-      expect(y).toBeGreaterThanOrEqual(-1e-9);
-      expect(y).toBeLessThanOrEqual(maxY + 1e-9);
+      expect(x).toBeGreaterThanOrEqual(-1e-3);
+      expect(x).toBeLessThanOrEqual(maxX + 1e-3);
+      expect(y).toBeGreaterThanOrEqual(-1e-3);
+      expect(y).toBeLessThanOrEqual(maxY + 1e-3);
+    }
+  });
+});
+
+describe('formatPathNumber', () => {
+  it('redondea a 3 decimales sin notación exponencial ni ceros sobrantes', () => {
+    expect(formatPathNumber(1.2246467991473532e-16)).toBe('0');
+    expect(formatPathNumber(-1e-16)).toBe('0');
+    expect(formatPathNumber(12.3456)).toBe('12.346');
+    expect(formatPathNumber(-5.5)).toBe('-5.5');
+    expect(formatPathNumber(100)).toBe('100');
+  });
+
+  it('las rutas de rectángulos redondeados en el origen y de cápsulas no llevan exponentes', () => {
+    for (const path of [roundedRectPathPt(0, 0, 10, 10, 2), roundedRectPathPt(0, 0, 10, 4, 0), capsulePathPt(0, 0, 40, 10, 90), capsulePathPt(50, 50, 40, 10, 45)]) {
+      expect(path).not.toMatch(/e/i);
+      expect(path).toMatch(/^M-?\d+(\.\d{1,3})? -?\d+(\.\d{1,3})?( L-?\d+(\.\d{1,3})? -?\d+(\.\d{1,3})?)* Z$/);
     }
   });
 });

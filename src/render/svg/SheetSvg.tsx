@@ -1,6 +1,6 @@
 import { PAPER, type PaperSize } from '@/core/paper';
 import { withBasePath } from '@/core/paths';
-import { TONE_HEX, type Primitive, type SheetPage } from '@/core/sheet';
+import { DEFAULT_STROKE_WIDTH_MM, TONE_HEX, type Primitive, type SheetPage } from '@/core/sheet';
 
 export const BRAND_MARK_SRC = '/brand/mark-gray.svg';
 
@@ -17,7 +17,7 @@ function PrimitiveNode({ p }: { p: Primitive }) {
       );
     case 'rect':
       return (
-        <rect x={p.x} y={p.y} width={p.w} height={p.h} rx={p.radius} fill={p.fill ? TONE_HEX[p.fill] : 'none'} stroke={p.stroke ? TONE_HEX[p.stroke] : 'none'} strokeWidth={p.strokeWidth} />
+        <rect x={p.x} y={p.y} width={p.w} height={p.h} rx={p.radius} fill={p.fill ? TONE_HEX[p.fill] : 'none'} stroke={p.stroke ? TONE_HEX[p.stroke] : 'none'} strokeWidth={p.stroke ? (p.strokeWidth ?? DEFAULT_STROKE_WIDTH_MM) : undefined} />
       );
     case 'line':
       return <line x1={p.x1} y1={p.y1} x2={p.x2} y2={p.y2} stroke={TONE_HEX[p.stroke]} strokeWidth={p.strokeWidth} strokeDasharray={p.dash?.join(' ')} />;
