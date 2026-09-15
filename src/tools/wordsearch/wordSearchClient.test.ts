@@ -91,6 +91,22 @@ describe('createGenerationClient', () => {
     expect(client.getSnapshot().status).toBe('failed');
   });
 
+  it('si crear el Worker lanza, la petición falla en vez de quedar pendiente y se puede reintentar', () => {
+    let fail = true;
+    const client = createGenerationClient(() => {
+      if (fail) throw new Error('Worker bloqueado');
+      return new FakeWorker();
+    });
+    client.request('k1', message);
+    expect(client.getSnapshot()).toEqual({ status: 'failed', key: 'k1', response: null });
+    vi.advanceTimersByTime(GENERATION_TIMEOUT_MS + 1);
+    expect(client.getSnapshot().status).toBe('failed');
+    fail = false;
+    client.request('k1', message);
+    expect(client.getSnapshot()).toMatchObject({ status: 'pending', key: 'k1' });
+    expect(FakeWorker.created).toHaveLength(1);
+  });
+
   it('dispose termina el Worker y cancela el temporizador', () => {
     const client = createGenerationClient(() => new FakeWorker());
     client.request('k1', message);

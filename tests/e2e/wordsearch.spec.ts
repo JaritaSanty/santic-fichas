@@ -168,4 +168,47 @@ test.describe('prueba de imprenta', () => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await expect(page.getByLabel('Título')).toBeVisible();
   });
+
+  test('mientras se genera, Imprimir y Descargar PDF se deshabilitan y se anuncia el estado', async ({ page }) => {
+    await page.goto('es/sopa-de-letras/');
+    await settle(page);
+    const print = page.locator('[data-action="print"]');
+    const pdf = page.locator('[data-action="pdf"]');
+    await expect(print).toBeEnabled();
+    await page.getByLabel('Palabras').fill('gato\nperro\nvaca');
+    await expect(print).toBeDisabled();
+    await expect(pdf).toBeDisabled();
+    await expect(page.getByRole('status').filter({ hasText: 'Generando…' })).toBeVisible();
+    await settle(page);
+    await expect(print).toBeEnabled();
+    await expect(pdf).toBeEnabled();
+    await expect(page.getByRole('status').filter({ hasText: 'Generando…' })).toHaveCount(0);
+  });
+
+  test('las páginas de «Ampliar» solo se montan con el diálogo abierto', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 740 });
+    await page.goto('es/sopa-de-letras/');
+    await settle(page);
+    await expect(page.locator('dialog svg')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Ampliar' }).click();
+    await expect(page.locator('dialog[open] svg[role="img"]')).toHaveCount(2);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('dialog svg')).toHaveCount(0);
+  });
+});
+
+test.describe('sopa de letras sin JavaScript', () => {
+  test.use({ javaScriptEnabled: false });
+
+  test('en escritorio el formulario del parte es visible antes de hidratar', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('es/sopa-de-letras/');
+    await expect(page.getByLabel('Palabras')).toBeVisible();
+  });
+
+  test('en móvil el parte sigue plegado', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 740 });
+    await page.goto('es/sopa-de-letras/');
+    await expect(page.getByLabel('Palabras')).toBeHidden();
+  });
 });

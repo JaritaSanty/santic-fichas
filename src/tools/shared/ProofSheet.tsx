@@ -1,10 +1,14 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { memo, useRef, useState } from 'react';
 import type { SheetDocument } from '@/core/sheet';
 import { SheetSvg } from '@/render/svg/SheetSvg';
 
 type Zoom = 'fit' | 'actual';
+
+// Cada página solo se vuelve a pintar si cambia su `page` (el documento está memoizado aguas arriba), no por
+// una pulsación en otra parte del formulario.
+const PageSvg = memo(SheetSvg);
 
 const CORNERS = ['left-0 top-0', 'right-0 top-0 -scale-x-100', 'bottom-0 left-0 -scale-y-100', 'bottom-0 right-0 -scale-100'] as const;
 const REGISTER = ['left-1/2 top-0.5 -translate-x-1/2', 'bottom-0.5 left-1/2 -translate-x-1/2'] as const;
@@ -35,6 +39,7 @@ export function ProofSheet({ doc, docKey, label, labels }: {
   labels: { zoomLegend: string; zoomFit: string; zoomActual: string; enlarge: string; close: string };
 }) {
   const [zoom, setZoom] = useState<Zoom>('fit');
+  const [enlarged, setEnlarged] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   const zoomButton = (value: Zoom, text: string) => (
@@ -55,7 +60,10 @@ export function ProofSheet({ doc, docKey, label, labels }: {
           {zoomButton('fit', labels.zoomFit)}
           {zoomButton('actual', labels.zoomActual)}
         </div>
-        <button type="button" onClick={() => dialogRef.current?.showModal()} className="border border-line px-3 py-1 text-sm font-semibold text-ink md:hidden">
+        <button type="button" onClick={() => {
+            setEnlarged(true);
+            dialogRef.current?.showModal();
+          }} className="border border-line px-3 py-1 text-sm font-semibold text-ink md:hidden">
           {labels.enlarge}
         </button>
       </div>
@@ -67,23 +75,24 @@ export function ProofSheet({ doc, docKey, label, labels }: {
               {/* La clave reinicia el paso seco de las marcas en cada ficha nueva. */}
               <ProofMarks key={docKey} />
               <div className="border border-line bg-surface">
-                <SheetSvg paper={doc.paper} page={page} sizing={zoom === 'actual' ? 'physical' : 'fluid'} label={`${label} ${i + 1}/${doc.pages.length}`} />
+                <PageSvg paper={doc.paper} page={page} sizing={zoom === 'actual' ? 'physical' : 'fluid'} label={`${label} ${i + 1}/${doc.pages.length}`} />
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      <dialog ref={dialogRef} aria-label={label} className="m-0 h-dvh max-h-none w-screen max-w-none overflow-auto bg-canvas p-0 backdrop:bg-ink/60">
+      {/* `close` llega también con Escape; las páginas ampliadas solo existen mientras el diálogo está abierto. */}
+      <dialog ref={dialogRef} aria-label={label} onClose={() => setEnlarged(false)} className="m-0 h-dvh max-h-none w-screen max-w-none overflow-auto bg-canvas p-0 backdrop:bg-ink/60">
         <div className="sticky left-0 top-0 z-10 flex justify-end border-b border-line bg-canvas p-3">
           <button type="button" onClick={() => dialogRef.current?.close()} className="border border-line bg-surface px-4 py-2 font-semibold text-ink">
             {labels.close}
           </button>
         </div>
         <div className="grid gap-6 p-4">
-          {doc.pages.map((page, i) => (
+          {enlarged && doc.pages.map((page, i) => (
             <div key={i} className="w-max border border-line bg-surface">
-              <SheetSvg paper={doc.paper} page={page} sizing="physical" label={`${label} ${i + 1}/${doc.pages.length}`} />
+              <PageSvg paper={doc.paper} page={page} sizing="physical" label={`${label} ${i + 1}/${doc.pages.length}`} />
             </div>
           ))}
         </div>

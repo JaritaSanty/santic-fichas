@@ -86,6 +86,8 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
   }, [client, requestKey, validation, seedCode, lang]);
 
   const current = requestKey !== null && generation.key === requestKey;
+  // Mientras corre el debounce o el Worker, la vista previa conserva la ficha anterior: no se imprime ni se descarga.
+  const pending = requestKey !== null && !(current && (generation.status === 'done' || generation.status === 'failed'));
   const result = requestKey && generation.response?.ok ? generation.response.result : null;
   const frameLabels = useMemo(() => ({ name: labels.sheet.name, date: labels.sheet.date, solutions: labels.sheet.solutions }), [labels.sheet]);
   const layout = useMemo(
@@ -172,13 +174,16 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
         <JobLine
           actions={
             <>
-              <PrintButton label={labels.tool.print} />
+              <PrintButton label={labels.tool.print} disabled={pending} />
               <DownloadPdfButton
                 doc={doc}
                 filename={filename}
-                disabled={!layout?.ok}
+                disabled={pending || !layout?.ok}
                 labels={{ download: proof.downloadPdf, preparing: proof.preparingPdf, offline: proof.pdfOffline, failed: proof.pdfFailed }}
               />
+              <span role="status" aria-live="polite" className="text-sm text-muted">
+                {pending ? t.generating : ''}
+              </span>
             </>
           }
           items={[

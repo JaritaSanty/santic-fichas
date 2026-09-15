@@ -47,6 +47,14 @@ a {
   display: none;
 }
 
+/* El HTML estático llega con el parte cerrado (el punto de ruptura solo se conoce en el cliente). A partir de md
+   el <summary> está oculto y el parte siempre abierto, así que su contenido se muestra también antes de hidratar. */
+@media (min-width: 48rem) {
+  details[data-docket]::details-content {
+    content-visibility: visible;
+  }
+}
+
 /* Paso seco de las marcas de registro al cambiar la ficha (sin easing decorativo). */
 @keyframes proof-register {
   from {

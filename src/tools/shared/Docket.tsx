@@ -27,6 +27,7 @@ export function Docket({ summary, detail, children }: { summary: string; detail:
       onToggle={(e) => {
         if (!isDesktop) setOpenOnMobile(e.currentTarget.open);
       }}
+      data-docket
       className="border border-line bg-surface"
     >
       <summary className="cursor-pointer px-5 py-3 md:hidden">

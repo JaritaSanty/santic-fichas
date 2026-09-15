@@ -75,8 +75,16 @@ export function createGenerationClient(createWorker: () => WorkerLike) {
       currentId = nextId++;
       busy = true;
       emit({ status: 'pending', key, response: snapshot.response });
-      ensureWorker().postMessage({ ...message, requestId: currentId });
+      try {
+        ensureWorker().postMessage({ ...message, requestId: currentId });
+      } catch {
+        // Sin Worker (creación bloqueada o mensaje no clonable): error genérico en vez de quedar pendiente.
+        dropWorker();
+        emit({ status: 'failed', key, response: null });
+        return;
+      }
       timer = setTimeout(() => {
+        timer = null;
         if (!busy) return;
         dropWorker();
         emit({ status: 'failed', key, response: null });
