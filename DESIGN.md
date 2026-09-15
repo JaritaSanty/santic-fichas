@@ -249,7 +249,7 @@ Paleta de identidad restringida: un azul acero para la acción y el registro, un
 ### Named Rules
 **The Steel Is for Action Rule.** El azul acero rellena o traza solo acciones (primaria rellena, secundaria con filete), las marcas de registro de la prueba, el foco y la selección. Los titulares van en pizarra, no en azul; el estado pulsado de un conmutador va en tinta, no en azul.
 
-**The Grayscale Sheet Rule.** Dentro de la hoja solo existen los cuatro grises de `TONE_HEX`. Ningún token de interfaz entra en la hoja. Fuera de la hoja, los grises de hoja solo aparecen en la cuña de tonos, que es su leyenda.
+**The Grayscale Sheet Rule.** Dentro de la hoja solo existen los cuatro grises de `TONE_HEX`. Ningún token de interfaz entra en la hoja. Fuera de la hoja, los grises de hoja solo aparecen en la cuña de tonos, que es su leyenda. La cuña intercala un gris 50 % (`#808080`) entre medio y tenue solo como escalón de la leyenda; no es tinta de hoja y no puede usarse dentro de ella.
 
 **The Ink Notice Rule.** Avisos, errores y validaciones se escriben en tinta (600 cuando bloquean) dentro de paneles o líneas con filete; no existe color de alarma.
 
