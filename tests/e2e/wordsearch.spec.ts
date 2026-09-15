@@ -49,6 +49,18 @@ test.describe('sopa de letras', () => {
     await expect(page.getByText('Este código es de otra versión del generador (v2)', { exact: false })).toBeVisible();
   });
 
+  test('corregir solo una tilde o una mayúscula actualiza la grafía de la hoja', async ({ page }) => {
+    await page.goto('es/sopa-de-letras/');
+    await page.getByLabel('Palabras').fill('arbol\ngato');
+    await settle(page);
+    await expect(sheet(page)).toContainText('arbol');
+    await page.getByLabel('Palabras').fill('árbol\nGato');
+    await settle(page);
+    await expect(sheet(page)).toContainText('árbol');
+    await expect(sheet(page)).toContainText('Gato');
+    await expect(sheet(page)).not.toContainText('arbol');
+  });
+
   test('las líneas inválidas se rechazan sin bloquear', async ({ page }) => {
     await page.goto('es/sopa-de-letras/');
     await page.getByLabel('Palabras').fill('gato\naño 2\nperro');

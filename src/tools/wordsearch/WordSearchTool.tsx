@@ -26,6 +26,7 @@ import { ToneWedge } from '@/tools/shared/ToneWedge';
 import { GridOptions } from './GridOptions';
 import { describeError, describeRejected, describeSeed, describeSuggestion, describeWarning } from './messages';
 import { UnplacedPanel } from './UnplacedPanel';
+import { generationKey, removeWordLines } from './request';
 import { createGenerationClient, type WorkerLike } from './wordSearchClient';
 import { WordListField } from './WordListField';
 
@@ -74,7 +75,7 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
   const seedCode = (seedRead.status === 'ok' ? seedRead.code : null) ?? regeneratedSeed ?? initialSeedCode;
   const requestKey =
     validation.ok && seedCode !== '' && !seedInvalid
-      ? JSON.stringify({ words: validation.value.entries.map((e) => e.normalized), size, directions, seedCode, lang })
+      ? generationKey(validation.value.entries, size, directions, seedCode, lang)
       : null;
 
   useEffect(() => {
@@ -115,10 +116,7 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
 
   const unplaced = current && generation.status === 'done' && result ? result.unplaced : [];
   const suggestions = unplaced.length > 0 && validation.ok ? suggestAdjustments(validation.value, unplaced).map((s) => describeSuggestion(s, t)) : [];
-  const removeUnplaced = () => {
-    const drop = new Set(unplaced.map((e) => e.line));
-    setWordsText(wordsText.split(/\r?\n/).filter((_, i) => !drop.has(i + 1)).join('\n'));
-  };
+  const removeUnplaced = () => setWordsText(removeWordLines(wordsText, unplaced.map((e) => e.normalized), lang));
   const retry = () => {
     if (requestKey && validation.ok) client.request(requestKey, { value: validation.value, seedCode, lang });
   };
