@@ -62,7 +62,7 @@ Se aplican a todas las tareas:
 
 ---
 
-### Tarea 1: Tipos, límites y validación de parámetros
+### Task 1: Tipos, límites y validación de parámetros
 
 **Ficheros:**
 - Crear: `src/generators/arithmetic/types.ts`, `src/generators/arithmetic/params.ts`
@@ -262,7 +262,7 @@ git commit -m "feat(operaciones): tipos, límites y validación de parámetros"
 
 ---
 
-### Tarea 2: Espacio de combinaciones
+### Task 2: Espacio de combinaciones
 
 **Ficheros:**
 - Crear: `src/generators/arithmetic/space.ts`
@@ -436,7 +436,7 @@ git commit -am "feat(operaciones): espacio de combinaciones con llevada y divisi
 
 ---
 
-### Tarea 3: Generación sembrada, mezcla y déficit
+### Task 3: Generación sembrada, mezcla y déficit
 
 **Ficheros:**
 - Crear: `src/generators/arithmetic/generate.ts`, `src/generators/arithmetic/seed.ts`, `src/generators/arithmetic/index.ts`
@@ -490,7 +490,7 @@ git commit -am "feat(operaciones): generación sembrada con reparto equilibrado 
 
 ---
 
-### Tarea 4: Sugerencias de ajuste
+### Task 4: Sugerencias de ajuste
 
 **Ficheros:**
 - Crear: `src/generators/arithmetic/suggest.ts`
@@ -525,7 +525,7 @@ Las sugerencias se ordenan de menos a más invasiva y nunca se inventan valores 
 
 ---
 
-### Tarea 5: Worker y cliente de generación compartido
+### Task 5: Worker y cliente de generación compartido
 
 **Ficheros:**
 - Crear: `src/workers/arithmetic.ts`, `src/workers/arithmetic.worker.ts`, `src/tools/shared/generationClient.ts`
@@ -562,7 +562,7 @@ El comportamiento del almacén no cambia: invalida respuestas viejas, termina un
 
 ---
 
-### Tarea 6: Maquetación en columnas y paginación
+### Task 6: Maquetación en columnas y paginación
 
 **Ficheros:**
 - Crear: `src/layout/arithmetic/blocks.ts`, `src/layout/arithmetic/layoutArithmetic.ts`, `src/layout/arithmetic/index.ts`
@@ -616,7 +616,7 @@ Esta tarea cubre `add`, `sub`, `mul` y la disposición en línea deja el hueco d
 
 ---
 
-### Tarea 7: División en dos idiomas y disposición en línea
+### Task 7: División en dos idiomas y disposición en línea
 
 **Ficheros:**
 - Modificar: `src/layout/arithmetic/blocks.ts`
@@ -635,7 +635,7 @@ La disposición en línea se prueba aparte: `23 + 45 = ` seguido de una raya de 
 
 ---
 
-### Tarea 8: Rutas, diccionarios y mensajes
+### Task 8: Rutas, diccionarios y mensajes
 
 **Ficheros:**
 - Modificar: `src/i18n/routes.ts` (`SectionKey` pasa a `'wordsearch' | 'arithmetic'`, slugs `es: 'operaciones'`, `en: 'arithmetic'`), `src/i18n/dictionary.ts`, `src/i18n/dictionaries/es.ts`, `src/i18n/dictionaries/en.ts`
@@ -650,7 +650,7 @@ El bloque `arithmetic` del diccionario cubre: etiquetas de operaciones, rangos y
 
 ---
 
-### Tarea 9: Interfaz de la herramienta
+### Task 9: Interfaz de la herramienta
 
 **Ficheros:**
 - Crear: `src/tools/arithmetic/ArithmeticTool.tsx`, `KindsField.tsx`, `RangeFields.tsx`, `OptionsFields.tsx`, `request.ts`, `index.ts`
@@ -673,7 +673,7 @@ La portada dibuja una miniatura real: `thumbnailPage` para `arithmetic` genera u
 
 ---
 
-### Tarea 10: Pruebas de extremo a extremo y presupuesto
+### Task 10: Pruebas de extremo a extremo y presupuesto
 
 **Ficheros:**
 - Crear: `tests/e2e/arithmetic.spec.ts`
@@ -695,7 +695,7 @@ El resto de specs deben seguir en verde con la nueva sección; `ads.spec` mide l
 
 ---
 
-### Tarea 11: Cierre de fase
+### Task 11: Cierre de fase
 
 Sin código nuevo salvo correcciones.
 
