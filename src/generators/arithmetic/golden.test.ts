@@ -96,6 +96,35 @@ const CASES: GoldenCase[] = [
       'mul 817 9 = 7353 r0',
     ],
   },
+  {
+    // Congela la segunda vuelta: la única división exacta de 101..109 entre 7 es 105, así que la división aporta 1 de
+    // las 3 que le tocaban y el déficit de 2 se reparte entre las otras tres. Fija a la vez el orden canónico del
+    // reparto y el redondeo hacia arriba: reparte 1 a la suma y 1 a la resta (4, 4, 3, 1), no 0, 1 y 1 (3, 4, 4, 1).
+    name: 'déficit repartido entre tres operaciones elegibles',
+    seed: 'v1-DEFIC4',
+    input: {
+      ...base,
+      kinds: { add: true, sub: true, mul: true, div: true },
+      first: { min: 101, max: 109 },
+      second: { min: 7, max: 7 },
+      division: 'exact',
+      count: 12,
+    },
+    operations: [
+      'mul 102 7 = 714 r0',
+      'add 102 7 = 109 r0',
+      'div 105 7 = 15 r0',
+      'sub 102 7 = 95 r0',
+      'add 101 7 = 108 r0',
+      'mul 108 7 = 756 r0',
+      'sub 109 7 = 102 r0',
+      'add 103 7 = 110 r0',
+      'sub 108 7 = 101 r0',
+      'mul 106 7 = 742 r0',
+      'sub 103 7 = 96 r0',
+      'add 108 7 = 115 r0',
+    ],
+  },
 ];
 
 describe(`fixture dorado del algoritmo v${ARITHMETIC_ALGORITHM_VERSION}`, () => {

@@ -1,4 +1,4 @@
-import { createRng } from '@/core/random';
+import { createRng, formatSeedCode, parseSeedCode } from '@/core/random';
 import { drawOperations } from './space';
 import type { Operation, OperationKind, ValidArithmetic } from './types';
 
@@ -20,6 +20,16 @@ function shareOut(total: number, parts: number): number[] {
 }
 
 /**
+ * Forma canónica del código antes de sembrar: el hash distingue mayúsculas de minúsculas, así que sin esto
+ * `v1-abc234` y `v1-ABC234` —el mismo código para el docente— darían fichas distintas. Un código que no se puede
+ * interpretar se siembra tal cual (recortado): generar algo reproducible es mejor que rechazarlo aquí.
+ */
+function canonicalSeed(seedCode: string): string {
+  const parsed = parseSeedCode(seedCode);
+  return parsed ? formatSeedCode(parsed.version, parsed.body) : seedCode.trim();
+}
+
+/**
  * Operaciones de una ficha a partir de los parámetros validados y el código de semilla.
  *
  * El cupo se reparte a partes iguales entre las operaciones elegidas (el resto, de una en una, siguiendo el orden
@@ -32,18 +42,14 @@ function shareOut(total: number, parts: number): number[] {
  * vuelve a sortear entera —con el mismo subgenerador, así que el lote nuevo empieza por el anterior— en lugar de
  * pedirle un segundo lote, que podría repetir pares. Las que se quedaron cortas no se reintentan: un sorteo corto
  * es autoritativo, con los mismos parámetros no van a aparecer más.
+ *
+ * El código de semilla se lleva a su forma canónica antes de sembrar, y es esa la que vuelve en el resultado.
  */
 export function generateArithmetic(value: ValidArithmetic, seedCode: string): ArithmeticResult {
-  const root = createRng(seedCode);
+  const code = canonicalSeed(seedCode);
+  const root = createRng(code);
   const kinds = value.kinds;
   const requested = value.count;
-  const result = (operations: Operation[]): ArithmeticResult => ({
-    operations,
-    requested,
-    seedCode,
-    version: ARITHMETIC_ALGORITHM_VERSION,
-  });
-  if (kinds.length === 0) return result([]);
 
   const quotas = shareOut(requested, kinds.length);
   const drawOf = (index: number, wanted: number): Operation[] => {
@@ -55,8 +61,10 @@ export function generateArithmetic(value: ValidArithmetic, seedCode: string): Ar
   const drawn = kinds.map((_, i) => drawOf(i, quotas[i] as number));
   let pending = quotas.reduce((sum, quota, i) => sum + quota - (drawn[i] as Operation[]).length, 0);
 
-  // Segunda vuelta: el déficit se reparte entre las operaciones que cubrieron su cupo. La parte de la que no pueda
-  // dar más pasa a las siguientes (el reparto se recalcula sobre lo que queda), pero no se abre una tercera vuelta.
+  // Segunda vuelta: el déficit se reparte entre las operaciones que cubrieron su cupo, en el orden canónico y
+  // redondeando hacia arriba (las primeras cargan con el resto, igual que en el reparto inicial). La parte de la que
+  // no pueda dar más pasa a las siguientes (el reparto se recalcula sobre lo que queda), pero no hay tercera vuelta:
+  // el bucle recorre `eligible` una vez. El orden y el redondeo son parte del algoritmo v1 (los congela el fixture).
   const eligible = kinds.map((_, i) => i).filter((i) => (drawn[i] as Operation[]).length >= (quotas[i] as number));
   for (let n = 0; n < eligible.length && pending > 0; n++) {
     const i = eligible[n] as number;
@@ -69,5 +77,10 @@ export function generateArithmetic(value: ValidArithmetic, seedCode: string): Ar
   }
 
   // Se baraja la lista combinada: cada sublista ya viene barajada, pero saldrían agrupadas por operación.
-  return result(root.fork('shuffle').shuffle(drawn.flat()));
+  return {
+    operations: root.fork('shuffle').shuffle(drawn.flat()),
+    requested,
+    seedCode: code,
+    version: ARITHMETIC_ALGORITHM_VERSION,
+  };
 }

@@ -74,19 +74,20 @@ describe('generateArithmetic', () => {
   });
 
   it('si una operación no tiene espacio suficiente, las demás cubren el déficit', () => {
-    // Restas: 10 pares (20..29 menos 3). Divisiones exactas: solo 21, 24 y 27, tres de las seis que le tocaban.
+    // 101..109 con el 7: suma, resta y multiplicación tienen 9 pares cada una, pero la única división exacta es
+    // 105 ÷ 7. Cupos de 3; el déficit de 2 se reparte entre las tres que sí llegaron, empezando por las primeras
+    // del orden canónico: una más para la suma y otra para la resta.
     const value = valueOf({
-      kinds: { add: false, sub: true, mul: false, div: true },
-      first: { min: 20, max: 29 },
-      second: { min: 3, max: 3 },
+      kinds: ALL_KINDS,
+      first: { min: 101, max: 109 },
+      second: { min: 7, max: 7 },
       division: 'exact',
       count: 12,
     });
-    const { operations, requested } = generateArithmetic(value, 'v1-DEFICI');
+    const { operations, requested } = generateArithmetic(value, 'v1-DEFIC4');
     expect(requested).toBe(12);
     expect(operations).toHaveLength(12);
-    expect(countOf(operations, 'div')).toBe(3);
-    expect(countOf(operations, 'sub')).toBe(9);
+    expect([countOf(operations, 'add'), countOf(operations, 'sub'), countOf(operations, 'mul'), countOf(operations, 'div')]).toEqual([4, 4, 3, 1]);
   });
 
   it('si el espacio total es menor que lo pedido devuelve menos y sin repeticiones', () => {
@@ -107,14 +108,21 @@ describe('generateArithmetic', () => {
 
   it('no repite operaciones cuando el déficit obliga a volver a sortear', () => {
     const value = valueOf({
-      kinds: { add: false, sub: true, mul: false, div: true },
-      first: { min: 20, max: 29 },
-      second: { min: 3, max: 3 },
+      kinds: ALL_KINDS,
+      first: { min: 101, max: 109 },
+      second: { min: 7, max: 7 },
       division: 'exact',
       count: 12,
     });
-    const { operations } = generateArithmetic(value, 'v1-DEFICI');
+    const { operations } = generateArithmetic(value, 'v1-DEFIC4');
     expect(new Set(operations.map((o) => `${o.kind}:${o.a}:${o.b}`)).size).toBe(operations.length);
+  });
+
+  it('el código se lleva a su forma canónica antes de sembrar', () => {
+    const value = valueOf({ count: 10 });
+    const lower = generateArithmetic(value, ' v1-abc234 ');
+    expect(lower.seedCode).toBe('v1-ABC234');
+    expect(serialize(lower.operations)).toEqual(serialize(generateArithmetic(value, 'v1-ABC234').operations));
   });
 });
 

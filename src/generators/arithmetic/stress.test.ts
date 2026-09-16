@@ -7,7 +7,7 @@ import type { ArithmeticInput, CarryMode } from './types';
 const LIMIT_MS = process.env.CI ? 1200 : 400;
 
 /** Peor caso razonable: el tope de operaciones, rangos que obligan a muestrear y división con resto. */
-function timeGeneration(carry: CarryMode): number {
+function timeGeneration(carry: CarryMode): { ms: number; produced: number } {
   const input: ArithmeticInput = {
     kinds: { add: true, sub: true, mul: true, div: true },
     first: { min: 10000, max: 99999 },
@@ -21,16 +21,21 @@ function timeGeneration(carry: CarryMode): number {
   const v = validateArithmetic(input);
   if (!v.ok) throw new Error('entrada inválida');
   const start = performance.now();
-  generateArithmetic(v.value, 'v1-ESTRES');
-  return performance.now() - start;
+  const result = generateArithmetic(v.value, 'v1-ESTRES');
+  return { ms: performance.now() - start, produced: result.operations.length };
 }
 
 describe('coste de la generación en el peor caso', () => {
   it('200 operaciones mixtas de cinco cifras con división con resto', () => {
-    expect(timeGeneration('any')).toBeLessThan(LIMIT_MS);
+    const { ms, produced } = timeGeneration('any');
+    // Se comprueba el trabajo hecho, no solo el reloj: rendirse y devolver una lista corta también sería rápido.
+    expect(produced).toBe(200);
+    expect(ms).toBeLessThan(LIMIT_MS);
   });
 
   it('las mismas sin llevada, donde el muestreo rechaza casi todo', () => {
-    expect(timeGeneration('without')).toBeLessThan(LIMIT_MS);
+    const { ms, produced } = timeGeneration('without');
+    expect(produced).toBe(200);
+    expect(ms).toBeLessThan(LIMIT_MS);
   });
 });
