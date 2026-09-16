@@ -2,9 +2,10 @@
 
 import { HEADER_LIMITS, type SheetHeader } from '@/layout/common/frame';
 
-export function SheetHeaderFields({ value, onChange, labels }: {
+export function SheetHeaderFields({ value, onChange, notices, labels }: {
   value: SheetHeader;
   onChange: (next: SheetHeader) => void;
+  notices: string[];
   labels: { legend: string; title: string; school: string };
 }) {
   return (
@@ -32,6 +33,13 @@ export function SheetHeaderFields({ value, onChange, labels }: {
           autoComplete="off"
         />
       </label>
+      {notices.length > 0 && (
+        <ul aria-live="polite" className="grid gap-1 text-xs text-ink">
+          {notices.map((notice) => (
+            <li key={notice}>{notice}</li>
+          ))}
+        </ul>
+      )}
     </fieldset>
   );
 }

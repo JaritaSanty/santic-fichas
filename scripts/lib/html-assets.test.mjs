@@ -22,6 +22,13 @@ describe('firstViewAssets', () => {
   });
 });
 
+describe('firstViewAssets con precarga de scripts', () => {
+  it('cuenta scripts que solo aparecen como <link rel="preload" as="script">', () => {
+    const html = '<link rel="preload" as="script" href="/_next/static/chunks/solo-precarga.js"/><script src="/_next/static/chunks/main.js"></script>';
+    expect(firstViewAssets(html).scripts).toEqual(['/_next/static/chunks/main.js', '/_next/static/chunks/solo-precarga.js']);
+  });
+});
+
 describe('detectBasePath', () => {
   it('lo deduce del prefijo de _next/static', () => {
     expect(detectBasePath(HTML)).toBe('/fichas');

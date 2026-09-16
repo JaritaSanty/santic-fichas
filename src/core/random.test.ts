@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createRng, formatSeedCode, parseSeedCode, randomSeedBody, SEED_ALPHABET } from './random';
+import { createRng, formatSeedCode, newSeedCode, parseSeedCode, randomSeedBody, SEED_ALPHABET } from './random';
 
 describe('createRng', () => {
   it('produce la secuencia de referencia (detecta cambios de algoritmo)', () => {
@@ -70,5 +70,14 @@ describe('códigos de semilla', () => {
     expect(body).toHaveLength(6);
     for (const ch of body) expect(SEED_ALPHABET).toContain(ch);
     expect(SEED_ALPHABET).not.toMatch(/[01OIL]/);
+  });
+});
+
+describe('newSeedCode', () => {
+  it('produce códigos canónicos de la versión pedida', () => {
+    const code = newSeedCode(1);
+    expect(code).toMatch(/^v1-[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{6}$/);
+    const parsed = parseSeedCode(code);
+    expect(parsed && formatSeedCode(parsed.version, parsed.body)).toBe(code);
   });
 });

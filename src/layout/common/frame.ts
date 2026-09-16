@@ -1,16 +1,15 @@
 import { BRAND_DOMAIN, BRAND_MARK_ASPECT } from '@/core/brand';
+import { fitTextToWidth, stripUnsupportedSheetChars, type FittedText } from '@/core/measure';
 import { PAPER, SHEET_MARGIN_MM, type PaperSize } from '@/core/paper';
 import type { Primitive } from '@/core/sheet';
+import { collapseSpaces } from '@/core/text';
 
 export interface SheetHeader { title: string; school: string }
 export interface FrameLabels { name: string; date: string; solutions: string }
 export interface ContentBox { x: number; y: number; w: number; h: number }
 export interface Frame { primitives: Primitive[]; content: ContentBox }
 
-// title = 40: límite provisional hasta que la Fase 2 mida con métricas reales de la tipografía
-// de ficha (Andika Bold a 7 mm ≈ 3,47 mm/carácter; 80 caracteres ≈ 278 mm sobre 186 mm de ancho
-// de contenido, solo caben ~50). school se mantiene en 80 (Andika a 3,5 mm, cabe sin desbordar).
-export const HEADER_LIMITS = { title: 40, school: 80 } as const;
+export const HEADER_LIMITS = { title: 80, school: 80 } as const;
 
 // Geometría del marco en mm, relativa al margen superior o inferior.
 const TITLE_BASELINE = 7;
@@ -26,6 +25,29 @@ const FOOTER_GAP = 2;
 const MARK_HEIGHT = 5;
 const FOOTER_TEXT_SIZE = 2.5; // ≈ 7 pt
 
+// Ajuste por ancho medido con las métricas de Andika (Anexo C de Fase 1).
+const TITLE_MIN_SIZE = 4.5;
+const SCHOOL_MIN_SIZE = 2.8;
+
+export interface HeaderFit {
+  title: FittedText;
+  school: FittedText;
+}
+
+// Espacios en blanco colapsados (antes y después de quitar glifos ausentes): SVG los colapsa al pintar y el PDF no.
+const clip = (text: string, limit: number) => Array.from(collapseSpaces(stripUnsupportedSheetChars(collapseSpaces(text)))).slice(0, limit).join('');
+
+export function fitHeader(input: { paper: PaperSize; header: SheetHeader; labels: FrameLabels; role: 'student' | 'solution' }): HeaderFit {
+  const { widthMm: W } = PAPER[input.paper];
+  const maxWidth = W - 2 * SHEET_MARGIN_MM;
+  const title = clip(input.header.title, HEADER_LIMITS.title);
+  const shownTitle = input.role === 'solution' ? [title, input.labels.solutions].filter(Boolean).join(' — ') : title;
+  return {
+    title: fitTextToWidth(shownTitle, 'sheetBold', TITLE_SIZE, TITLE_MIN_SIZE, maxWidth),
+    school: fitTextToWidth(clip(input.header.school, HEADER_LIMITS.school), 'sheet', SCHOOL_SIZE, SCHOOL_MIN_SIZE, maxWidth),
+  };
+}
+
 export function buildFrame(input: {
   paper: PaperSize;
   header: SheetHeader;
@@ -34,18 +56,14 @@ export function buildFrame(input: {
 }): Frame {
   const { widthMm: W, heightMm: H } = PAPER[input.paper];
   const m = SHEET_MARGIN_MM;
-  // Recorte por puntos de código, no por unidades UTF-16: slice() partiría un par suplente
-  // (p. ej. un emoji) dejando una unidad huérfana en el texto final.
-  const title = Array.from(input.header.title.trim()).slice(0, HEADER_LIMITS.title).join('');
-  const school = Array.from(input.header.school.trim()).slice(0, HEADER_LIMITS.school).join('');
   const primitives: Primitive[] = [];
 
-  const shownTitle = input.role === 'solution' ? [title, input.labels.solutions].filter(Boolean).join(' — ') : title;
-  if (shownTitle) {
-    primitives.push({ t: 'text', x: W / 2, y: m + TITLE_BASELINE, text: shownTitle, size: TITLE_SIZE, font: 'sheetBold', align: 'middle', tone: 'ink' });
+  const fit = fitHeader(input);
+  if (fit.title.text) {
+    primitives.push({ t: 'text', x: W / 2, y: m + TITLE_BASELINE, text: fit.title.text, size: fit.title.size, font: 'sheetBold', align: 'middle', tone: 'ink' });
   }
-  if (school) {
-    primitives.push({ t: 'text', x: W / 2, y: m + SCHOOL_BASELINE, text: school, size: SCHOOL_SIZE, font: 'sheet', align: 'middle', tone: 'muted' });
+  if (fit.school.text) {
+    primitives.push({ t: 'text', x: W / 2, y: m + SCHOOL_BASELINE, text: fit.school.text, size: fit.school.size, font: 'sheet', align: 'middle', tone: 'muted' });
   }
 
   if (input.role === 'student') {

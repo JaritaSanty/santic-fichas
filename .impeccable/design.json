@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-13T15:19:52.405Z",
+  "generatedAt": "2026-09-14T21:45:25.892Z",
   "title": "Design System: Santic Education — Generador de fichas",
   "extensions": {
     "colorMeta": {
@@ -196,7 +196,7 @@
       },
       "legend": {
         "displayName": "Legend",
-        "purpose": "Leyenda de grupo del parte de trabajo."
+        "purpose": "Leyendas de grupo del parte, título del resumen plegado, h3 de paneles."
       },
       "body": {
         "displayName": "Body",
@@ -204,11 +204,19 @@
       },
       "body-sm": {
         "displayName": "Body small",
-        "purpose": "Descripciones, pie, selector de idioma."
+        "purpose": "Valores de la línea de trabajo, botones de herramienta, paneles de aviso, selector de idioma."
       },
       "label": {
         "displayName": "Label",
-        "purpose": "Etiqueta visible en mayúsculas de cada campo."
+        "purpose": "Etiqueta en mayúsculas de cada campo y rótulos de la línea de trabajo."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Ayudas, contador, detalle del resumen, leyenda de la cuña, mensajes por línea."
+      },
+      "sheet-content-ui": {
+        "displayName": "Sheet content in UI",
+        "purpose": "Texto que irá impreso mostrado en la interfaz (campo de palabras, palabras sin colocar)."
       },
       "sheet-title": {
         "displayName": "Sheet title",
@@ -217,6 +225,10 @@
       "sheet-body": {
         "displayName": "Sheet body",
         "purpose": "Centro, rótulos Nombre/Fecha a 3.5 mm."
+      },
+      "sheet-list": {
+        "displayName": "Sheet list",
+        "purpose": "Lista de palabras de la sopa de letras, 5 mm con interlínea de 7.5 mm."
       },
       "sheet-footer": {
         "displayName": "Sheet footer",
@@ -235,7 +247,12 @@
       {
         "name": "dry-step",
         "value": "none",
-        "purpose": "Los cambios de estado son instantáneos; no hay transiciones en la construcción."
+        "purpose": "Hover, pulsado e idioma actual cambian sin transiciones."
+      },
+      {
+        "name": "proof-register",
+        "value": "animation: proof-register 90ms steps(2, end); /* opacity 0.25 -> 1 */",
+        "purpose": "Paso seco de las marcas de registro al cambiar la ficha; none con prefers-reduced-motion."
       }
     ],
     "breakpoints": [
@@ -253,14 +270,62 @@
       }
     ],
     "pending": [
-      "Marcas de corte en L y cruces de registro en azul acero",
-      "Línea de trabajo con papel, páginas y semilla; Imprimir/PDF al inicio",
-      "Zoom en escalas enteras nombradas y «Ampliar» en móvil",
-      "Parpadeo seco (≤ 90 ms) de las marcas de registro",
-      "Cuña de 5 grises como leyenda de tono",
-      "Parte de trabajo plegable en móvil",
-      "Acción secundaria con filete (PDF)"
-    ]
+      "Indicio visible de desplazamiento en la ventana 100 % con barras superpuestas (decisión del operador)",
+      "Anclaje publicitario móvil oculto cerca de acciones o en flujo antes de activarlo en Fase 6",
+      "Línea de datos en el margen de la prueba (página n/N · papel · código)",
+      "Cuña pegada a la hoja como barra de color",
+      "Marca de rol de página (alumno / soluciones)"
+    ],
+    "overlays": [
+      {
+        "name": "enlarge-backdrop",
+        "value": "dialog::backdrop { background: rgb(35 37 47 / 0.6); }",
+        "purpose": "Velo de tinta al 60 % tras el diálogo «Ampliar»; sin sombra."
+      }
+    ],
+    "scrollbars": [
+      {
+        "name": "proof-scrollbar",
+        "value": "scrollbar-color: #7c8390 #e6e9ec; scrollbar-width: thin; scrollbar-gutter: stable",
+        "purpose": "Barra fina en filete sobre mesa en la ventana 100 %; raíz con el mismo color y grosor por defecto."
+      }
+    ],
+    "sheetLayout": {
+      "frame": {
+        "marginMm": 12,
+        "titleBaselineMm": 7,
+        "titleSizeMm": 7,
+        "titleMinSizeMm": 4.5,
+        "schoolBaselineMm": 13,
+        "schoolSizeMm": 3.5,
+        "schoolMinSizeMm": 2.8,
+        "studentBaselineMm": 23,
+        "headerRuleMm": 28,
+        "contentTopMm": 32,
+        "footerRuleMm": 8,
+        "markHeightMm": 5,
+        "footerTextMm": 2.5
+      },
+      "wordsearch": {
+        "maxCellMm": 14,
+        "minCellMm": 6,
+        "gapMm": 6,
+        "listSizeMm": 5,
+        "listLineMm": 7.5,
+        "listColumnGapMm": 6,
+        "letterRatio": 0.62,
+        "capsuleRatio": 0.78,
+        "gridStrokeMm": 0.4,
+        "capsuleStrokeMm": 0.35,
+        "capsuleTone": "muted"
+      },
+      "rules": [
+        "Cuadrícula centrada en horizontal arriba del área de contenido; celda la mayor entre 6 y 14 mm que deje sitio a la lista.",
+        "Lista alfabética alineada al borde izquierdo de la cuadrícula y sin rebasar su ancho; desborde en páginas de alumno adicionales.",
+        "Página de soluciones: «Título — Soluciones», sin Nombre/Fecha, cuadrícula en la misma posición que la del alumno.",
+        "Sin kerning ni ligaduras; medida por suma de avances de Andika, compartida por SVG y PDF."
+      ]
+    }
   },
   "components": [
     {
@@ -272,20 +337,68 @@
       "css": ".ds-btn-primary { background: var(--color-brand, #385777); color: #fff; font-family: Archivo, system-ui, sans-serif; font-size: 1rem; line-height: 1.5; font-weight: 600; padding: 8px 16px; border: 0; border-radius: 0; cursor: pointer; } .ds-btn-primary:hover { background: var(--color-brand-strong, #4a4c63); } .ds-btn-primary:focus-visible { outline: 3px solid var(--color-focus, #385777); outline-offset: 2px; }"
     },
     {
-      "name": "Text Field",
-      "kind": "input",
-      "refersTo": "input-field",
-      "description": "Campo del parte de trabajo con etiqueta en mayúsculas con tracking.",
-      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Título</span><input class=\"ds-input\" type=\"text\" value=\"Sopa de letras\"></label>",
-      "css": ".ds-field { display: grid; gap: 4px; font-family: Archivo, system-ui, sans-serif; } .ds-field-label { font-size: 0.75rem; line-height: 1.333; font-weight: 600; text-transform: uppercase; letter-spacing: 0.025em; color: var(--color-muted, #565a6b); } .ds-input { border: 1px solid var(--color-line, #7c8390); border-radius: 0; background: var(--color-surface, #fff); color: var(--color-ink, #23252f); padding: 8px 12px; font: inherit; font-size: 1rem; line-height: 1.5; caret-color: #385777; } .ds-input:focus-visible { outline: 3px solid var(--color-focus, #385777); outline-offset: 2px; }"
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Acción secundaria con filete azul acero (Descargar PDF, Nueva sopa); se rellena al pasar el cursor; deshabilitada en filete y atenuado.",
+      "html": "<div class=\"ds-row\"><button type=\"button\" class=\"ds-btn-secondary\">Descargar PDF</button><button type=\"button\" class=\"ds-btn-secondary\" disabled aria-busy=\"true\">Preparando PDF…</button></div>",
+      "css": ".ds-row { display: flex; flex-wrap: wrap; gap: 8px; } .ds-btn-secondary { font-family: Archivo, system-ui, sans-serif; background: transparent; color: var(--color-brand, #385777); border: 1px solid var(--color-brand, #385777); border-radius: 0; padding: 8px 16px; font-size: 1rem; line-height: 1.5; font-weight: 600; cursor: pointer; } .ds-btn-secondary:hover { background: var(--color-brand, #385777); color: #fff; } .ds-btn-secondary:focus-visible { outline: 3px solid var(--color-focus, #385777); outline-offset: 2px; } .ds-btn-secondary:disabled { border-color: var(--color-line, #7c8390); color: var(--color-muted, #565a6b); background: transparent; cursor: default; }"
     },
     {
-      "name": "Paper Select",
+      "name": "Scale Toggle",
+      "kind": "button",
+      "refersTo": "button-tool",
+      "description": "Botones de herramienta con filete: conmutador Ajustar / 100 % con estado pulsado en tinta; mismo trazo para Ampliar y Reintentar.",
+      "html": "<div class=\"ds-toggle\" role=\"group\" aria-label=\"Escala de la vista previa\"><button type=\"button\" class=\"ds-btn-tool\" aria-pressed=\"true\">Ajustar</button><button type=\"button\" class=\"ds-btn-tool\" aria-pressed=\"false\">100 %</button></div>",
+      "css": ".ds-toggle { display: flex; gap: 4px; } .ds-btn-tool { font-family: Archivo, system-ui, sans-serif; background: transparent; color: var(--color-ink, #23252f); border: 1px solid var(--color-line, #7c8390); border-radius: 0; padding: 4px 12px; font-size: 0.875rem; line-height: 1.43; font-weight: 600; cursor: pointer; } .ds-btn-tool[aria-pressed=\"true\"] { background: var(--color-ink, #23252f); color: #fff; } .ds-btn-tool:focus-visible { outline: 3px solid var(--color-focus, #385777); outline-offset: 2px; }"
+    },
+    {
+      "name": "Job Line",
+      "kind": "custom",
+      "refersTo": "job-line",
+      "description": "Línea de trabajo entre filetes: acciones primero y después papel, páginas y código en cifras tabulares.",
+      "html": "<div class=\"ds-job\"><div class=\"ds-job-actions\"><button type=\"button\" class=\"ds-job-primary\">Imprimir</button><button type=\"button\" class=\"ds-job-secondary\">Descargar PDF</button></div><dl class=\"ds-job-data\"><div><dt>Papel</dt><dd>A4</dd></div><div><dt>Páginas</dt><dd>2</dd></div><div><dt>Código</dt><dd>v1-9PURZN</dd></div></dl></div>",
+      "css": ".ds-job { font-family: Archivo, system-ui, sans-serif; display: flex; flex-wrap: wrap; align-items: center; column-gap: 24px; row-gap: 12px; border-top: 1px solid var(--color-line, #7c8390); border-bottom: 1px solid var(--color-line, #7c8390); padding: 12px 0; } .ds-job-actions { display: flex; flex-wrap: wrap; gap: 8px; } .ds-job-primary, .ds-job-secondary { font: inherit; font-size: 1rem; font-weight: 600; padding: 8px 16px; border-radius: 0; cursor: pointer; } .ds-job-primary { background: var(--color-brand, #385777); color: #fff; border: 0; } .ds-job-primary:hover { background: var(--color-brand-strong, #4a4c63); } .ds-job-secondary { background: transparent; color: var(--color-brand, #385777); border: 1px solid var(--color-brand, #385777); } .ds-job-secondary:hover { background: var(--color-brand, #385777); color: #fff; } .ds-job-primary:focus-visible, .ds-job-secondary:focus-visible { outline: 3px solid var(--color-focus, #385777); outline-offset: 2px; } .ds-job-data { display: flex; flex-wrap: wrap; column-gap: 20px; row-gap: 4px; margin: 0; font-size: 0.875rem; font-variant-numeric: tabular-nums; } .ds-job-data div { display: flex; align-items: baseline; gap: 8px; } .ds-job-data dt { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.025em; color: var(--color-muted, #565a6b); } .ds-job-data dd { margin: 0; font-weight: 600; color: var(--color-ink, #23252f); }"
+    },
+    {
+      "name": "Proof Sheet",
+      "kind": "custom",
+      "refersTo": "sheet-proof",
+      "description": "Página de prueba: passe-partout de 20px con marcas de corte en L y cruces de registro en azul acero, hoja con filete, paso seco de registro de 90 ms.",
+      "html": "<div class=\"ds-proof-page\"><div class=\"ds-marks\" aria-hidden=\"true\"><svg class=\"ds-mark ds-tl\" viewBox=\"0 0 20 20\"><path d=\"M0 20 H12 M20 0 V12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\"/></svg><svg class=\"ds-mark ds-tr\" viewBox=\"0 0 20 20\"><path d=\"M0 20 H12 M20 0 V12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\"/></svg><svg class=\"ds-mark ds-bl\" viewBox=\"0 0 20 20\"><path d=\"M0 20 H12 M20 0 V12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\"/></svg><svg class=\"ds-mark ds-br\" viewBox=\"0 0 20 20\"><path d=\"M0 20 H12 M20 0 V12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\"/></svg><svg class=\"ds-reg ds-top\" viewBox=\"0 0 16 16\"><circle cx=\"8\" cy=\"8\" r=\"4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\"/><path d=\"M8 0 V16 M0 8 H16\" stroke=\"currentColor\" stroke-width=\"1\"/></svg><svg class=\"ds-reg ds-bottom\" viewBox=\"0 0 16 16\"><circle cx=\"8\" cy=\"8\" r=\"4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\"/><path d=\"M8 0 V16 M0 8 H16\" stroke=\"currentColor\" stroke-width=\"1\"/></svg></div><div class=\"ds-proof-paper\"><svg viewBox=\"0 0 210 297\" width=\"100%\" role=\"img\" aria-label=\"Vista previa 1/2\"><rect width=\"210\" height=\"297\" fill=\"#fff\"/><text x=\"105\" y=\"19\" font-size=\"7\" font-weight=\"700\" text-anchor=\"middle\" fill=\"#000\" font-family=\"Andika, system-ui, sans-serif\">Sopa de letras</text><line x1=\"12\" y1=\"40\" x2=\"198\" y2=\"40\" stroke=\"#b3b3b3\" stroke-width=\"0.3\"/><rect x=\"21\" y=\"44\" width=\"168\" height=\"168\" fill=\"none\" stroke=\"#000\" stroke-width=\"0.4\"/><text x=\"21\" y=\"223\" font-size=\"5\" fill=\"#000\" font-family=\"Andika, system-ui, sans-serif\">caballo   conejo   gallina   gato</text><line x1=\"12\" y1=\"277\" x2=\"198\" y2=\"277\" stroke=\"#b3b3b3\" stroke-width=\"0.2\"/></svg></div></div>",
+      "css": "@keyframes ds-register { from { opacity: 0.25; } to { opacity: 1; } } .ds-proof-page { position: relative; padding: 20px; max-width: 22rem; background: var(--color-canvas, #e6e9ec); } .ds-marks { position: absolute; inset: 0; pointer-events: none; color: var(--color-brand, #385777); animation: ds-register 90ms steps(2, end); } .ds-mark { position: absolute; width: 20px; height: 20px; } .ds-tl { left: 0; top: 0; } .ds-tr { right: 0; top: 0; transform: scaleX(-1); } .ds-bl { left: 0; bottom: 0; transform: scaleY(-1); } .ds-br { right: 0; bottom: 0; transform: scale(-1); } .ds-reg { position: absolute; width: 16px; height: 16px; left: 50%; transform: translateX(-50%); } .ds-top { top: 2px; } .ds-bottom { bottom: 2px; } .ds-proof-paper { border: 1px solid var(--color-line, #7c8390); background: #fff; } .ds-proof-paper svg { display: block; } @media (prefers-reduced-motion: reduce) { .ds-marks { animation: none; } }"
+    },
+    {
+      "name": "Tone Wedge",
+      "kind": "custom",
+      "refersTo": "tone-wedge",
+      "description": "Cuña de cinco grises con filete como leyenda de tono de la hoja.",
+      "html": "<figure class=\"ds-wedge\"><div class=\"ds-wedge-strip\" aria-hidden=\"true\"><span style=\"background:#000000\"></span><span style=\"background:#4d4d4d\"></span><span style=\"background:#808080\"></span><span style=\"background:#b3b3b3\"></span><span style=\"background:#ffffff\"></span></div><figcaption>Tonos de impresión</figcaption></figure>",
+      "css": ".ds-wedge { font-family: Archivo, system-ui, sans-serif; margin: 0; display: flex; align-items: center; gap: 8px; } .ds-wedge-strip { display: flex; border: 1px solid var(--color-line, #7c8390); } .ds-wedge-strip span { display: block; width: 16px; height: 12px; } .ds-wedge figcaption { font-size: 0.75rem; color: var(--color-muted, #565a6b); }"
+    },
+    {
+      "name": "Docket",
+      "kind": "card",
+      "refersTo": "docket",
+      "description": "Parte de trabajo en papel con filete; en móvil plegado con resumen (palabras · tamaño · código).",
+      "html": "<details class=\"ds-docket\"><summary class=\"ds-docket-summary\"><span class=\"ds-docket-title\">Opciones de la ficha</span><span class=\"ds-docket-detail\">10 palabras · 12 × 12 · v1-WWSSCC</span></summary><div class=\"ds-docket-body\"><fieldset class=\"ds-fieldset\"><legend class=\"ds-legend\">Encabezado de la ficha</legend><label class=\"ds-field\"><span class=\"ds-field-label\">Título</span><input class=\"ds-input\" value=\"Sopa de letras\"></label></fieldset><div class=\"ds-group\"><label class=\"ds-field\"><span class=\"ds-field-label\">Papel</span><select class=\"ds-input\"><option>A4</option><option>Carta</option></select></label></div></div></details>",
+      "css": ".ds-docket { font-family: Archivo, system-ui, sans-serif; max-width: 22rem; background: #fff; border: 1px solid var(--color-line, #7c8390); border-radius: 0; } .ds-docket-summary { cursor: pointer; padding: 12px 20px; } .ds-docket-summary:focus-visible { outline: 3px solid var(--color-focus, #385777); outline-offset: 2px; } .ds-docket-title { font-weight: 600; color: var(--color-ink, #23252f); } .ds-docket-detail { display: block; margin-top: 2px; font-size: 0.75rem; font-variant-numeric: tabular-nums; color: var(--color-muted, #565a6b); } .ds-docket-body { display: grid; gap: 20px; padding: 20px; } .ds-fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 12px; } .ds-legend { margin-bottom: 12px; font-size: 1rem; font-weight: 600; color: var(--color-ink, #23252f); } .ds-group { border-top: 1px solid var(--color-line, #7c8390); padding-top: 16px; } .ds-field { display: grid; gap: 4px; } .ds-field-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.025em; color: var(--color-muted, #565a6b); } .ds-input { font: inherit; font-size: 1rem; border: 1px solid var(--color-line, #7c8390); border-radius: 0; background: #fff; padding: 8px 12px; color: var(--color-ink, #23252f); } .ds-input:focus-visible { outline: 3px solid var(--color-focus, #385777); outline-offset: 2px; }"
+    },
+    {
+      "name": "Word List and Seed Fields",
       "kind": "input",
-      "refersTo": "input-field",
-      "description": "Selector nativo de papel, mismo trazo que el campo, en grupo separado por filete.",
-      "html": "<div class=\"ds-group\"><label class=\"ds-field\"><span class=\"ds-field-label\">Papel</span><select class=\"ds-select\"><option>A4</option><option>Carta</option></select></label></div>",
-      "css": ".ds-group { border-top: 1px solid var(--color-line, #7c8390); padding-top: 16px; } .ds-field { display: grid; gap: 4px; font-family: Archivo, system-ui, sans-serif; } .ds-field-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.025em; color: var(--color-muted, #565a6b); } .ds-select { border: 1px solid var(--color-line, #7c8390); border-radius: 0; background: #fff; color: var(--color-ink, #23252f); padding: 8px 12px; font: inherit; font-size: 1rem; accent-color: #385777; } .ds-select:focus-visible { outline: 3px solid #385777; outline-offset: 2px; }"
+      "refersTo": "word-list-field",
+      "description": "Campo de palabras en Andika con ayuda y contador tabular; campo de código con placeholder del código activo y acción secundaria.",
+      "html": "<div class=\"ds-stack\"><div class=\"ds-group\"><label class=\"ds-field\"><span class=\"ds-field-label\">Palabras</span><textarea class=\"ds-input ds-words\" rows=\"4\">gato\nperro\nconejo</textarea></label><p class=\"ds-help\"><span>Una palabra por línea, hasta 50.</span><span class=\"ds-num\">3 de 50 palabras</span></p></div><div class=\"ds-group\"><label class=\"ds-field\"><span class=\"ds-field-label\">Código de ficha</span><input class=\"ds-input ds-num\" placeholder=\"v1-9PURZN\"></label><p class=\"ds-help\"><span>Con el mismo código y las mismas opciones se obtiene la misma ficha.</span></p><button type=\"button\" class=\"ds-btn-secondary\">Nueva sopa</button></div></div>",
+      "css": ".ds-stack { font-family: Archivo, system-ui, sans-serif; max-width: 20rem; display: grid; gap: 20px; } .ds-group { display: grid; gap: 8px; border-top: 1px solid var(--color-line, #7c8390); padding-top: 16px; } .ds-field { display: grid; gap: 4px; } .ds-field-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.025em; color: var(--color-muted, #565a6b); } .ds-input { font: inherit; font-size: 1rem; line-height: 1.5; border: 1px solid var(--color-line, #7c8390); border-radius: 0; background: #fff; padding: 8px 12px; color: var(--color-ink, #23252f); caret-color: #385777; } .ds-input::placeholder { color: var(--color-muted, #565a6b); } .ds-input:focus-visible { outline: 3px solid var(--color-focus, #385777); outline-offset: 2px; } .ds-words { font-family: Andika, system-ui, sans-serif; resize: vertical; } .ds-num { font-variant-numeric: tabular-nums; } .ds-help { margin: 0; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 0.75rem; color: var(--color-muted, #565a6b); } .ds-btn-secondary { justify-self: start; font: inherit; font-weight: 600; background: transparent; color: var(--color-brand, #385777); border: 1px solid var(--color-brand, #385777); border-radius: 0; padding: 8px 16px; cursor: pointer; } .ds-btn-secondary:hover { background: var(--color-brand, #385777); color: #fff; } .ds-btn-secondary:focus-visible { outline: 3px solid var(--color-focus, #385777); outline-offset: 2px; }"
+    },
+    {
+      "name": "Unplaced Words Panel",
+      "kind": "card",
+      "refersTo": "notice-panel",
+      "description": "Panel de aviso en papel con filete: palabras sin colocar en Andika, sugerencias y acción que lo resuelve; texto siempre en tinta.",
+      "html": "<section class=\"ds-notice\"><h3>Palabras sin colocar</h3><p>No cupieron 2 palabras: <span class=\"ds-notice-words\">hipopótamo, rinoceronte</span></p><ul><li>Aumentar la cuadrícula a 14.</li><li>Activar la dirección diagonal.</li></ul><button type=\"button\" class=\"ds-notice-action\">Generar sin estas palabras</button></section>",
+      "css": ".ds-notice { font-family: Archivo, system-ui, sans-serif; display: grid; gap: 12px; max-width: 32rem; background: #fff; border: 1px solid var(--color-line, #7c8390); border-radius: 0; padding: 16px; font-size: 0.875rem; color: var(--color-ink, #23252f); } .ds-notice h3 { margin: 0; font-size: 1rem; font-weight: 600; } .ds-notice p { margin: 0; } .ds-notice ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; list-style: disc; } .ds-notice-words { font-family: Andika, system-ui, sans-serif; font-weight: 600; } .ds-notice-action { justify-self: start; font: inherit; font-size: 1rem; font-weight: 600; background: var(--color-brand, #385777); color: #fff; border: 0; border-radius: 0; padding: 8px 16px; cursor: pointer; } .ds-notice-action:hover { background: var(--color-brand-strong, #4a4c63); } .ds-notice-action:focus-visible { outline: 3px solid var(--color-focus, #385777); outline-offset: 2px; }"
     },
     {
       "name": "Language Switch",
@@ -294,22 +407,6 @@
       "description": "Idioma actual en recuadro de papel; los demás ganan filete y tinta al pasar el cursor.",
       "html": "<nav class=\"ds-lang\" aria-label=\"Idioma\"><span class=\"ds-lang-current\" aria-current=\"true\">Español</span><a class=\"ds-lang-link\" href=\"#\" hreflang=\"en\">English</a></nav>",
       "css": ".ds-lang { display: flex; align-items: center; gap: 4px; font-family: Archivo, system-ui, sans-serif; font-size: 0.875rem; line-height: 1.43; } .ds-lang-current { border: 1px solid var(--color-line, #7c8390); background: #fff; padding: 4px 8px; font-weight: 600; color: var(--color-ink, #23252f); } .ds-lang-link { border: 1px solid transparent; padding: 4px 8px; color: var(--color-muted, #565a6b); text-decoration: none; } .ds-lang-link:hover { border-color: var(--color-line, #7c8390); color: var(--color-ink, #23252f); } .ds-lang-link:focus-visible { outline: 3px solid #385777; outline-offset: 2px; }"
-    },
-    {
-      "name": "Docket",
-      "kind": "card",
-      "refersTo": "docket",
-      "description": "Parte de trabajo: formulario en papel con filete, máx. 22rem, anclado arriba.",
-      "html": "<form class=\"ds-docket\"><fieldset class=\"ds-fieldset\"><legend class=\"ds-legend\">Encabezado de la ficha</legend><label class=\"ds-field\"><span class=\"ds-field-label\">Título</span><input class=\"ds-input\" value=\"Sopa de letras\"></label></fieldset></form>",
-      "css": ".ds-docket { max-width: 22rem; display: grid; gap: 20px; align-self: start; background: #fff; border: 1px solid var(--color-line, #7c8390); border-radius: 0; padding: 20px; font-family: Archivo, system-ui, sans-serif; } .ds-fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 12px; } .ds-legend { margin-bottom: 12px; font-size: 1rem; font-weight: 600; color: var(--color-ink, #23252f); } .ds-field { display: grid; gap: 4px; } .ds-field-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.025em; color: var(--color-muted, #565a6b); } .ds-input { border: 1px solid var(--color-line, #7c8390); padding: 8px 12px; font: inherit; color: var(--color-ink, #23252f); } .ds-input:focus-visible { outline: 3px solid #385777; outline-offset: 2px; }"
-    },
-    {
-      "name": "Sheet Proof Card",
-      "kind": "custom",
-      "refersTo": "sheet-proof",
-      "description": "Prueba de hoja A4 en portada con passe-partout de 8px; título subrayado al pasar el cursor.",
-      "html": "<a class=\"ds-proof\" href=\"#\"><div class=\"ds-proof-frame\"><svg viewBox=\"0 0 210 297\" width=\"100%\" role=\"img\" aria-label=\"Sopa de letras\"><rect width=\"210\" height=\"297\" fill=\"#fff\"/><text x=\"105\" y=\"19\" font-size=\"7\" font-weight=\"700\" text-anchor=\"middle\" fill=\"#000\" font-family=\"Andika, system-ui, sans-serif\">Sopa de letras</text><text x=\"12\" y=\"35\" font-size=\"3.5\" fill=\"#000\" font-family=\"Andika, system-ui, sans-serif\">Nombre:</text><line x1=\"34\" y1=\"35.8\" x2=\"138\" y2=\"35.8\" stroke=\"#000\" stroke-width=\"0.2\"/><line x1=\"12\" y1=\"40\" x2=\"198\" y2=\"40\" stroke=\"#b3b3b3\" stroke-width=\"0.3\"/><line x1=\"12\" y1=\"277\" x2=\"198\" y2=\"277\" stroke=\"#b3b3b3\" stroke-width=\"0.2\"/><text x=\"20\" y=\"283.2\" font-size=\"2.5\" fill=\"#4d4d4d\" font-family=\"Andika, system-ui, sans-serif\">santiceducation.com</text></svg></div><h2 class=\"ds-proof-title\">Sopa de letras</h2><p class=\"ds-proof-desc\">Vocabulario propio, cuadrícula a medida y hoja de soluciones.</p></a>",
-      "css": ".ds-proof { display: block; color: inherit; text-decoration: none; font-family: Archivo, system-ui, sans-serif; } .ds-proof-frame { max-width: 16rem; border: 1px solid var(--color-line, #7c8390); background: #fff; padding: 8px; } .ds-proof-title { margin: 12px 0 0; font-size: 1.125rem; line-height: 1.556; font-weight: 600; color: var(--color-ink, #23252f); text-underline-offset: 4px; } .ds-proof:hover .ds-proof-title { text-decoration: underline; } .ds-proof-desc { margin: 4px 0 0; font-size: 0.875rem; color: var(--color-muted, #565a6b); } .ds-proof:focus-visible { outline: 3px solid #385777; outline-offset: 2px; }"
     },
     {
       "name": "Ad Placeholder",
@@ -322,25 +419,31 @@
   ],
   "narrative": {
     "northStar": "La mesa de pruebas",
-    "overview": "La interfaz es una mesa gris fría sobre la que descansa una hoja blanca a escala: la prueba de imprenta que el docente aprueba antes de fotocopiar. Todo lo que no es la hoja se comporta como un parte de trabajo técnico: filetes de 1 px, esquinas rectas, etiquetas en mayúsculas con tracking, cifras tabulares. La densidad es media y ordenada; nada decora, todo encuadra la hoja.\n\nHay dos mundos cromáticos separados por construcción. La interfaz usa los colores del logotipo (azul acero y pizarra) sobre neutros fríos derivados del wordmark. La hoja usa únicamente cuatro grises definidos en código y compartidos por el renderizado SVG y el PDF, porque se imprime y se fotocopia. La profundidad no existe como sombra: la jerarquía es tonal (mesa frente a papel) y lineal (filetes).\n\nEl movimiento es seco: los cambios de estado (hover, idioma actual) se producen sin transiciones ni easing. La construcción rechaza el panel SaaS de tarjetas redondeadas con sombra y la estética infantil de lápices de colores.",
+    "overview": "La interfaz es una mesa gris fría sobre la que descansa una hoja blanca a escala: la prueba de imprenta que el docente aprueba antes de fotocopiar. La hoja lleva alrededor sus marcas de corte en L y cruces de registro en azul acero, y encima una línea de trabajo que declara papel, páginas y código en cifras tabulares. Todo lo que no es la hoja se comporta como un parte de trabajo técnico: filetes de 1 px, esquinas rectas, etiquetas en mayúsculas con tracking. La densidad es media y ordenada; nada decora, todo encuadra la hoja.\n\nHay dos mundos cromáticos separados por construcción. La interfaz usa los colores del logotipo (azul acero y pizarra) sobre neutros fríos derivados del wordmark. La hoja usa únicamente cuatro grises definidos en código y compartidos por el renderizado SVG y el PDF, porque se imprime y se fotocopia; la cuña de tonos es la única muestra de esos grises fuera de la hoja, como leyenda. La profundidad no existe como sombra: la jerarquía es tonal (mesa frente a papel) y lineal (filetes).\n\nEl movimiento es seco: hover, pulsado e idioma actual cambian sin transiciones. El único movimiento es el paso de registro: al cambiar la ficha, las marcas pasan de 25 % a opaco en dos pasos durante 90 ms, y con reduced-motion no se animan. La construcción rechaza el panel SaaS de tarjetas redondeadas con sombra y la estética infantil de lápices de colores.",
     "keyCharacteristics": [
       "Mesa `canvas` gris fría bajo papel `surface` blanco; ninguna sombra.",
       "Filetes de 1 px en `line` como único recurso de separación y contención.",
       "Esquinas rectas en toda la interfaz.",
-      "Archivo (400/600) para la interfaz, Andika (400/700) solo dentro de la hoja.",
-      "Cifras tabulares globales.",
+      "Marcas de corte y registro en azul acero alrededor de cada página de prueba.",
+      "Archivo (400/600) para la interfaz; Andika (400/700) para la hoja y para el texto que acabará impreso.",
+      "Cifras tabulares globales; papel, páginas y código siempre visibles en la línea de trabajo.",
       "Hoja en escala de grises con geometría en milímetros.",
-      "Cambios de estado secos, sin transiciones."
+      "Cambios de estado secos; un único paso de registro de 90 ms."
     ],
     "rules": [
       {
         "name": "The Steel Is for Action Rule",
-        "body": "El azul acero rellena solo la acción primaria, el foco y la selección. Los titulares van en pizarra, no en azul.",
+        "body": "El azul acero rellena o traza solo acciones (primaria rellena, secundaria con filete), las marcas de registro de la prueba, el foco y la selección. Los titulares van en pizarra, no en azul; el estado pulsado de un conmutador va en tinta, no en azul.",
         "section": "colors"
       },
       {
         "name": "The Grayscale Sheet Rule",
-        "body": "Dentro de la hoja solo existen los cuatro grises de `TONE_HEX`. Ningún token de interfaz entra en la hoja y ningún gris de hoja se usa en la interfaz.",
+        "body": "Dentro de la hoja solo existen los cuatro grises de `TONE_HEX`. Ningún token de interfaz entra en la hoja. Fuera de la hoja, los grises de hoja solo aparecen en la cuña de tonos, que es su leyenda.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ink Notice Rule",
+        "body": "Avisos, errores y validaciones se escriben en tinta (600 cuando bloquean) dentro de paneles o líneas con filete; no existe color de alarma.",
         "section": "colors"
       },
       {
@@ -350,12 +453,12 @@
       },
       {
         "name": "The Two Faces Rule",
-        "body": "Archivo nunca aparece en la hoja; Andika nunca aparece en la interfaz.",
+        "body": "Archivo nunca aparece en la hoja. Andika aparece en la interfaz solo para mostrar texto que irá impreso en la hoja (palabras), nunca para etiquetas, títulos o controles.",
         "section": "typography"
       },
       {
         "name": "The Tabular Figures Rule",
-        "body": "`font-variant-numeric: tabular-nums` está activo en la raíz; toda cantidad se alinea en columnas.",
+        "body": "`font-variant-numeric: tabular-nums` está activo en la raíz; toda cantidad (tamaños, contadores, código) se alinea en columnas.",
         "section": "typography"
       },
       {
@@ -364,25 +467,38 @@
         "section": "layout"
       },
       {
+        "name": "The Same Position Rule",
+        "body": "Todas las páginas de una ficha comparten marco; la cuadrícula de soluciones ocupa la misma posición que la del alumno para poder superponerlas.",
+        "section": "layout"
+      },
+      {
+        "name": "The Named Scales Rule",
+        "body": "La prueba solo se muestra en escalas con nombre: Ajustar o 100 % físico. No hay zoom continuo.",
+        "section": "layout"
+      },
+      {
         "name": "The Filete Rule",
-        "body": "Contener es trazar: un borde de 1 px en `line` delimita campos, parte de trabajo, hoja, cabecera y pie. No se usan sombras ni fondos tintados para separar.",
+        "body": "Contener es trazar: un borde de 1 px en `line` delimita campos, parte de trabajo, línea de trabajo, hoja, ventana 100 %, paneles de aviso, cabecera y pie. No se usan sombras ni fondos tintados para separar.",
         "section": "elevation"
       }
     ],
     "dos": [
-      "**Do** poner la hoja blanca con filete de 1 px sobre la mesa `canvas` como centro de cada superficie de herramienta.",
+      "**Do** poner cada página de prueba en papel con filete de 1 px sobre la mesa `canvas`, rodeada de sus marcas de corte y registro en azul acero.",
+      "**Do** abrir la vista previa con la línea de trabajo: acciones primero (Imprimir relleno, PDF con filete), después papel, páginas y código en cifras tabulares.",
       "**Do** delimitar con bordes de 1 px en `line` y esquinas rectas (0px).",
-      "**Do** reservar el azul acero para la acción primaria, el foco y la selección; titulares en pizarra `brand-strong`.",
-      "**Do** usar Archivo solo en 400 y 600, y Andika solo dentro de la hoja.",
-      "**Do** dibujar la hoja exclusivamente con los grises de `TONE_HEX` y medidas en mm.",
+      "**Do** reservar el azul acero para acciones, marcas de registro, foco y selección; titulares en pizarra `brand-strong`.",
+      "**Do** usar Archivo solo en 400 y 600, y Andika en la hoja o para mostrar texto que irá impreso.",
+      "**Do** dibujar la hoja exclusivamente con los grises de `TONE_HEX` y medidas en mm, compartidas por SVG y PDF.",
       "**Do** etiquetar cada campo con su etiqueta visible en mayúsculas con tracking de 0.75rem.",
-      "**Do** cambiar estados en seco, sin transiciones."
+      "**Do** escribir avisos y errores en tinta dentro de paneles con filete.",
+      "**Do** cambiar estados en seco; el único movimiento es el paso de registro de 90 ms en dos pasos, anulado con reduced-motion."
     ],
     "donts": [
       "**Don't** añadir sombras ni esquinas redondeadas a la interfaz.",
       "**Don't** usar `font-bold` (700) con Archivo: no está cargado y el navegador lo sintetiza.",
       "**Don't** introducir colores de interfaz, ni la variante terracota #D57044, en la hoja o en la paleta de la herramienta.",
       "**Don't** usar `line` como color de texto: no alcanza contraste de texto.",
+      "**Don't** ofrecer zoom continuo: solo Ajustar, 100 % y Ampliar.",
       "**Don't** colocar anuncios dentro del lienzo de la herramienta, junto a acciones o en impresión."
     ]
   }

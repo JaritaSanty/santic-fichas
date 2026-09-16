@@ -10,11 +10,11 @@ function attr(attrs, name) {
 const tags = (html, tag) => [...html.matchAll(new RegExp(`<${tag}\\b([^>]*)>`, 'gi'))].map((m) => m[1]);
 
 export function firstViewAssets(html) {
-  const scripts = tags(html, 'script')
-    .filter((attrs) => !/\bnomodule\b/i.test(attrs))
-    .map((attrs) => attr(attrs, 'src'))
-    .filter(Boolean);
   const links = tags(html, 'link');
+  const scripts = [
+    ...tags(html, 'script').filter((attrs) => !/\bnomodule\b/i.test(attrs)).map((attrs) => attr(attrs, 'src')),
+    ...links.filter((a) => /\brel=["']?preload\b/i.test(a) && /\bas=["']?script\b/i.test(a)).map((a) => attr(a, 'href')),
+  ].filter(Boolean);
   const styles = links.filter((a) => /\brel=["']?stylesheet\b/i.test(a)).map((a) => attr(a, 'href')).filter(Boolean);
   const fonts = links.filter((a) => /\brel=["']?preload\b/i.test(a) && /\bas=["']?font\b/i.test(a)).map((a) => attr(a, 'href')).filter(Boolean);
   return { scripts: unique(scripts), styles: unique(styles), fonts: unique(fonts) };

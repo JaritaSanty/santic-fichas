@@ -26,16 +26,13 @@ FORM: Prueba de imprenta, posición 4 de 7 en la lista ordenada; seed a68aa808. 
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
-## Aplazado a Fase 2
+## Estado tras la Fase 2
 
-Registrado tras el finish review de la Fase 1 (commit e0626ca). Cada elemento sigue formando parte del contrato y se audita cuando exista su soporte.
+Construido en la Fase 2 (commits hasta fa4ff85): marcas de corte en L y cruces de registro; línea de trabajo con papel, páginas y código y las acciones Imprimir / Descargar PDF al inicio; zoom «Ajustar / 100 %» y «Ampliar» en móvil; paso seco de registro al cambiar parámetros; cuña de 5 grises; parte de trabajo plegable en móvil con resumen; acción secundaria PDF con filete.
 
-- Marcas de corte en L y cruces de registro en azul acero — necesitan la hoja con contenido real y paginación del generador para situarse respecto a la caja de contenido.
-- Línea de trabajo con papel, páginas y semilla en cifras tabulares, con Imprimir/PDF al inicio — la semilla, el recuento de páginas y la acción PDF llegan con el generador y `render/pdf` en Fase 2.
-- Zoom en escalas enteras nombradas (Ajustar, 100 % tamaño real) y «Ampliar» en móvil — su valor depende de la cuadrícula; el criterio de legibilidad a 360 px se valida en Fase 2.
-- Parpadeo seco de las marcas de registro al cambiar un parámetro — depende de las marcas de registro.
-- Cuña de 5 grises como leyenda de tono — en Fase 1 la hoja solo contiene el marco; la leyenda aporta cuando la hoja muestra tonos de cuadrícula y soluciones.
-- Parte de trabajo plegable en móvil — solo compensa cuando el parte contiene la lista de palabras y las opciones del generador.
-- Acción secundaria con filete (PDF) — la descarga en PDF llega en Fase 2.
+Pendiente, con motivo:
+- Indicio visible de desplazamiento en la ventana «100 %» cuando el sistema oculta las barras — el finish review de Fase 2 lo puntuó parcial al agotar sus dos rondas; decisión del operador.
+- Anclaje publicitario móvil junto a acciones — desactivado en producción hasta revisar la política de AdSense; ocultarlo cerca de acciones o moverlo al flujo es condición previa para activarlo en Fase 6.
+- Techo del mundo sin usar: línea de datos en el margen de la prueba (página n/N · papel · código), cuña pegada a la hoja como barra de color y marca de rol de página (alumno / soluciones) — se valorarán al construir crucigrama y cuadernillo.
 
-Condición vigente: los textos de portada e introducción describen funciones de Fases 2–4; no se despliega públicamente nada antes de la Fase 6.
+Condición vigente: los textos de portada e introducción describen funciones de Fases 3–4; no se despliega públicamente nada antes de la Fase 6.

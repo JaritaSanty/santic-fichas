@@ -35,7 +35,7 @@ export default async function SectionPage({ params }: { params: Params }) {
       title={dict.sections[key].title}
       intro={dict.sections[key].description}
       adLabel={dict.ads.label}
-      tool={key === 'wordsearch' ? <WordSearchTool lang={lang} labels={{ sheet: dict.sheet, tool: dict.tool }} /> : null}
+      tool={key === 'wordsearch' ? <WordSearchTool lang={lang} labels={{ sheet: dict.sheet, tool: dict.tool, wordsearch: dict.wordsearch, proof: dict.proof }} /> : null}
     />
   );
 }

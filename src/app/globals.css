@@ -23,6 +23,12 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Prueba a 100 %: la ventana de desplazamiento lleva su propia barra temática (mesa/filete). */
+[data-proof-sheet] .overflow-auto {
+  scrollbar-color: var(--color-line) var(--color-canvas);
+  scrollbar-width: thin;
+}
+
 ::selection {
   background: var(--color-brand);
   color: var(--color-surface);
@@ -39,6 +45,34 @@ a {
 
 #print-root {
   display: none;
+}
+
+/* El HTML estático llega con el parte cerrado (el punto de ruptura solo se conoce en el cliente). A partir de md
+   el <summary> está oculto y el parte siempre abierto, así que su contenido se muestra también antes de hidratar. */
+@media (min-width: 48rem) {
+  details[data-docket]::details-content {
+    content-visibility: visible;
+  }
+}
+
+/* Paso seco de las marcas de registro al cambiar la ficha (sin easing decorativo). */
+@keyframes proof-register {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.proof-marks {
+  animation: proof-register 90ms steps(2, end);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .proof-marks {
+    animation: none;
+  }
 }
 
 @media print {

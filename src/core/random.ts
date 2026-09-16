@@ -87,3 +87,7 @@ export function parseSeedCode(code: string): { version: number; body: string } |
   if (!match) return null;
   return { version: Number(match[1]), body: (match[2] as string).toUpperCase() };
 }
+
+export function newSeedCode(version: number): string {
+  return formatSeedCode(version, randomSeedBody());
+}

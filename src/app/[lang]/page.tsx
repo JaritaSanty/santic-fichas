@@ -1,11 +1,51 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import type { SheetPage } from '@/core/sheet';
+import type { Lang } from '@/core/lang';
 import { isLang } from '@/core/lang';
-import { getDictionary } from '@/i18n/dictionary';
+import type { SheetPage } from '@/core/sheet';
+import { generateWordSearch, validateWordSearch } from '@/generators/wordsearch';
+import { getDictionary, type Dictionary } from '@/i18n/dictionary';
 import { SECTION_SLUGS, sectionPath, type SectionKey } from '@/i18n/routes';
 import { buildFrame } from '@/layout/common/frame';
+import { layoutWordSearch } from '@/layout/wordsearch';
 import { SheetSvg } from '@/render/svg/SheetSvg';
+
+const SAMPLE_SEED = 'v1-PORTADA';
+const SAMPLE_SIZE = 12;
+const SAMPLE_DIRECTIONS = { horizontal: true, vertical: true, diagonal: true, reversed: false } as const;
+
+/** Portada de fase de construcción: prueba una sopa de letras real con el vocabulario de ejemplo. */
+function wordsearchSamplePage(lang: Lang, dict: Dictionary): SheetPage | null {
+  const validation = validateWordSearch({ wordsText: dict.wordsearch.sampleWords, size: SAMPLE_SIZE, directions: SAMPLE_DIRECTIONS }, lang);
+  if (!validation.ok) return null;
+  const result = generateWordSearch(validation.value, SAMPLE_SEED, lang);
+  const layout = layoutWordSearch({
+    result,
+    header: { title: dict.sections.wordsearch.title, school: '' },
+    labels: { name: dict.sheet.name, date: dict.sheet.date, solutions: dict.sheet.solutions },
+    paper: 'a4',
+    lang,
+    includeSolutions: false,
+  });
+  return layout.ok ? (layout.doc.pages[0] ?? null) : null;
+}
+
+function framePage(lang: Lang, dict: Dictionary, title: string): SheetPage {
+  return {
+    role: 'student',
+    primitives: buildFrame({
+      paper: 'a4',
+      header: { title, school: '' },
+      labels: { name: dict.sheet.name, date: dict.sheet.date, solutions: dict.sheet.solutions },
+      role: 'student',
+    }).primitives,
+  };
+}
+
+function thumbnailPage(key: SectionKey, lang: Lang, dict: Dictionary, title: string): SheetPage {
+  if (key === 'wordsearch') return wordsearchSamplePage(lang, dict) ?? framePage(lang, dict, title);
+  return framePage(lang, dict, title);
+}
 
 export default async function HomePage({ params }: { params: Promise<{ lang: string }> }) {
   const { lang } = await params;
@@ -19,15 +59,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: str
       <ul className="mt-8 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
         {keys.map((key) => {
           const section = dict.sections[key];
-          const page: SheetPage = {
-            role: 'student',
-            primitives: buildFrame({
-              paper: 'a4',
-              header: { title: section.title, school: '' },
-              labels: { name: dict.sheet.name, date: dict.sheet.date, solutions: dict.sheet.solutions },
-              role: 'student',
-            }).primitives,
-          };
+          const page = thumbnailPage(key, lang, dict, section.title);
           return (
             <li key={key}>
               <Link href={sectionPath(lang, key)} aria-label={section.cta} className="group block">

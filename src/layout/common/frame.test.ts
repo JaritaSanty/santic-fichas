@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { BRAND_DOMAIN } from '@/core/brand';
+import { measureTextMm } from '@/core/measure';
 import { PAPER, type PaperSize } from '@/core/paper';
 import type { Primitive } from '@/core/sheet';
-import { buildFrame, HEADER_LIMITS } from './frame';
+import { buildFrame, fitHeader } from './frame';
 
 const labels = { name: 'Nombre', date: 'Fecha', solutions: 'Soluciones' };
 const header = { title: 'Los animales', school: 'Escuela Santa Ana' };
@@ -69,27 +70,45 @@ describe('buildFrame contenido', () => {
     expect(empty.content).toEqual(full.content);
   });
 
-  it('recorta título y centro a su propia longitud máxima', () => {
-    const long = 'x'.repeat(200);
-    const { primitives } = buildFrame({ paper: 'a4', header: { title: long, school: long }, labels, role: 'student' });
-    const [title, school] = texts(primitives);
-    expect(title).toHaveLength(HEADER_LIMITS.title);
-    expect(school).toHaveLength(HEADER_LIMITS.school);
+  it('colapsa espacios y tabuladores del encabezado para que SVG y PDF muestren lo mismo', () => {
+    const frame = buildFrame({ paper: 'a4', header: { title: ' Los\tanimales   de  granja ', school: 'Escuela\u00A0 Santa Ana' }, labels, role: 'student' });
+    expect(texts(frame.primitives)).toContain('Los animales de granja');
+    expect(texts(frame.primitives)).toContain('Escuela Santa Ana');
   });
 
-  it('recorta por puntos de código: un emoji en el límite no deja un surrogate huérfano', () => {
-    // '🧑' (U+1F9D1) es un par suplente (2 unidades UTF-16); se coloca justo cruzando el límite.
-    const title = `${'x'.repeat(HEADER_LIMITS.title - 1)}🧑`;
-    const school = `${'x'.repeat(HEADER_LIMITS.school - 1)}🧑`;
-    const { primitives } = buildFrame({ paper: 'a4', header: { title, school }, labels, role: 'student' });
-    const [shownTitle, shownSchool] = texts(primitives);
-    // Array.from cuenta puntos de código: el emoji completo entra y el texto tiene un carácter
-    // (punto de código) más de longitud UTF-16 que el límite, pero ningún surrogate solitario.
-    expect(Array.from(shownTitle ?? '')).toHaveLength(HEADER_LIMITS.title);
-    expect(Array.from(shownSchool ?? '')).toHaveLength(HEADER_LIMITS.school);
-    for (const ch of [shownTitle, shownSchool]) {
-      expect(ch).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/); // surrogate alto huérfano
-      expect(ch).not.toMatch(/(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/); // surrogate bajo huérfano
+});
+
+describe('encabezado ajustado por ancho', () => {
+  const widthOf = (p: Primitive) => (p.t === 'text' ? measureTextMm(p.text, p.font, p.size) : 0);
+
+  it.each(['a4', 'letter'] as const)('ningún texto del encabezado desborda la caja en %s', (paper) => {
+    const long = 'Ñandúes y pingüinos del hemisferio sur en la granja escolar de invierno';
+    for (const role of ['student', 'solution'] as const) {
+      const { primitives, content } = buildFrame({ paper, header: { title: long, school: long }, labels, role });
+      for (const p of primitives) {
+        if (p.t !== 'text') continue;
+        const left = p.align === 'middle' ? p.x - widthOf(p) / 2 : p.x;
+        expect(left).toBeGreaterThanOrEqual(content.x - 1e-6);
+        expect(left + widthOf(p)).toBeLessThanOrEqual(content.x + content.w + 1e-6);
+      }
     }
+  });
+
+  it('reduce primero el cuerpo y solo acorta cuando no basta', () => {
+    const medium = fitHeader({ paper: 'a4', header: { title: 'Vocabulario de los animales de la granja', school: '' }, labels, role: 'student' });
+    expect(medium.title.truncated).toBe(false);
+    const huge = fitHeader({ paper: 'a4', header: { title: 'W'.repeat(80), school: '' }, labels, role: 'student' });
+    expect(huge.title.truncated).toBe(true);
+    expect(huge.title.size).toBe(4.5);
+  });
+
+  it('respeta el límite de 80 puntos de código sin partir pares suplentes', () => {
+    const fit = fitHeader({ paper: 'a4', header: { title: `${'a'.repeat(79)}😀x`, school: '' }, labels, role: 'student' });
+    expect(fit.title.text).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/);
+  });
+
+  it('elimina de la hoja los caracteres sin glifo', () => {
+    const { primitives } = buildFrame({ paper: 'a4', header: { title: 'Łódź', school: '' }, labels, role: 'student' });
+    expect(texts(primitives)).toContain('ód');
   });
 });

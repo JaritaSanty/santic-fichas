@@ -1,9 +1,13 @@
 import { expect, test } from '@playwright/test';
+import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
+
+const pageCount = async (pdf: Buffer) => (await getDocument({ data: new Uint8Array(pdf), verbosity: 0 }).promise).numPages;
 
 test.describe('impresión directa', () => {
   test('solo imprime la hoja: sin interfaz, sin anuncios, una página', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto('es/sopa-de-letras/');
+    await expect(page.locator('[data-generation]')).toHaveAttribute('data-generation', 'done', { timeout: 10_000 });
     await page.getByLabel('Título').fill('Animales de la granja: ñandú');
     await page.getByLabel('Centro o docente').fill('Escuela Nº 5');
     await expect(page.locator('html')).toHaveAttribute('data-print-sheet', 'true');
@@ -15,14 +19,13 @@ test.describe('impresión directa', () => {
         .map((el) => el.id),
     );
     expect(visible).toEqual(['print-root']);
-    await expect(page.locator('#print-root svg')).toHaveCount(1);
+    await expect(page.locator('#print-root svg')).toHaveCount(2);
     await expect(page.locator('#print-root')).toContainText('Animales de la granja: ñandú');
     await expect(page.locator('#print-root')).toContainText('santiceducation.com');
     for (const ad of await page.locator('.ad-slot').all()) await expect(ad).toBeHidden();
 
     const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
-    const count = Number(/\/Count (\d+)/.exec(pdf.toString('latin1'))?.[1]);
-    expect(count).toBe(1);
+    expect(await pageCount(pdf)).toBe(2);
   });
 
   test('el papel elegido fija el tamaño de página', async ({ page }) => {
@@ -47,5 +50,14 @@ test.describe('impresión directa', () => {
     await expect(page).toHaveURL(/\/fichas\/es\/$/);
     await expect(page.locator('html')).not.toHaveAttribute('data-print-sheet', 'true');
     await expect(page.locator('#print-root')).toHaveCount(0);
+  });
+
+  test('sin soluciones se imprime una sola página', async ({ page }) => {
+    await page.goto('es/sopa-de-letras/');
+    await expect(page.locator('[data-generation]')).toHaveAttribute('data-generation', 'done', { timeout: 10_000 });
+    await page.getByLabel('Incluir soluciones').uncheck();
+    await page.emulateMedia({ media: 'print' });
+    const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
+    expect(await pageCount(pdf)).toBe(1);
   });
 });
