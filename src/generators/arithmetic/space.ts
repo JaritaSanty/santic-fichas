@@ -73,7 +73,11 @@ function inRange(n: number, range: Range): boolean {
   return n >= range.min && n <= range.max;
 }
 
-/** Rango real del divisor: nunca 0 y nunca por encima del tope de factor (la validación ya lo recorta si `div` está activa). */
+/**
+ * Rango real del divisor: nunca 0 y nunca por encima del tope de factor. La validación ya lo recorta cuando `div`
+ * está activa, pero aquí se repite porque el divisor gobierna un bucle: la multiplicación sí se fía del recorte del
+ * validador (solo lee `value.second`), la división no puede permitirse mil millones de vueltas si llega sin recortar.
+ */
 function divisorRange(second: Range): Range {
   const { maxFactor } = ARITHMETIC_LIMITS;
   return { min: Math.max(1, Math.min(second.min, maxFactor)), max: Math.min(second.max, maxFactor) };
@@ -88,9 +92,24 @@ function keyOf(op: Operation): string {
   return `${op.a}:${op.b}`;
 }
 
-/** Cocientes válidos de un divisor: nunca 0 y siempre dentro del rango del primer operando. */
-function quotientRange(first: Range, b: number): Range {
-  return { min: Math.max(1, Math.ceil(first.min / b)), max: Math.floor(first.max / b) };
+/**
+ * Cocientes válidos de un divisor: nunca 0 y con el dividendo dentro del rango del primer operando.
+ * Con resto el dividendo es `b·q + r` con `r` entre 1 y `b - 1`, así que el cociente mínimo baja un escalón
+ * (`b·q` puede quedar por debajo de `first.min`) y el máximo sube uno menos (`b·q` debe dejar sitio a `r`).
+ */
+function quotientRange(first: Range, b: number, exact: boolean): Range {
+  if (exact) return { min: Math.max(1, Math.ceil(first.min / b)), max: Math.floor(first.max / b) };
+  return { min: Math.max(1, Math.ceil((first.min - b + 1) / b)), max: Math.floor((first.max - 1) / b) };
+}
+
+/** Restos que dejan el dividendo dentro del rango para un `(b, q)` dado; vacía si `min > max`. */
+function remainderWindow(first: Range, b: number, q: number): Range {
+  const base = b * q;
+  return { min: Math.max(1, first.min - base), max: Math.min(b - 1, first.max - base) };
+}
+
+function divisionAt(b: number, q: number, remainder: number): Operation {
+  return { kind: 'div', a: b * q + remainder, b, result: q, remainder };
 }
 
 function buildDivision(a: number, b: number, value: ValidArithmetic): Operation | null {
@@ -146,50 +165,63 @@ function sampleOperations(wanted: number, draw: () => Operation | null): Operati
   return out;
 }
 
-/** Divisiones por construcción (divisor y cociente), nunca por rechazo del dividendo. */
-function divisionFrom(b: number, q: number, value: ValidArithmetic, rand: () => number): Operation | null {
-  if (value.division === 'exact') return { kind: 'div', a: b * q, b, result: q, remainder: 0 };
-  const remainder = 1 + intOf(rand, b - 1);
-  const a = b * q + remainder;
-  if (a > value.first.max) return null;
-  return { kind: 'div', a, b, result: q, remainder };
-}
-
+/**
+ * Divisiones por construcción, nunca por rechazo del dividendo: el espacio es el de los tríos `(b, q, r)`
+ * (con `r = 0` fijo en modo exacto). Cada trío da un `(a, b)` distinto —`q` y `r` se recuperan de `a` y `b`—,
+ * así que la enumeración no necesita quitar repetidos.
+ */
 function drawDivisions(value: ValidArithmetic, wanted: number, rand: () => number): Operation[] {
   const { first } = value;
+  const exact = value.division === 'exact';
   const divisor = divisorRange(value.second);
   // Con resto, el divisor 1 no deja hueco para r en [1, b - 1].
-  const bMin = value.division === 'remainder' ? Math.max(divisor.min, 2) : divisor.min;
+  const bMin = exact ? divisor.min : Math.max(divisor.min, 2);
   const bMax = divisor.max;
   if (bMin > bMax) return [];
 
-  // El divisor está acotado a maxFactor, así que contar los pares (b, q) cuesta como mucho mil vueltas.
-  let pairs = 0;
-  for (let b = bMin; b <= bMax && pairs <= ENUMERATE_MAX; b++) {
-    const q = quotientRange(first, b);
-    pairs += Math.max(0, q.max - q.min + 1);
+  // El recuento se corta en cuanto supera el tope, así que nunca recorre más de ENUMERATE_MAX candidatos.
+  let total = 0;
+  for (let b = bMin; b <= bMax && total <= ENUMERATE_MAX; b++) {
+    const q = quotientRange(first, b, exact);
+    if (exact) {
+      total += Math.max(0, q.max - q.min + 1);
+      continue;
+    }
+    // Dentro de [q.min, q.max] la ventana de restos nunca es vacía, así que cada vuelta suma al menos 1.
+    for (let quotient = q.min; quotient <= q.max && total <= ENUMERATE_MAX; quotient++) {
+      const r = remainderWindow(first, b, quotient);
+      total += r.max - r.min + 1;
+    }
   }
 
-  if (pairs <= ENUMERATE_MAX) {
+  if (total <= ENUMERATE_MAX) {
     const all: Operation[] = [];
-    const seen = new Set<string>();
     for (let b = bMin; b <= bMax; b++) {
-      const q = quotientRange(first, b);
+      const q = quotientRange(first, b, exact);
       for (let quotient = q.min; quotient <= q.max; quotient++) {
-        const op = divisionFrom(b, quotient, value, rand);
-        if (!op || seen.has(keyOf(op))) continue;
-        seen.add(keyOf(op));
-        all.push(op);
+        if (exact) {
+          all.push(divisionAt(b, quotient, 0));
+          continue;
+        }
+        const r = remainderWindow(first, b, quotient);
+        for (let rest = r.min; rest <= r.max; rest++) all.push(divisionAt(b, quotient, rest));
       }
     }
     return takeShuffled(all, wanted, rand);
   }
 
   return sampleOperations(wanted, () => {
+    // Sesgo conocido: `b` se sortea uniforme entre divisores, no entre operaciones, así que los divisores
+    // pequeños (que admiten muchos más dividendos) salen infrarrepresentados. Para una ficha es preferible:
+    // reparte los divisores en vez de llenarla de dividendos del divisor más pequeño.
     const b = bMin + intOf(rand, bMax - bMin + 1);
-    const q = quotientRange(first, b);
+    const q = quotientRange(first, b, exact);
     if (q.max < q.min) return null;
-    return divisionFrom(b, q.min + intOf(rand, q.max - q.min + 1), value, rand);
+    const quotient = q.min + intOf(rand, q.max - q.min + 1);
+    if (exact) return divisionAt(b, quotient, 0);
+    const r = remainderWindow(first, b, quotient);
+    if (r.max < r.min) return null;
+    return divisionAt(b, quotient, r.min + intOf(rand, r.max - r.min + 1));
   });
 }
 
