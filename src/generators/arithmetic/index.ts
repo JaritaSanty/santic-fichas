@@ -14,4 +14,5 @@ export type {
 export { ARITHMETIC_LIMITS, KIND_ORDER, rangeForDigits, validateArithmetic } from './params';
 export { buildOperation, drawOperations, ENUMERATE_MAX, SAMPLE_ATTEMPTS_PER_ITEM } from './space';
 export { ARITHMETIC_ALGORITHM_VERSION, generateArithmetic, type ArithmeticResult } from './generate';
+export { suggestArithmetic, type ArithmeticSuggestion } from './suggest';
 export { readSeedInput, type SeedInput } from './seed';
