@@ -25,7 +25,7 @@ export const ARITHMETIC_LIMITS = {
 export const KIND_ORDER: OperationKind[] = ['add', 'sub', 'mul', 'div'];
 
 /** Operaciones a las que la llevada/pedida afecta visualmente. */
-const CARRY_AFFECTED_KINDS: OperationKind[] = ['add', 'sub', 'mul'];
+const CARRY_AFFECTED_KINDS: readonly OperationKind[] = ['add', 'sub', 'mul'] as const;
 
 export function rangeForDigits(digits: number, maxDigits: number): Range {
   const d = Math.min(Math.max(digits, 1), maxDigits);
@@ -53,8 +53,9 @@ export function validateArithmetic(input: ArithmeticInput): ArithmeticValidation
 
   const hasFactorLimit = kinds.includes('mul') || kinds.includes('div');
   let second = input.second;
-  if (hasFactorLimit && second.max > maxFactor) {
-    second = { ...second, max: maxFactor };
+  // Se recorta min y max: si solo se recortara max, min > max rompería el invariante de ValidArithmetic.
+  if (hasFactorLimit && (second.min > maxFactor || second.max > maxFactor)) {
+    second = { min: Math.min(second.min, maxFactor), max: Math.min(second.max, maxFactor) };
     warnings.push({ code: 'factor-capped', max: maxFactor });
   }
 
@@ -68,7 +69,7 @@ export function validateArithmetic(input: ArithmeticInput): ArithmeticValidation
     errors.push({ code: 'columns-out-of-range', min: minColumns, max: maxColumns });
   }
 
-  if (input.carry !== 'any' && !kinds.some((kind) => CARRY_AFFECTED_KINDS.includes(kind))) {
+  if (kinds.length > 0 && input.carry !== 'any' && !kinds.some((kind) => CARRY_AFFECTED_KINDS.includes(kind))) {
     warnings.push({ code: 'carry-ignored', kinds });
   }
 

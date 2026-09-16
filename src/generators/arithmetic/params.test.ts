@@ -60,8 +60,20 @@ describe('validateArithmetic', () => {
     const v = validateArithmetic({ ...base, kinds: { add: false, sub: false, mul: true, div: false }, second: { min: 10, max: 5000 } });
     expect(v.ok).toBe(true);
     if (v.ok) {
+      expect(v.value.second.min).toBe(10);
       expect(v.value.second.max).toBe(ARITHMETIC_LIMITS.maxFactor);
+      expect(v.value.second.min <= v.value.second.max).toBe(true);
       expect(v.warnings).toContainEqual({ code: 'factor-capped', max: ARITHMETIC_LIMITS.maxFactor });
+    }
+  });
+
+  it('recorta ambos extremos del segundo operando cuando min también supera el máximo de factor', () => {
+    const v = validateArithmetic({ ...base, kinds: { add: false, sub: false, mul: true, div: false }, second: { min: 1000, max: 5000 } });
+    expect(v.ok).toBe(true);
+    if (v.ok) {
+      expect(v.value.second).toEqual({ min: ARITHMETIC_LIMITS.maxFactor, max: ARITHMETIC_LIMITS.maxFactor });
+      expect(v.value.second.min <= v.value.second.max).toBe(true);
+      expect(v.warnings.filter((w) => w.code === 'factor-capped')).toHaveLength(1);
     }
   });
 
