@@ -3,8 +3,8 @@ import type { CarryMode, Operation, OperationKind, Range, ValidArithmetic } from
 
 /** Tamaño máximo del espacio que se enumera entero; por encima se muestrea con rechazo. */
 export const ENUMERATE_MAX = 20000;
-/** Intentos de muestreo por operación pedida antes de rendirse. */
-export const SAMPLE_ATTEMPTS_PER_ITEM = 200;
+/** Intentos de muestreo por hoja antes de rendirse; constante, nunca proporcional a lo que se pida. */
+export const SAMPLE_ATTEMPTS = 200 * ARITHMETIC_LIMITS.maxCount;
 
 /** Dígitos decimales de menor a mayor peso; 0 da [0]. */
 function digitsOf(n: number): number[] {
@@ -154,12 +154,11 @@ function takeShuffled(ops: Operation[], wanted: number, rand: () => number): Ope
  * antes (`wanted <= maxCount` siempre) y ya no dependen de la petición, que es lo que hace falta. Además ponen tope
  * absoluto al coste, que antes crecía con `wanted` sin límite.
  */
-const SAMPLE_ATTEMPTS = SAMPLE_ATTEMPTS_PER_ITEM * ARITHMETIC_LIMITS.maxCount;
 
 /**
  * Muestreo por rechazo con tope de intentos; los pares repetidos no cuentan como resultado pero sí como intento.
  *
- * El tope **no puede depender de lo que se pida**. Con `wanted * SAMPLE_ATTEMPTS_PER_ITEM`, pedir menos daba
+ * El tope **no puede depender de lo que se pida**. Con un tope proporcional a lo pedido, pedir menos daba
  * proporcionalmente menos intentos y encontraba proporcionalmente menos operaciones, así que en un espacio muestreado
  * el total producido no era monótono en lo pedido: `mul` de 1000..9999 por 900..999 sin llevada daba 200 → 10 → 1 → 0,
  * y el docente acababa con la ficha vacía por seguir la sugerencia de pedir menos. Con el tope fijo, toda petición
