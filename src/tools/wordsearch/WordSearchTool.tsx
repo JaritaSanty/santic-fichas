@@ -27,7 +27,7 @@ import { GridOptions } from './GridOptions';
 import { describeError, describeRejected, describeSeed, describeSuggestion, describeWarning } from './messages';
 import { UnplacedPanel } from './UnplacedPanel';
 import { generationKey, removeWordLines } from './request';
-import { createGenerationClient, type WorkerLike } from './wordSearchClient';
+import { createWordSearchClient, type WordSearchWorkerLike } from './wordSearchClient';
 import { WordListField } from './WordListField';
 
 export interface WordSearchLabels {
@@ -44,7 +44,8 @@ const serverPaper = (): PaperSize => 'a4';
 let initialSeed: string | null = null;
 const browserSeed = () => (initialSeed ??= newSeedCode(WORDSEARCH_ALGORITHM_VERSION));
 const serverSeed = () => '';
-const createWorker = (): WorkerLike => new Worker(new URL('../../workers/wordsearch.worker.ts', import.meta.url)) as unknown as WorkerLike;
+const createWorker = (): WordSearchWorkerLike =>
+  new Worker(new URL('../../workers/wordsearch.worker.ts', import.meta.url)) as unknown as WordSearchWorkerLike;
 
 const DEFAULT_SIZE = 12;
 const DEFAULT_DIRECTIONS: DirectionOptions = { horizontal: true, vertical: true, diagonal: true, reversed: false };
@@ -64,7 +65,7 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
   const [regeneratedSeed, setRegeneratedSeed] = useState<string | null>(null);
   const initialSeedCode = useSyncExternalStore(noopSubscribe, browserSeed, serverSeed);
 
-  const [client] = useState(() => createGenerationClient(createWorker));
+  const [client] = useState(() => createWordSearchClient(createWorker));
   const generation = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
   useEffect(() => () => client.dispose(), [client]);
 
