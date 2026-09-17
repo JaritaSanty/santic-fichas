@@ -2,12 +2,18 @@ import { ARITHMETIC_LIMITS } from './params';
 import { buildOperation, ENUMERATE_MAX } from './space';
 import type { OperationKind, Range, ValidArithmetic } from './types';
 
+/**
+ * `fills` dice si aplicar el ajuste deja sitio para **todas** las operaciones pedidas o solo desatasca el espacio:
+ * `false` significa que la ficha seguirá saliendo corta (a veces con una sola operación), y el texto tiene que decirlo.
+ * Se calcula contando el espacio resultante, y es conservador: nunca es `true` sin haberlo comprobado.
+ */
 export type ArithmeticSuggestion =
-  | { code: 'raise-first-max'; to: number }
-  | { code: 'lower-first-min'; to: number }
-  | { code: 'widen-second'; min: number; max: number }
-  | { code: 'allow-remainder' }
+  | { code: 'raise-first-max'; to: number; fills: boolean }
+  | { code: 'lower-first-min'; to: number; fills: boolean }
+  | { code: 'widen-second'; min: number; max: number; fills: boolean }
+  | { code: 'allow-remainder'; fills: boolean }
   | { code: 'allow-carry' }
+  | { code: 'allow-any-carry' }
   | { code: 'reduce-count'; to: number };
 
 /**
@@ -17,7 +23,12 @@ export type ArithmeticSuggestion =
  */
 const PROBE_BUDGET = ENUMERATE_MAX;
 
-/** Nunca se propone un segundo operando 0 (ni «× 0» ni «÷ 0» son ejercicio) ni un divisor 1 (dividir por 1 tampoco). */
+/**
+ * Suelo de lo que se **propone**: nunca un segundo operando 0 (ni «× 0» ni «÷ 0» son ejercicio) ni un divisor 1
+ * (dividir por 1 tampoco lo es). Es una regla sobre el rango que se sugiere, no sobre los divisores que ya existen:
+ * si el docente eligió el 1 y la división exacta, `divisionCount` cuenta sus operaciones con normalidad y
+ * `dividendAbove`/`dividendBelow` calculan sobre `b = 1` como sobre cualquier otro divisor.
+ */
 const SECOND_FLOOR = 1;
 const DIVISOR_FLOOR = 2;
 
@@ -29,6 +40,10 @@ interface Budget {
  * Recuento del espacio mientras se explora. `minB`/`maxB` son los segundos operandos que las operaciones contadas
  * necesitan de verdad: `buildOperation` solo exige del rango el operando `op.b`, así que cualquier rango que los
  * contenga mantiene válidas todas las contadas. Explorar un valor que no aporta nada no ensancha la sugerencia.
+ *
+ * `track` acota qué operaciones mueven esos extremos: cuando la meta es revivir las que no tienen espacio, lo que
+ * aporten las demás por el camino no debe ensanchar la propuesta (si no, buscar un divisor por abajo se llevaba por
+ * delante las sumas que aparecían por arriba: `9..179` donde bastaba `9..99`). `null` es «todas».
  */
 interface Pool {
   total: number;
@@ -36,6 +51,7 @@ interface Pool {
   alive: Set<OperationKind>;
   minB: number;
   maxB: number;
+  track: Set<OperationKind> | null;
 }
 
 /** Mismo recorte del divisor que `space.ts`: nunca 0, nunca por encima del tope de factor y nunca 1 si hay resto. */
@@ -95,6 +111,13 @@ function dividendBelow(first: Range, b: number, exact: boolean): number | null {
   return a >= ARITHMETIC_LIMITS.minOperand ? a : null;
 }
 
+/** Estira los extremos necesarios, si esta operación es de las que cuentan para la meta. */
+function widen(pool: Pool, kind: OperationKind, b: number): void {
+  if (pool.track !== null && !pool.track.has(kind)) return;
+  pool.minB = Math.min(pool.minB, b);
+  pool.maxB = Math.max(pool.maxB, b);
+}
+
 /**
  * Suma al recuento lo que aporta un segundo operando concreto dentro de `second`, y apunta qué operaciones tienen al
  * menos una posible. Devuelve `false` si se agota el presupuesto: entonces no se puede afirmar nada del espacio.
@@ -112,8 +135,7 @@ function addColumn(value: ValidArithmetic, second: Range, b: number, pool: Pool,
       if (found > 0) {
         pool.total += found;
         pool.alive.add(kind);
-        pool.minB = Math.min(pool.minB, b);
-        pool.maxB = Math.max(pool.maxB, b);
+        widen(pool, kind, b);
       }
       continue;
     }
@@ -127,11 +149,33 @@ function addColumn(value: ValidArithmetic, second: Range, b: number, pool: Pool,
       pool.seen.add(key);
       pool.total += 1;
       pool.alive.add(kind);
-      pool.minB = Math.min(pool.minB, op.b);
-      pool.maxB = Math.max(pool.maxB, op.b);
+      widen(pool, kind, op.b);
     }
   }
   return true;
+}
+
+function newPool(second: Range): Pool {
+  return { total: 0, seen: new Set<string>(), alive: new Set<OperationKind>(), minB: second.min, maxB: second.max, track: null };
+}
+
+/**
+ * Espacio total de unos parámetros, o `null` si no cabe en el presupuesto de sondeos. Sirve para responder a
+ * «¿con este ajuste sale la ficha entera?» sin sortear nada. Como el recuento de la resta es una cota inferior,
+ * un `null` o un recuento corto solo pueden hacer que se prometa **de menos**.
+ */
+function countSpace(value: ValidArithmetic, budget: Budget): number | null {
+  const pool = newPool(value.second);
+  for (let b = value.second.min; b <= value.second.max; b++) {
+    if (!addColumn(value, value.second, b, pool, budget)) return null;
+  }
+  return pool.total;
+}
+
+/** ¿Llega a lo pedido el espacio de estos parámetros? Conservador: si no se puede contar, no se promete. */
+function fillsCount(value: ValidArithmetic): boolean {
+  const total = countSpace(value, { left: PROBE_BUDGET });
+  return total !== null && total >= value.count;
 }
 
 /**
@@ -140,29 +184,27 @@ function addColumn(value: ValidArithmetic, second: Range, b: number, pool: Pool,
  * Se explora alternando hacia abajo y hacia arriba desde el rango del docente —empezando por abajo, porque un segundo
  * operando menor es más fácil para el alumno y admite más operaciones— y se para en cuanto se cumple la meta: revivir
  * las operaciones que no tenían ninguna posible si las hay, o llegar a `count` operaciones si no. El rango que se
- * devuelve es el que necesitan las operaciones contadas, no hasta dónde se ha explorado.
+ * devuelve es el que necesitan las operaciones que cuentan para esa meta, no hasta dónde se ha explorado.
  * Si con el rango actual ninguna operación está bloqueada y el espacio ya llega a `count`, el segundo operando no es
  * el problema y no se sugiere nada.
+ *
+ * `fills` sale gratis cuando la meta era llegar a `count` (el rango devuelto contiene todo lo contado); cuando la meta
+ * era revivir, se vuelve a contar el espacio del rango propuesto, que es el único sobre el que se puede prometer.
  */
-function widenSecond(value: ValidArithmetic, budget: Budget): Range | null {
-  const pool: Pool = {
-    total: 0,
-    seen: new Set<string>(),
-    alive: new Set<OperationKind>(),
-    minB: value.second.min,
-    maxB: value.second.max,
-  };
+function widenSecond(value: ValidArithmetic, budget: Budget): { range: Range; fills: boolean } | null {
+  const pool = newPool(value.second);
   for (let b = value.second.min; b <= value.second.max; b++) {
     if (!addColumn(value, value.second, b, pool, budget)) return null;
   }
-  const blocked = value.kinds.some((kind) => !pool.alive.has(kind));
-  if (!blocked && pool.total >= value.count) return null;
+  const blocked = value.kinds.filter((kind) => !pool.alive.has(kind));
+  if (blocked.length === 0 && pool.total >= value.count) return null;
+  pool.track = blocked.length > 0 ? new Set(blocked) : null;
 
   const hasFactorLimit = value.kinds.includes('mul') || value.kinds.includes('div');
   const ceiling = hasFactorLimit ? ARITHMETIC_LIMITS.maxFactor : ARITHMETIC_LIMITS.maxOperand;
   const floor = value.kinds.includes('div') ? DIVISOR_FLOOR : SECOND_FLOOR;
   const reached = (): boolean =>
-    blocked ? value.kinds.every((kind) => pool.alive.has(kind)) : pool.total >= value.count;
+    blocked.length > 0 ? value.kinds.every((kind) => pool.alive.has(kind)) : pool.total >= value.count;
 
   let { min, max } = value.second;
   let down = true;
@@ -172,7 +214,10 @@ function widenSecond(value: ValidArithmetic, budget: Budget): Range | null {
     else max = b;
     down = !down;
     if (!addColumn(value, { min, max }, b, pool, budget)) return null;
-    if (reached()) return { min: pool.minB, max: pool.maxB };
+    if (reached()) {
+      const range: Range = { min: pool.minB, max: pool.maxB };
+      return { range, fills: blocked.length === 0 || fillsCount({ ...value, second: range }) };
+    }
   }
   return null;
 }
@@ -207,7 +252,8 @@ function carryBlocks(value: ValidArithmetic): boolean {
  *
  * Límites conocidos, para los textos (Tarea 8) y la herramienta (Tarea 9):
  * - `raise-first-max` y `lower-first-min` son de la **división** y solo salen cuando su espacio es realmente vacío.
- * - `allow-carry` solo se propone con `carry: 'without'`; no hay código para relajar `'with'`.
+ * - `allow-carry` sale con `carry: 'without'` y `allow-any-carry` con `carry: 'with'`; nunca los dos.
+ * - `fills` distingue «así sale la ficha entera» de «así deja de estar vacía», y es conservador.
  * - Con la ficha completa (`available >= count`) no se sugiere nada, aunque alguna operación elegida no haya salido:
  *   el reparto del cupo absorbe una operación imposible y esta función no ve el recuento por tipo.
  */
@@ -232,16 +278,28 @@ export function suggestArithmetic(value: ValidArithmetic, available: number): Ar
         if (down !== null && (below === null || down > below)) below = down;
         if (exact && divisionCount(first, b, false) > 0) remainderHelps = true;
       }
-      if (above !== null) out.push({ code: 'raise-first-max', to: above });
-      if (below !== null) out.push({ code: 'lower-first-min', to: below });
+      if (above !== null) {
+        out.push({ code: 'raise-first-max', to: above, fills: fillsCount({ ...value, first: { ...first, max: above } }) });
+      }
+      if (below !== null) {
+        out.push({ code: 'lower-first-min', to: below, fills: fillsCount({ ...value, first: { ...first, min: below } }) });
+      }
     }
   }
 
   const wider = widenSecond(value, { left: PROBE_BUDGET });
-  if (wider) out.push({ code: 'widen-second', min: wider.min, max: wider.max });
+  if (wider) out.push({ code: 'widen-second', min: wider.range.min, max: wider.range.max, fills: wider.fills });
 
-  if (remainderHelps) out.push({ code: 'allow-remainder' });
+  if (remainderHelps) {
+    out.push({ code: 'allow-remainder', fills: fillsCount({ ...value, division: 'remainder' }) });
+  }
   if (value.carry === 'without' && carryBlocks(value)) out.push({ code: 'allow-carry' });
+  // `carry: 'with'` no tiene un ajuste parcial: o hay operaciones con llevada o no las hay. Se propone quitar la
+  // exigencia solo cuando está comprobado que el espacio está vacío con ella y deja de estarlo sin ella.
+  if (value.carry === 'with' && countSpace(value, { left: PROBE_BUDGET }) === 0) {
+    const relaxed = countSpace({ ...value, carry: 'any' }, { left: PROBE_BUDGET });
+    if (relaxed !== null && relaxed > 0) out.push({ code: 'allow-any-carry' });
+  }
   if (available >= ARITHMETIC_LIMITS.minCount) out.push({ code: 'reduce-count', to: available });
   return out;
 }
