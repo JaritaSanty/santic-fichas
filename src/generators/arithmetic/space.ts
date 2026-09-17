@@ -149,11 +149,27 @@ function takeShuffled(ops: Operation[], wanted: number, rand: () => number): Ope
   return ops.slice(0, total);
 }
 
-/** Muestreo por rechazo con tope de intentos; los pares repetidos no cuentan como resultado pero sí como intento. */
+/**
+ * Intentos que recorre el muestreo, **fijos**: los de una ficha entera, se pida lo que se pida. Nunca son menos que
+ * antes (`wanted <= maxCount` siempre) y ya no dependen de la petición, que es lo que hace falta. Además ponen tope
+ * absoluto al coste, que antes crecía con `wanted` sin límite.
+ */
+const SAMPLE_ATTEMPTS = SAMPLE_ATTEMPTS_PER_ITEM * ARITHMETIC_LIMITS.maxCount;
+
+/**
+ * Muestreo por rechazo con tope de intentos; los pares repetidos no cuentan como resultado pero sí como intento.
+ *
+ * El tope **no puede depender de lo que se pida**. Con `wanted * SAMPLE_ATTEMPTS_PER_ITEM`, pedir menos daba
+ * proporcionalmente menos intentos y encontraba proporcionalmente menos operaciones, así que en un espacio muestreado
+ * el total producido no era monótono en lo pedido: `mul` de 1000..9999 por 900..999 sin llevada daba 200 → 10 → 1 → 0,
+ * y el docente acababa con la ficha vacía por seguir la sugerencia de pedir menos. Con el tope fijo, toda petición
+ * recorre el mismo prefijo de sorteos y devuelve `min(wanted, lo que haya en ese prefijo)`: monótono en `wanted` y con
+ * punto fijo, que es de lo que vive la sugerencia `reduce-count`.
+ */
 function sampleOperations(wanted: number, draw: () => Operation | null): Operation[] {
   const out: Operation[] = [];
   const seen = new Set<string>();
-  const attempts = wanted * SAMPLE_ATTEMPTS_PER_ITEM;
+  const attempts = SAMPLE_ATTEMPTS;
   for (let attempt = 0; attempt < attempts && out.length < wanted; attempt++) {
     const op = draw();
     if (!op) continue;

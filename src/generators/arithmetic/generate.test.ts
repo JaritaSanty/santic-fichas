@@ -129,18 +129,36 @@ describe('generateArithmetic', () => {
   });
 
   it('lo que se produce no baja al bajar lo pedido', () => {
-    const config = { kinds: ALL_KINDS, first: { min: 0, max: 9 }, second: { min: 90, max: 99 }, carry: 'without' } as const;
-    let previous = 0;
-    for (let count = 1; count <= 120; count++) {
-      const produced = generateArithmetic(valueOf({ ...config, count }), 'v1-MESETA').operations.length;
-      expect(produced).toBeGreaterThanOrEqual(previous);
-      expect(produced).toBeLessThanOrEqual(count);
-      // Y lo que se produce es un punto fijo: es justo lo que la sugerencia `reduce-count` le ofrece al docente.
-      if (produced < count) {
-        expect(generateArithmetic(valueOf({ ...config, count: produced }), 'v1-MESETA').operations).toHaveLength(produced);
+    // Dos configuraciones, una por camino: el espacio pequeño se enumera y el grande se muestrea. El muestreo tenía
+    // su propia rotura de la monotonía (el presupuesto de intentos dependía de lo pedido), invisible en el primero.
+    const enumerated = { kinds: ALL_KINDS, first: { min: 0, max: 9 }, second: { min: 90, max: 99 }, carry: 'without' } as const;
+    const sampled = { kinds: { add: false, sub: false, mul: true, div: false }, first: { min: 1000, max: 9999 }, second: { min: 900, max: 999 }, carry: 'without' } as const;
+    for (const [config, counts] of [
+      [enumerated, Array.from({ length: 120 }, (_, i) => i + 1)],
+      [sampled, [1, 2, 3, 5, 8, 13, 17, 21, 34, 55, 89, 100, 101, 144, 200]],
+    ] as const) {
+      let previous = 0;
+      for (const count of counts) {
+        const produced = generateArithmetic(valueOf({ ...config, count }), 'v1-MESETA').operations.length;
+        expect(produced).toBeGreaterThanOrEqual(previous);
+        expect(produced).toBeLessThanOrEqual(count);
+        // Y lo que se produce es un punto fijo: es justo lo que la sugerencia `reduce-count` le ofrece al docente.
+        if (produced < count) {
+          expect(generateArithmetic(valueOf({ ...config, count: produced }), 'v1-MESETA').operations).toHaveLength(produced);
+        }
+        previous = produced;
       }
-      previous = produced;
     }
+  });
+
+  it('el muestreo no encuentra menos por pedirle menos', () => {
+    // 1000..9999 × 900..999 sin llevada: el rectángulo son 900 000 pares, así que se muestrea. Con el presupuesto
+    // atado a lo pedido, este caso daba 200 → 10 → 1 → 0: la ficha se vaciaba a base de seguir la sugerencia.
+    const config = { kinds: { add: false, sub: false, mul: true, div: false }, first: { min: 1000, max: 9999 }, second: { min: 900, max: 999 }, carry: 'without' } as const;
+    const full = generateArithmetic(valueOf({ ...config, count: 200 }), 'v1-MUESTR').operations.length;
+    expect(full).toBeGreaterThan(0);
+    expect(full).toBeLessThan(200);
+    expect(generateArithmetic(valueOf({ ...config, count: full }), 'v1-MUESTR').operations).toHaveLength(full);
   });
 
   it('el código se lleva a su forma canónica antes de sembrar', () => {

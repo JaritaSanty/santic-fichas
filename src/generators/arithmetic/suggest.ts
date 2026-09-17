@@ -3,17 +3,19 @@ import { buildOperation, ENUMERATE_MAX } from './space';
 import type { OperationKind, Range, ValidArithmetic } from './types';
 
 /**
- * `fills` dice si aplicar el ajuste deja sitio para **todas** las operaciones pedidas o solo desatasca el espacio:
- * `false` significa que la ficha seguirá saliendo corta (a veces con una sola operación), y el texto tiene que decirlo.
- * Se calcula contando el espacio resultante, y es conservador: nunca es `true` sin haberlo comprobado.
+ * `fills` dice si está **comprobado** que aplicar el ajuste deja sitio para todas las operaciones pedidas.
+ * `true` es una promesa: se ha contado el espacio resultante y llega. `false` es «no se ha podido comprobar que llene
+ * la ficha», que casi siempre es «se quedará corta» (a veces con una sola operación) pero también cubre los dos casos
+ * en los que el recuento se queda corto a propósito: cuando el espacio no cabe en el presupuesto de sondeos y cuando
+ * hay restas, cuyo recuento es una cota inferior. El texto no debe prometer con `false`.
  */
 export type ArithmeticSuggestion =
   | { code: 'raise-first-max'; to: number; fills: boolean }
   | { code: 'lower-first-min'; to: number; fills: boolean }
   | { code: 'widen-second'; min: number; max: number; fills: boolean }
   | { code: 'allow-remainder'; fills: boolean }
-  | { code: 'allow-carry' }
-  | { code: 'allow-any-carry' }
+  | { code: 'allow-carry'; fills: boolean }
+  | { code: 'allow-any-carry'; fills: boolean }
   | { code: 'reduce-count'; to: number };
 
 /**
@@ -160,13 +162,17 @@ function newPool(second: Range): Pool {
 }
 
 /**
- * Espacio total de unos parámetros, o `null` si no cabe en el presupuesto de sondeos. Sirve para responder a
- * «¿con este ajuste sale la ficha entera?» sin sortear nada. Como el recuento de la resta es una cota inferior,
- * un `null` o un recuento corto solo pueden hacer que se prometa **de menos**.
+ * Espacio de unos parámetros, o `null` si no cabe en el presupuesto de sondeos. Sirve para responder a «¿con este
+ * ajuste sale la ficha entera?» sin sortear nada. Como el recuento de la resta es una cota inferior, un `null` o un
+ * recuento corto solo pueden hacer que se prometa **de menos**.
+ *
+ * Se para en cuanto llega a `stopAt`, así que el número que devuelve es «el espacio entero» o «al menos `stopAt`».
+ * Sin esa parada, un espacio enorme y lleno (justo el que sí llena la ficha) se quedaba sin contar por presupuesto y
+ * se anunciaba como no comprobado.
  */
-function countSpace(value: ValidArithmetic, budget: Budget): number | null {
+function countSpace(value: ValidArithmetic, budget: Budget, stopAt: number): number | null {
   const pool = newPool(value.second);
-  for (let b = value.second.min; b <= value.second.max; b++) {
+  for (let b = value.second.min; b <= value.second.max && pool.total < stopAt; b++) {
     if (!addColumn(value, value.second, b, pool, budget)) return null;
   }
   return pool.total;
@@ -174,7 +180,7 @@ function countSpace(value: ValidArithmetic, budget: Budget): number | null {
 
 /** ¿Llega a lo pedido el espacio de estos parámetros? Conservador: si no se puede contar, no se promete. */
 function fillsCount(value: ValidArithmetic): boolean {
-  const total = countSpace(value, { left: PROBE_BUDGET });
+  const total = countSpace(value, { left: PROBE_BUDGET }, value.count);
   return total !== null && total >= value.count;
 }
 
@@ -253,7 +259,7 @@ function carryBlocks(value: ValidArithmetic): boolean {
  * Límites conocidos, para los textos (Tarea 8) y la herramienta (Tarea 9):
  * - `raise-first-max` y `lower-first-min` son de la **división** y solo salen cuando su espacio es realmente vacío.
  * - `allow-carry` sale con `carry: 'without'` y `allow-any-carry` con `carry: 'with'`; nunca los dos.
- * - `fills` distingue «así sale la ficha entera» de «así deja de estar vacía», y es conservador.
+ * - `fills` distingue «así sale la ficha entera» de «no está comprobado que salga», y es conservador.
  * - Con la ficha completa (`available >= count`) no se sugiere nada, aunque alguna operación elegida no haya salido:
  *   el reparto del cupo absorbe una operación imposible y esta función no ve el recuento por tipo.
  */
@@ -293,12 +299,16 @@ export function suggestArithmetic(value: ValidArithmetic, available: number): Ar
   if (remainderHelps) {
     out.push({ code: 'allow-remainder', fills: fillsCount({ ...value, division: 'remainder' }) });
   }
-  if (value.carry === 'without' && carryBlocks(value)) out.push({ code: 'allow-carry' });
+  if (value.carry === 'without' && carryBlocks(value)) {
+    out.push({ code: 'allow-carry', fills: fillsCount({ ...value, carry: 'any' }) });
+  }
   // `carry: 'with'` no tiene un ajuste parcial: o hay operaciones con llevada o no las hay. Se propone quitar la
   // exigencia solo cuando está comprobado que el espacio está vacío con ella y deja de estarlo sin ella.
-  if (value.carry === 'with' && countSpace(value, { left: PROBE_BUDGET }) === 0) {
-    const relaxed = countSpace({ ...value, carry: 'any' }, { left: PROBE_BUDGET });
-    if (relaxed !== null && relaxed > 0) out.push({ code: 'allow-any-carry' });
+  if (value.carry === 'with' && countSpace(value, { left: PROBE_BUDGET }, 1) === 0) {
+    const relaxed = countSpace({ ...value, carry: 'any' }, { left: PROBE_BUDGET }, value.count);
+    if (relaxed !== null && relaxed > 0) {
+      out.push({ code: 'allow-any-carry', fills: relaxed >= value.count });
+    }
   }
   if (available >= ARITHMETIC_LIMITS.minCount) out.push({ code: 'reduce-count', to: available });
   return out;

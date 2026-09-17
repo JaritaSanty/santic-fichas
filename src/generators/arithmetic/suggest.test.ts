@@ -109,7 +109,7 @@ describe('suggestArithmetic', () => {
     const value = valueOf({ first: { min: 90, max: 99 }, second: { min: 90, max: 99 }, carry: 'without', count: 10 });
     expect(suggestArithmetic(value, 0)).toEqual([
       { code: 'widen-second', min: 90, max: 100, fills: true },
-      { code: 'allow-carry' },
+      { code: 'allow-carry', fills: true },
     ]);
   });
 
@@ -153,8 +153,9 @@ describe('suggestArithmetic', () => {
   it('calla sobre el espacio que no cabe en el presupuesto de sondeos', () => {
     // 10000..99999 × 999: el rectángulo no se puede contar entero, así que no se afirma nada de él…
     const big = valueOf({ ...only('mul'), first: { min: 10000, max: 99999 }, second: { min: 999, max: 999 }, carry: 'without', count: 200 });
-    expect(suggestArithmetic(big, 0)).toEqual([{ code: 'allow-carry' }]);
-    // …y si tampoco se encuentra un par que la llevada esté descartando, la lista sale vacía en vez de inventarse algo.
+    expect(suggestArithmetic(big, 0)).toEqual([{ code: 'allow-carry', fills: false }]);
+    // …y si además no se encuentra ningún par que la llevada esté descartando (aquí casi no hay pares que mirar),
+    // la lista sale vacía en vez de inventarse algo: la herramienta tiene que aguantar una lista vacía.
     const huge = valueOf({ ...only('sub'), first: { min: 10000, max: 99999 }, second: { min: 99998, max: 99999 }, carry: 'without', count: 200 });
     expect(suggestArithmetic(huge, 0)).toEqual([]);
   });
@@ -163,7 +164,7 @@ describe('suggestArithmetic', () => {
     // 0..9 − 7: restar dos números de una cifra nunca pide prestado, así que «con llevada» no deja ninguna resta.
     const value = valueOf({ ...only('sub'), first: { min: 0, max: 9 }, second: { min: 7, max: 7 }, carry: 'with', count: 10 });
     expect(poolOf(value, 'sub')).toBe(0);
-    expect(suggestArithmetic(value, 0)).toEqual([{ code: 'allow-any-carry' }]);
+    expect(suggestArithmetic(value, 0)).toEqual([{ code: 'allow-any-carry', fills: false }]);
     // Y no se propone si el espacio con llevada no está vacío: entonces lo que falta es volumen, no la restricción.
     const some = valueOf({ first: { min: 0, max: 9 }, second: { min: 0, max: 9 }, carry: 'with', count: 100 });
     expect(suggestArithmetic(some, 45).some((s) => s.code === 'allow-any-carry')).toBe(false);
@@ -179,7 +180,7 @@ describe('suggestArithmetic', () => {
     expect(suggestArithmetic(value, available)).toEqual([
       { code: 'raise-first-max', to: 90, fills: false },
       { code: 'widen-second', min: 9, max: 99, fills: true },
-      { code: 'allow-carry' },
+      { code: 'allow-carry', fills: true },
       { code: 'reduce-count', to: 75 },
     ]);
   });
