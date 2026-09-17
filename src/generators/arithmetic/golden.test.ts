@@ -8,7 +8,12 @@ import type { ArithmeticInput } from './types';
  * Fixture dorado de la versión 1 del algoritmo: los códigos `v1-…` ya compartidos deben seguir dando la misma ficha.
  * Congela la lista entera de operaciones en su orden final, así que cualquier cambio en la semilla, en el reparto
  * del cupo, en el sorteo de cada operación, en las reglas de llevada o en la mezcla final rompe la prueba.
- * Si falla, no se actualizan los valores: se sube `ARITHMETIC_ALGORITHM_VERSION` y se añade un fixture nuevo.
+ * Si falla por accidente, no se actualizan los valores: se busca la regresión.
+ *
+ * Mientras no haya nada publicado (hasta la Fase 6 no se despliega) una mejora **deliberada** del algoritmo sí puede
+ * regenerar estos valores manteniendo `ARITHMETIC_ALGORITHM_VERSION = 1`, que es la misma regla que siguió la sopa:
+ * no hay códigos `v1-…` compartidos que proteger todavía. A partir del despliegue, cambiar la ficha de un código ya
+ * repartido obliga a subir la versión y a añadir un fixture nuevo en lugar de tocar estos.
  */
 interface GoldenCase {
   name: string;

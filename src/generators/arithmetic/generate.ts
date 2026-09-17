@@ -37,11 +37,17 @@ function canonicalSeed(seedCode: string): string {
  * variable según el camino y los rechazos, así que compartir un generador haría que cada operación dependiera de
  * las anteriores. Con el subgenerador propio, cambiar una operación no cambia las demás.
  *
- * Si alguna aporta menos de lo que le tocaba (su espacio se agotó) hay una **segunda vuelta y solo una**, para que
- * el algoritmo termine siempre: el déficit se reparte entre las que sí cubrieron su cupo, y cada una de ellas se
- * vuelve a sortear entera —con el mismo subgenerador, así que el lote nuevo empieza por el anterior— en lugar de
- * pedirle un segundo lote, que podría repetir pares. Las que se quedaron cortas no se reintentan: un sorteo corto
- * es autoritativo, con los mismos parámetros no van a aparecer más.
+ * Si alguna aporta menos de lo que le tocaba (su espacio se agotó) el déficit se reparte entre las que sí cubrieron
+ * su cupo, y cada una de ellas se vuelve a sortear entera —con el mismo subgenerador, así que el lote nuevo empieza
+ * por el anterior— en lugar de pedirle un segundo lote, que podría repetir pares. Las que se quedaron cortas no se
+ * reintentan: un sorteo corto es autoritativo, con los mismos parámetros no van a aparecer más.
+ *
+ * Ese reparto se repite **mientras queden operaciones pendientes y alguna elegible haya crecido**, no una sola vez.
+ * Con una sola vuelta el total producido no era monótono en `count`: con dos operaciones sin espacio, pedir 200 daba
+ * 75 y pedir esas mismas 75 daba 58, así que seguir la sugerencia de «pide menos» encogía la ficha una y otra vez.
+ * El bucle termina siempre y en pocas vueltas: una elegible que entrega menos de lo que se le pide deja de serlo para
+ * siempre (el sorteo corto es autoritativo), y si todas entregan lo pedido no queda nada pendiente, así que hay como
+ * mucho una vuelta por operación elegida más una.
  *
  * El código de semilla se lleva a su forma canónica antes de sembrar, y es esa la que vuelve en el resultado.
  */
@@ -51,29 +57,37 @@ export function generateArithmetic(value: ValidArithmetic, seedCode: string): Ar
   const kinds = value.kinds;
   const requested = value.count;
 
-  const quotas = shareOut(requested, kinds.length);
-  const drawOf = (index: number, wanted: number): Operation[] => {
+  // `wanted[i]` es lo que se le está pidiendo a cada operación: empieza en su cupo y crece con el déficit que asuma.
+  const wanted = shareOut(requested, kinds.length);
+  const drawOf = (index: number, n: number): Operation[] => {
     const kind = kinds[index] as OperationKind;
     const rng = root.fork(kind);
-    return drawOperations(kind, value, wanted, () => rng.next());
+    return drawOperations(kind, value, n, () => rng.next());
   };
 
-  const drawn = kinds.map((_, i) => drawOf(i, quotas[i] as number));
-  let pending = quotas.reduce((sum, quota, i) => sum + quota - (drawn[i] as Operation[]).length, 0);
+  const drawn = kinds.map((_, i) => drawOf(i, wanted[i] as number));
+  const placed = (): number => drawn.reduce((sum, ops) => sum + ops.length, 0);
 
-  // Segunda vuelta: el déficit se reparte entre las operaciones que cubrieron su cupo, en el orden canónico y
-  // redondeando hacia arriba (las primeras cargan con el resto, igual que en el reparto inicial). La parte de la que
-  // no pueda dar más pasa a las siguientes (el reparto se recalcula sobre lo que queda), pero no hay tercera vuelta:
-  // el bucle recorre `eligible` una vez. El orden y el redondeo son parte del algoritmo v1 (los congela el fixture).
-  const eligible = kinds.map((_, i) => i).filter((i) => (drawn[i] as Operation[]).length >= (quotas[i] as number));
-  for (let n = 0; n < eligible.length && pending > 0; n++) {
-    const i = eligible[n] as number;
-    const extra = Math.ceil(pending / (eligible.length - n));
-    const before = (drawn[i] as Operation[]).length;
-    // `quota + extra` nunca supera lo pedido: `quota <= before` y `extra <= pending = requested - lo ya sorteado`.
-    const again = drawOf(i, (quotas[i] as number) + extra);
-    drawn[i] = again;
-    pending -= again.length - before;
+  // Vueltas de reparto: el déficit se reparte entre las operaciones que entregaron todo lo que se les pidió, en el
+  // orden canónico y redondeando hacia arriba (las primeras cargan con el resto, igual que en el reparto inicial).
+  // La parte de la que no pueda dar más pasa a las siguientes, porque el reparto se recalcula sobre lo que queda.
+  // El orden y el redondeo son parte del algoritmo v1 (los congela el fixture dorado).
+  let grew = true;
+  while (grew && placed() < requested) {
+    grew = false;
+    const eligible = kinds.map((_, i) => i).filter((i) => (drawn[i] as Operation[]).length >= (wanted[i] as number));
+    for (let n = 0; n < eligible.length; n++) {
+      const pending = requested - placed();
+      if (pending <= 0) break;
+      const i = eligible[n] as number;
+      const extra = Math.ceil(pending / (eligible.length - n));
+      const before = (drawn[i] as Operation[]).length;
+      // `wanted + extra` nunca supera lo pedido: en una elegible `wanted == before` y `extra <= requested - sorteadas`.
+      wanted[i] = (wanted[i] as number) + extra;
+      const again = drawOf(i, wanted[i] as number);
+      drawn[i] = again;
+      if (again.length > before) grew = true;
+    }
   }
 
   // Se baraja la lista combinada: cada sublista ya viene barajada, pero saldrían agrupadas por operación.

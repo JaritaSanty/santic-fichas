@@ -118,6 +118,31 @@ describe('generateArithmetic', () => {
     expect(new Set(operations.map((o) => `${o.kind}:${o.a}:${o.b}`)).size).toBe(operations.length);
   });
 
+  it('pedir exactamente lo que cupo devuelve eso mismo, no menos', () => {
+    // Con 0..9 y 90..99 sin llevada solo hay espacio para 55 sumas y 20 multiplicaciones: la resta y la división son
+    // imposibles (el minuendo y el dividendo tendrían que ser mayores que el segundo operando). El espacio real son
+    // 75 operaciones, así que pedir 200 da 75 y volver a pedir esas 75 tiene que seguir dando 75: si el reparto del
+    // déficit se quedara en una sola vuelta, daría 58, luego 50, 46, 44… y seguir la sugerencia encogería la ficha.
+    const config = { kinds: ALL_KINDS, first: { min: 0, max: 9 }, second: { min: 90, max: 99 }, carry: 'without' } as const;
+    expect(generateArithmetic(valueOf({ ...config, count: 200 }), 'v1-MESETA').operations).toHaveLength(75);
+    expect(generateArithmetic(valueOf({ ...config, count: 75 }), 'v1-MESETA').operations).toHaveLength(75);
+  });
+
+  it('lo que se produce no baja al bajar lo pedido', () => {
+    const config = { kinds: ALL_KINDS, first: { min: 0, max: 9 }, second: { min: 90, max: 99 }, carry: 'without' } as const;
+    let previous = 0;
+    for (let count = 1; count <= 120; count++) {
+      const produced = generateArithmetic(valueOf({ ...config, count }), 'v1-MESETA').operations.length;
+      expect(produced).toBeGreaterThanOrEqual(previous);
+      expect(produced).toBeLessThanOrEqual(count);
+      // Y lo que se produce es un punto fijo: es justo lo que la sugerencia `reduce-count` le ofrece al docente.
+      if (produced < count) {
+        expect(generateArithmetic(valueOf({ ...config, count: produced }), 'v1-MESETA').operations).toHaveLength(produced);
+      }
+      previous = produced;
+    }
+  });
+
   it('el código se lleva a su forma canónica antes de sembrar', () => {
     const value = valueOf({ count: 10 });
     const lower = generateArithmetic(value, ' v1-abc234 ');
