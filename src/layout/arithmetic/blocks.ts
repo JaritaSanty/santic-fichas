@@ -1,7 +1,7 @@
 import type { Lang } from '@/core/lang';
 import { capHeightMm, measureTextMm } from '@/core/measure';
 import type { Primitive } from '@/core/sheet';
-import type { Operation, OperationKind, SheetLayout } from '@/generators/arithmetic';
+import { ARITHMETIC_LIMITS, type Operation, type OperationKind, type SheetLayout } from '@/generators/arithmetic';
 
 /** Geometría del bloque de una operación, en milímetros. */
 export const ARITHMETIC_LAYOUT = {
@@ -12,6 +12,8 @@ export const ARITHMETIC_LAYOUT = {
   lineGapMm: 2.2,
   answerGapMm: 7,
   blockGapXMm: 6,
+  /** Separación horizontal máxima entre bloques: pasada de aquí, la retícula se centra en vez de estirarse. */
+  maxGapXMm: 14,
   blockGapYMm: 6,
   inlineLineMm: 11,
   answerRuleMm: 20,
@@ -37,13 +39,19 @@ export function blockIndexLabel(index: number): string {
 
 /**
  * Ancho reservado al índice en la disposición en línea, para que todas las expresiones empiecen a la misma
- * distancia del borde. Tres cifras cubren el cupo máximo de operaciones de una ficha (200).
+ * distancia del borde: el del índice más largo que puede pedir una ficha.
  */
-const INDEX_RESERVE_MM = measureTextMm('000)', 'sheet', L.indexSizeMm);
+const INDEX_RESERVE_MM = measureTextMm(blockIndexLabel(ARITHMETIC_LIMITS.maxCount - 1), 'sheet', L.indexSizeMm);
 
-/** Texto de la solución en línea; la Tarea 7 fija cómo se anota el resto en cada idioma. */
-function solutionText(op: Operation): string {
-  return op.remainder > 0 ? `${num(op.result)} r ${num(op.remainder)}` : num(op.result);
+/**
+ * Marca del resto en la disposición en línea. Hoy es la misma en los dos idiomas —la forma `r 3` que el plan fija
+ * para `en`—; **la Tarea 7 decide la castellana**. La tabla existe para que ese cambio entre por un solo sitio.
+ */
+const REMAINDER_MARK: Record<Lang, string> = { es: 'r', en: 'r' };
+
+/** Texto de la solución en línea; lo miden y lo dibujan las mismas funciones, así que nunca se desajustan. */
+function solutionText(op: Operation, lang: Lang): string {
+  return op.remainder > 0 ? `${num(op.result)} ${REMAINDER_MARK[lang]} ${num(op.remainder)}` : num(op.result);
 }
 
 interface ColumnsGeometry extends BlockBox {
@@ -52,6 +60,8 @@ interface ColumnsGeometry extends BlockBox {
   secondBaseline: number;
   ruleY: number;
   answerBaseline: number;
+  /** Ancho de la columna de cifras: el signo y la raya se cuelgan de ella, no del borde de la hoja. */
+  operandWidth: number;
 }
 
 /**
@@ -77,18 +87,27 @@ function columnsGeometry(op: Operation): ColumnsGeometry {
     secondBaseline,
     ruleY,
     answerBaseline,
+    operandWidth: operands,
   };
 }
 
+/**
+ * El borde derecho es el de la hoja (`width`), pero el signo y la raya se cuelgan de la columna de cifras del
+ * propio bloque: en una ficha con multiplicaciones, una suma de dos cifras tendría si no el signo a más de un
+ * centímetro de su número y una raya del doble de largo que la operación.
+ */
 function columnsPrimitives(op: Operation, x: number, y: number, index: number, solved: boolean, width: number): Primitive[] {
   const g = columnsGeometry(op);
   const right = x + width;
+  // El signo termina a `lineGapMm` de la columna de cifras; la raya arranca donde empieza el signo.
+  const signRight = right - g.operandWidth - L.lineGapMm;
+  const ruleLeft = signRight - digitWidth(SIGN[op.kind]);
   const out: Primitive[] = [
     { t: 'text', x, y: y + g.indexBaseline, text: blockIndexLabel(index), size: L.indexSizeMm, font: 'sheet', align: 'start', tone: 'muted' },
     { t: 'text', x: right, y: y + g.firstBaseline, text: num(op.a), size: L.digitSizeMm, font: 'sheet', align: 'end', tone: 'ink' },
-    { t: 'text', x, y: y + g.secondBaseline, text: SIGN[op.kind], size: L.digitSizeMm, font: 'sheet', align: 'start', tone: 'ink' },
+    { t: 'text', x: signRight, y: y + g.secondBaseline, text: SIGN[op.kind], size: L.digitSizeMm, font: 'sheet', align: 'end', tone: 'ink' },
     { t: 'text', x: right, y: y + g.secondBaseline, text: num(op.b), size: L.digitSizeMm, font: 'sheet', align: 'end', tone: 'ink' },
-    { t: 'line', x1: x, y1: y + g.ruleY, x2: right, y2: y + g.ruleY, stroke: 'ink', strokeWidth: L.ruleWidthMm },
+    { t: 'line', x1: ruleLeft, y1: y + g.ruleY, x2: right, y2: y + g.ruleY, stroke: 'ink', strokeWidth: L.ruleWidthMm },
   ];
   if (solved) {
     out.push({ t: 'text', x: right, y: y + g.answerBaseline, text: num(op.result), size: L.digitSizeMm, font: 'sheet', align: 'end', tone: 'ink' });
@@ -147,19 +166,26 @@ function divisionGeometry(op: Operation, lang: Lang): DivisionGeometry {
   };
 }
 
-function divisionPrimitives(op: Operation, x: number, y: number, lang: Lang, index: number, solved: boolean): Primitive[] {
+/**
+ * El índice se queda en el borde izquierdo de la columna, como en los demás bloques, y el dibujo se cuelga del
+ * borde derecho común de la hoja (`width`). La Tarea 7 hereda ese desplazamiento para colocar la casita y la
+ * galera en la misma retícula.
+ */
+function divisionPrimitives(op: Operation, x: number, y: number, lang: Lang, index: number, solved: boolean, width: number): Primitive[] {
   const g = divisionGeometry(op, lang);
+  const left = x + width - g.w;
   const out: Primitive[] = [
     { t: 'text', x, y: y + g.indexBaseline, text: blockIndexLabel(index), size: L.indexSizeMm, font: 'sheet', align: 'start', tone: 'muted' },
-    { t: 'text', x: x + g.dividendX, y: y + g.firstBaseline, text: num(op.a), size: L.digitSizeMm, font: 'sheet', align: 'start', tone: 'ink' },
-    { t: 'text', x: x + g.divisorX, y: y + g.firstBaseline, text: num(op.b), size: L.digitSizeMm, font: 'sheet', align: 'start', tone: 'ink' },
-    { t: 'line', x1: x + g.barX, y1: y + g.lineTop, x2: x + g.barX, y2: y + g.h, stroke: 'ink', strokeWidth: L.ruleWidthMm },
-    { t: 'line', x1: x + g.ruleFrom, y1: y + g.ruleY, x2: x + g.ruleTo, y2: y + g.ruleY, stroke: 'ink', strokeWidth: L.ruleWidthMm },
+    { t: 'text', x: left + g.dividendX, y: y + g.firstBaseline, text: num(op.a), size: L.digitSizeMm, font: 'sheet', align: 'start', tone: 'ink' },
+    { t: 'text', x: left + g.divisorX, y: y + g.firstBaseline, text: num(op.b), size: L.digitSizeMm, font: 'sheet', align: 'start', tone: 'ink' },
+    // El trazo vertical se detiene medio grosor antes del borde inferior: así la caja medida contiene la tinta.
+    { t: 'line', x1: left + g.barX, y1: y + g.lineTop, x2: left + g.barX, y2: y + g.h - L.ruleWidthMm / 2, stroke: 'ink', strokeWidth: L.ruleWidthMm },
+    { t: 'line', x1: left + g.ruleFrom, y1: y + g.ruleY, x2: left + g.ruleTo, y2: y + g.ruleY, stroke: 'ink', strokeWidth: L.ruleWidthMm },
   ];
   if (solved) {
-    out.push({ t: 'text', x: x + g.divisorX, y: y + g.quotientBaseline, text: num(op.result), size: L.digitSizeMm, font: 'sheet', align: 'start', tone: 'ink' });
+    out.push({ t: 'text', x: left + g.divisorX, y: y + g.quotientBaseline, text: num(op.result), size: L.digitSizeMm, font: 'sheet', align: 'start', tone: 'ink' });
     if (op.remainder > 0) {
-      out.push({ t: 'text', x: x + g.dividendX, y: y + g.quotientBaseline, text: num(op.remainder), size: L.digitSizeMm, font: 'sheet', align: 'start', tone: 'ink' });
+      out.push({ t: 'text', x: left + g.dividendX, y: y + g.quotientBaseline, text: num(op.remainder), size: L.digitSizeMm, font: 'sheet', align: 'start', tone: 'ink' });
     }
   }
   return out;
@@ -173,13 +199,13 @@ interface InlineGeometry extends BlockBox {
 }
 
 /** Una operación por renglón: `23 + 45 = ` y, a continuación, la raya de respuesta. */
-function inlineGeometry(op: Operation): InlineGeometry {
+function inlineGeometry(op: Operation, lang: Lang): InlineGeometry {
   const cap = capHeightMm('sheet', L.inlineSizeMm);
   const expression = `${num(op.a)} ${SIGN[op.kind]} ${num(op.b)} = `;
   const expressionX = INDEX_RESERVE_MM + L.lineGapMm;
   const answerX = expressionX + measureTextMm(expression, 'sheet', L.inlineSizeMm);
   // La respuesta reserva lo que más ocupe: la raya del alumno o el texto de la solución.
-  const answer = Math.max(L.answerRuleMm, measureTextMm(solutionText(op), 'sheet', L.inlineSizeMm));
+  const answer = Math.max(L.answerRuleMm, measureTextMm(solutionText(op, lang), 'sheet', L.inlineSizeMm));
   return {
     w: answerX + answer,
     h: L.inlineLineMm,
@@ -191,8 +217,8 @@ function inlineGeometry(op: Operation): InlineGeometry {
   };
 }
 
-function inlinePrimitives(op: Operation, x: number, y: number, index: number, solved: boolean): Primitive[] {
-  const g = inlineGeometry(op);
+function inlinePrimitives(op: Operation, x: number, y: number, lang: Lang, index: number, solved: boolean): Primitive[] {
+  const g = inlineGeometry(op, lang);
   const baseline = y + g.baseline;
   const out: Primitive[] = [
     { t: 'text', x, y: baseline, text: blockIndexLabel(index), size: L.indexSizeMm, font: 'sheet', align: 'start', tone: 'muted' },
@@ -200,7 +226,7 @@ function inlinePrimitives(op: Operation, x: number, y: number, index: number, so
   ];
   out.push(
     solved
-      ? { t: 'text', x: x + g.answerX, y: baseline, text: solutionText(op), size: L.inlineSizeMm, font: 'sheet', align: 'start', tone: 'ink' }
+      ? { t: 'text', x: x + g.answerX, y: baseline, text: solutionText(op, lang), size: L.inlineSizeMm, font: 'sheet', align: 'start', tone: 'ink' }
       : { t: 'line', x1: x + g.answerX, y1: baseline, x2: x + g.answerX + L.answerRuleMm, y2: baseline, stroke: 'ink', strokeWidth: L.ruleWidthMm },
   );
   return out;
@@ -208,7 +234,7 @@ function inlinePrimitives(op: Operation, x: number, y: number, index: number, so
 
 /** Caja de un bloque sin dibujarlo: es lo que usa la capacidad de la hoja. */
 export function measureBlock(op: Operation, layout: SheetLayout, lang: Lang): BlockBox {
-  const g = layout === 'inline' ? inlineGeometry(op) : op.kind === 'div' ? divisionGeometry(op, lang) : columnsGeometry(op);
+  const g = layout === 'inline' ? inlineGeometry(op, lang) : op.kind === 'div' ? divisionGeometry(op, lang) : columnsGeometry(op);
   return { w: g.w, h: g.h };
 }
 
@@ -228,7 +254,7 @@ export function blockPrimitives(
   solved: boolean,
   width: number = measureBlock(op, layout, lang).w,
 ): Primitive[] {
-  if (layout === 'inline') return inlinePrimitives(op, x, y, index, solved);
-  if (op.kind === 'div') return divisionPrimitives(op, x, y, lang, index, solved);
+  if (layout === 'inline') return inlinePrimitives(op, x, y, lang, index, solved);
+  if (op.kind === 'div') return divisionPrimitives(op, x, y, lang, index, solved, width);
   return columnsPrimitives(op, x, y, index, solved, width);
 }

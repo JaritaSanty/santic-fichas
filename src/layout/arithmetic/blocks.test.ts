@@ -1,28 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { Lang } from '@/core/lang';
-import { capHeightMm, measureTextMm } from '@/core/measure';
+import { measureTextMm } from '@/core/measure';
 import type { Primitive } from '@/core/sheet';
-import type { Operation, OperationKind } from '@/generators/arithmetic';
+import { ARITHMETIC_LIMITS, type Operation, type OperationKind } from '@/generators/arithmetic';
 import { ARITHMETIC_LAYOUT, blockIndexLabel, blockPrimitives, measureBlock } from './blocks';
+import { corners } from './primitiveBounds';
 
 const L = ARITHMETIC_LAYOUT;
 
 const op = (kind: OperationKind, a: number, b: number, result: number, remainder = 0): Operation => ({ kind, a, b, result, remainder });
-
-/** Esquinas de la primitiva; con `text`, la línea base y el ancho medido (las cifras no bajan de la base). */
-function corners(p: Primitive): Array<[number, number]> {
-  switch (p.t) {
-    case 'text': {
-      const w = measureTextMm(p.text, p.font, p.size);
-      const left = p.align === 'middle' ? p.x - w / 2 : p.align === 'end' ? p.x - w : p.x;
-      return [[left, p.y - capHeightMm(p.font, p.size)], [left + w, p.y]];
-    }
-    case 'rect': return [[p.x, p.y], [p.x + p.w, p.y + p.h]];
-    case 'line': return [[p.x1, p.y1], [p.x2, p.y2]];
-    case 'capsule': return [[p.cx - p.length / 2, p.cy - p.width / 2], [p.cx + p.length / 2, p.cy + p.width / 2]];
-    case 'image': return [[p.x, p.y], [p.x + p.w, p.y + p.h]];
-  }
-}
 
 function expectInsideBox(primitives: Primitive[], x: number, y: number, w: number, h: number): void {
   expect(primitives.length).toBeGreaterThan(0);
@@ -38,6 +24,7 @@ function expectInsideBox(primitives: Primitive[], x: number, y: number, w: numbe
 
 const texts = (primitives: Primitive[]) => primitives.filter((p): p is Extract<Primitive, { t: 'text' }> => p.t === 'text');
 const lines = (primitives: Primitive[]) => primitives.filter((p): p is Extract<Primitive, { t: 'line' }> => p.t === 'line');
+const digits = (text: string) => measureTextMm(text, 'sheet', L.digitSizeMm);
 
 describe('bloque en columnas', () => {
   const sum = op('add', 128, 47, 175);
@@ -61,7 +48,7 @@ describe('bloque en columnas', () => {
     expect(index!.y).toBeLessThan(first!.y);
   });
 
-  it('alinea los dos operandos a la derecha del ancho común y pone el signo a la izquierda', () => {
+  it('alinea los dos operandos al borde derecho común y pone el signo a su izquierda', () => {
     const width = measureBlock(sum, 'columns', 'es').w + 12;
     const drawn = blockPrimitives(sum, 10, 20, 'columns', 'es', 0, false, width);
     const a = texts(drawn).find((t) => t.text === '128');
@@ -71,18 +58,33 @@ describe('bloque en columnas', () => {
     expect(b?.align).toBe('end');
     expect(a?.x).toBe(10 + width);
     expect(b?.x).toBe(10 + width);
-    expect(sign?.x).toBe(10);
+    expect(sign?.align).toBe('end');
     expect(sign?.y).toBe(b?.y);
     expect(a!.y).toBeLessThan(b!.y);
   });
 
-  it('la raya ocupa el ancho común y separa la respuesta', () => {
-    const width = 40;
-    const drawn = blockPrimitives(sum, 10, 20, 'columns', 'es', 0, false, width);
+  it('el signo y la raya se cuelgan de la columna de cifras, no del ancho común de la hoja', () => {
+    // Ficha mixta: el ancho común es el de una multiplicación de cinco cifras y la suma es mucho más estrecha.
+    const shared = measureBlock(op('mul', 99999, 999, 99899001), 'columns', 'es').w;
+    const narrow = op('add', 999, 999, 1998);
+    const drawn = blockPrimitives(narrow, 10, 20, 'columns', 'es', 0, false, shared);
+    const sign = texts(drawn).find((t) => t.text === '+')!;
+    const rule = lines(drawn)[0]!;
+    const operandColumnLeft = 10 + shared - digits('1998');
+    expect(sign.x).toBeCloseTo(operandColumnLeft - L.lineGapMm, 10);
+    expect(rule.x1).toBeCloseTo(sign.x - digits('+'), 10);
+    expect(rule.x2).toBe(10 + shared);
+    // La raya mide lo que la operación, no lo que la hoja.
+    expect(rule.x2 - rule.x1).toBeCloseTo(measureBlock(narrow, 'columns', 'es').w, 10);
+  });
+
+  it('la raya ocupa el ancho del bloque y separa la respuesta', () => {
+    const drawn = blockPrimitives(sum, 10, 20, 'columns', 'es', 0, false);
+    const box = measureBlock(sum, 'columns', 'es');
     const [rule] = lines(drawn);
     expect(lines(drawn)).toHaveLength(1);
-    expect(rule?.x1).toBe(10);
-    expect(rule?.x2).toBe(10 + width);
+    expect(rule?.x1).toBeCloseTo(10, 10);
+    expect(rule?.x2).toBeCloseTo(10 + box.w, 10);
     expect(rule?.y1).toBe(rule?.y2);
     expect(rule?.strokeWidth).toBe(L.ruleWidthMm);
     const b = texts(drawn).find((t) => t.text === '47');
@@ -103,7 +105,7 @@ describe('bloque en columnas', () => {
   it('reserva el ancho del resultado aunque no se dibuje, para que alumno y soluciones compartan retícula', () => {
     const product = op('mul', 999, 999, 998001);
     const box = measureBlock(product, 'columns', 'es');
-    expect(box.w).toBeCloseTo(measureTextMm('×', 'sheet', L.digitSizeMm) + L.lineGapMm + measureTextMm('998001', 'sheet', L.digitSizeMm), 10);
+    expect(box.w).toBeCloseTo(digits('×') + L.lineGapMm + digits('998001'), 10);
     expectInsideBox(blockPrimitives(product, 0, 0, 'columns', 'es', 0, true), 0, 0, box.w, box.h);
   });
 
@@ -116,10 +118,10 @@ describe('bloque en columnas', () => {
     expect(texts(drawn).some((t) => t.text === sign)).toBe(true);
   });
 
-  it('el índice de tres cifras cabe en el bloque más estrecho', () => {
+  it('el índice más largo posible cabe en el bloque más estrecho', () => {
     const tiny = op('add', 0, 0, 0);
-    const box = measureBlock(tiny, 'columns', 'es');
-    expect(measureTextMm(blockIndexLabel(199), 'sheet', L.indexSizeMm)).toBeLessThanOrEqual(box.w);
+    const longest = blockIndexLabel(ARITHMETIC_LIMITS.maxCount - 1);
+    expect(measureTextMm(longest, 'sheet', L.indexSizeMm)).toBeLessThanOrEqual(measureBlock(tiny, 'columns', 'es').w);
   });
 });
 
@@ -147,14 +149,18 @@ describe('bloque en línea', () => {
 
   it('todas las expresiones empiezan a la misma distancia del borde, sea cual sea el índice', () => {
     const one = blockPrimitives(sum, 0, 0, 'inline', 'es', 0, false);
-    const many = blockPrimitives(sum, 0, 0, 'inline', 'es', 199, false);
+    const many = blockPrimitives(sum, 0, 0, 'inline', 'es', ARITHMETIC_LIMITS.maxCount - 1, false);
     const expr = (drawn: Primitive[]) => texts(drawn).find((t) => t.text === '23 + 45 = ')?.x;
     expect(expr(one)).toBe(expr(many));
   });
 
-  it('en división con resto el texto resuelto muestra cociente y resto', () => {
-    const drawn = blockPrimitives(op('div', 17, 5, 3, 2), 0, 0, 'inline', 'es', 0, true);
-    expect(texts(drawn).some((t) => t.text.includes('3') && t.text.includes('2'))).toBe(true);
+  it.each(['es', 'en'] as Lang[])('en división con resto el texto resuelto muestra cociente y resto en %s', (lang) => {
+    const division = op('div', 17, 5, 3, 2);
+    const drawn = blockPrimitives(division, 0, 0, 'inline', lang, 0, true);
+    const answer = texts(drawn).find((t) => t.text.includes('3') && t.text.includes('2'));
+    expect(answer).toBeDefined();
+    // La medida conoce el idioma, así que la caja contiene el texto resuelto de ese idioma.
+    expectInsideBox(drawn, 0, 0, measureBlock(division, 'inline', lang).w, L.inlineLineMm);
   });
 });
 
@@ -184,6 +190,15 @@ describe('bloque de división (esquema neutro de la Tarea 6)', () => {
     };
     expect(side('es')).toBe('right');
     expect(side('en')).toBe('left');
+  });
+
+  it('en una hoja más ancha el dibujo se cuelga del borde derecho común y el índice se queda en la columna', () => {
+    const box = measureBlock(division, 'columns', 'es');
+    const width = box.w + 15;
+    const drawn = blockPrimitives(division, 10, 20, 'columns', 'es', 0, false, width);
+    expect(texts(drawn).find((t) => t.text === blockIndexLabel(0))?.x).toBe(10);
+    expect(texts(drawn).find((t) => t.text === '84')?.x).toBeCloseTo(10 + 15, 10);
+    expectInsideBox(drawn, 10, 20, width, box.h);
   });
 
   it('deja hueco para el cociente y solo lo escribe al resolver', () => {

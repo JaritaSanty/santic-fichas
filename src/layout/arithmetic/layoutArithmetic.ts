@@ -15,6 +15,8 @@ export interface ArithmeticCapacity {
   stepXMm: number;
   /** Distancia vertical entre los orígenes de dos filas contiguas. */
   stepYMm: number;
+  /** Margen que centra la retícula dentro de la caja de contenido. */
+  offsetXMm: number;
 }
 
 export type ArithmeticLayoutResult =
@@ -30,32 +32,38 @@ export interface ArithmeticLayoutInput {
   includeSolutions: boolean;
   /** Disposición pedida en el parte; no viaja en `ArithmeticResult` porque no cambia las operaciones. */
   layout: SheetLayout;
-  /** Columnas pedidas en el parte (solo en la disposición en columnas); se recorta a las que caben. */
+  /** Columnas pedidas en el parte, en las dos disposiciones; se recortan a las que caben. */
   columns: number;
 }
+
+/** Hueco vertical entre bloques: en línea el renglón (`inlineLineMm`) ya es el paso completo. */
+export const verticalGapMm = (layout: SheetLayout): number => (layout === 'inline' ? 0 : ARITHMETIC_LAYOUT.blockGapYMm);
 
 /**
  * Retícula de una hoja: cuántos bloques caben y a qué distancia se colocan.
  *
  * Todos los bloques de la hoja usan el ancho del más ancho, así que las columnas quedan alineadas. Las columnas
- * pedidas se recortan a las que caben de verdad (`fitting`) y se reparten por todo el ancho del contenido, de modo
- * que la última termina en el margen derecho; las filas se apilan desde arriba con `blockGapYMm` entre ellas.
+ * pedidas se recortan a las que caben de verdad (`fitting`); el paso horizontal se estira hasta `maxGapXMm` y, si
+ * sobra ancho, la retícula se centra en vez de separar los bloques de par en par. Las filas se apilan desde
+ * arriba con `gapY` entre ellas.
  *
  * Devuelve `null` si un solo bloque no cabe en la caja de contenido.
  */
-export function arithmeticCapacity(box: ContentBox, block: BlockBox, columns: number): ArithmeticCapacity | null {
+export function arithmeticCapacity(box: ContentBox, block: BlockBox, columns: number, gapY: number): ArithmeticCapacity | null {
   const L = ARITHMETIC_LAYOUT;
   if (block.w > box.w + EPS || block.h > box.h + EPS) return null;
   const fitting = Math.max(1, Math.floor((box.w + L.blockGapXMm) / (block.w + L.blockGapXMm)));
   const wanted = Number.isInteger(columns) && columns > 0 ? columns : fitting;
   const cols = Math.min(fitting, wanted);
-  const rows = Math.max(1, Math.floor((box.h + L.blockGapYMm) / (block.h + L.blockGapYMm)));
+  const rows = Math.max(1, Math.floor((box.h + gapY) / (block.h + gapY)));
+  const stepXMm = cols > 1 ? Math.min((box.w - block.w) / (cols - 1), block.w + L.maxGapXMm) : 0;
   return {
     columns: cols,
     rows,
     perPage: rows * cols,
-    stepXMm: cols > 1 ? (box.w - block.w) / (cols - 1) : 0,
-    stepYMm: block.h + L.blockGapYMm,
+    stepXMm,
+    stepYMm: block.h + gapY,
+    offsetXMm: (box.w - ((cols - 1) * stepXMm + block.w)) / 2,
   };
 }
 
@@ -82,19 +90,19 @@ export function layoutArithmetic(input: ArithmeticLayoutInput): ArithmeticLayout
     h: boxes.reduce((max, b) => Math.max(max, b.h), 0),
   };
 
-  const first = buildFrame({ paper, header, labels, role: 'student' });
-  const grid = arithmeticCapacity(first.content, block, input.columns);
+  // La caja de contenido es idéntica en alumno y en soluciones: se calcula una vez y la usan todas las páginas.
+  const box = buildFrame({ paper, header, labels, role: 'student' }).content;
+  const grid = arithmeticCapacity(box, block, input.columns, verticalGapMm(layout));
   if (!grid) return { ok: false, error: { code: 'block-too-large' } };
 
   const pageCount = Math.ceil(operations.length / grid.perPage);
 
   const buildPage = (role: 'student' | 'solution', page: number): SheetPage => {
-    const frame = buildFrame({ paper, header, labels, role });
-    const primitives: Primitive[] = [...frame.primitives];
+    const primitives: Primitive[] = [...buildFrame({ paper, header, labels, role }).primitives];
     const start = page * grid.perPage;
     operations.slice(start, start + grid.perPage).forEach((op, slot) => {
-      const x = frame.content.x + (slot % grid.columns) * grid.stepXMm;
-      const y = frame.content.y + Math.floor(slot / grid.columns) * grid.stepYMm;
+      const x = box.x + grid.offsetXMm + (slot % grid.columns) * grid.stepXMm;
+      const y = box.y + Math.floor(slot / grid.columns) * grid.stepYMm;
       primitives.push(...blockPrimitives(op, x, y, layout, lang, start + slot, role === 'solution', block.w));
     });
     return { role, primitives };

@@ -2,6 +2,7 @@ export { ARITHMETIC_LAYOUT, blockIndexLabel, blockPrimitives, measureBlock, type
 export {
   arithmeticCapacity,
   layoutArithmetic,
+  verticalGapMm,
   type ArithmeticCapacity,
   type ArithmeticLayoutInput,
   type ArithmeticLayoutResult,

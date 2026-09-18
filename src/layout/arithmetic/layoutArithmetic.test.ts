@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { capHeightMm, measureTextMm } from '@/core/measure';
 import { PAPER, SHEET_MARGIN_MM, type PaperSize } from '@/core/paper';
 import type { Primitive, SheetPage } from '@/core/sheet';
 import type { ArithmeticResult, Operation, OperationKind, SheetLayout } from '@/generators/arithmetic';
+import { buildFrame } from '@/layout/common/frame';
 import { ARITHMETIC_LAYOUT, measureBlock } from './blocks';
-import { arithmeticCapacity, layoutArithmetic } from './layoutArithmetic';
+import { arithmeticCapacity, layoutArithmetic, verticalGapMm } from './layoutArithmetic';
+import { corners } from './primitiveBounds';
 
 const L = ARITHMETIC_LAYOUT;
 const labels = { name: 'Nombre', date: 'Fecha', solutions: 'Soluciones' };
@@ -48,29 +49,20 @@ const lay = (input: {
     columns: input.columns,
   });
 
+const content = (paper: PaperSize, role: 'student' | 'solution' = 'student') => buildFrame({ paper, header, labels, role }).content;
+const frameSize = (paper: PaperSize, role: 'student' | 'solution') => buildFrame({ paper, header, labels, role }).primitives.length;
+
 const INDEX = /^\d+\)$/;
 const indices = (page: SheetPage): string[] =>
   page.primitives.filter((p): p is Extract<Primitive, { t: 'text' }> => p.t === 'text' && p.size === L.indexSizeMm && INDEX.test(p.text)).map((p) => p.text);
 
-function corners(p: Primitive): Array<[number, number]> {
-  switch (p.t) {
-    case 'text': {
-      const w = measureTextMm(p.text, p.font, p.size);
-      const left = p.align === 'middle' ? p.x - w / 2 : p.align === 'end' ? p.x - w : p.x;
-      return [[left, p.y - capHeightMm(p.font, p.size)], [left + w, p.y]];
-    }
-    case 'rect': return [[p.x, p.y], [p.x + p.w, p.y + p.h]];
-    case 'line': return [[p.x1, p.y1], [p.x2, p.y2]];
-    case 'capsule': return [[p.cx - p.length / 2, p.cy - p.width / 2], [p.cx + p.length / 2, p.cy + p.width / 2]];
-    case 'image': return [[p.x, p.y], [p.x + p.w, p.y + p.h]];
-  }
-}
-
-// Capacidad congelada: alto de bloque 22,66 mm en columnas ⇒ 8 filas en A4 y 7 en Carta.
+// Capacidad congelada: bloque en columnas de 22,66 mm ⇒ 8 filas en A4 y 7 en Carta; renglón en línea de 11 mm sin
+// hueco vertical ⇒ 21 y 19.
 const EXPECTED: Record<PaperSize, Record<number, number>> = {
   a4: { 2: 16, 5: 40 },
   letter: { 2: 14, 5: 35 },
 };
+const EXPECTED_INLINE_ROWS: Record<PaperSize, number> = { a4: 21, letter: 19 };
 
 describe.each(['a4', 'letter'] as PaperSize[])('capacidad en %s', (paper) => {
   it.each([2, 5])('con %i columnas coincide con la capacidad esperada y con lo dibujado', (columns) => {
@@ -84,6 +76,22 @@ describe.each(['a4', 'letter'] as PaperSize[])('capacidad en %s', (paper) => {
     expect(drawn.reduce((a, b) => a + b, 0)).toBe(200);
   });
 
+  it('en línea el renglón es el paso completo: no se suma el hueco vertical', () => {
+    const line = { w: 60, h: L.inlineLineMm };
+    const grid = arithmeticCapacity(content(paper), line, 2, verticalGapMm('inline'));
+    expect(grid?.rows).toBe(EXPECTED_INLINE_ROWS[paper]);
+    expect(grid?.stepYMm).toBe(L.inlineLineMm);
+    // Con el hueco de la disposición en columnas cabrían bastantes menos.
+    expect(arithmeticCapacity(content(paper), line, 2, L.blockGapYMm)!.rows).toBeLessThan(EXPECTED_INLINE_ROWS[paper]);
+  });
+
+  it('la capacidad en línea de la hoja usa esas filas', () => {
+    const out = lay({ operations: sums(200), paper, columns: 2, layout: 'inline' });
+    if (!out.ok) throw new Error('maquetación');
+    expect(out.capacity.perPage).toBe(EXPECTED_INLINE_ROWS[paper] * 2);
+    expect(out.doc.pages.map((p) => indices(p).length).reduce((a, b) => a + b, 0)).toBe(200);
+  });
+
   it('el número de bloques dibujados es el de operaciones, con sus índices en orden', () => {
     const out = lay({ operations: sums(47), paper, columns: 3 });
     if (!out.ok) throw new Error('maquetación');
@@ -91,11 +99,22 @@ describe.each(['a4', 'letter'] as PaperSize[])('capacidad en %s', (paper) => {
     expect(drawn).toEqual(Array.from({ length: 47 }, (_, i) => `${i + 1})`));
   });
 
-  it.each(['columns', 'inline'] as SheetLayout[])('nada se sale de los márgenes en el peor caso (%s)', (layout) => {
+  it.each(['columns', 'inline'] as SheetLayout[])('los bloques no salen de la caja de contenido ni de los márgenes (%s)', (layout) => {
     const out = lay({ operations: worst(200), paper, columns: 5, includeSolutions: true, layout });
     if (!out.ok) throw new Error('maquetación');
     const { widthMm, heightMm } = PAPER[paper];
     for (const page of out.doc.pages) {
+      // Los bloques van detrás de las primitivas del marco: se comprueban contra la caja de contenido, más
+      // estrecha que la hoja, para que un bloque no pueda invadir el encabezado o el pie sin que salte la prueba.
+      const box = content(paper, page.role);
+      for (const p of page.primitives.slice(frameSize(paper, page.role))) {
+        for (const [x, y] of corners(p)) {
+          expect(x).toBeGreaterThanOrEqual(box.x - 1e-6);
+          expect(x).toBeLessThanOrEqual(box.x + box.w + 1e-6);
+          expect(y).toBeGreaterThanOrEqual(box.y - 1e-6);
+          expect(y).toBeLessThanOrEqual(box.y + box.h + 1e-6);
+        }
+      }
       for (const p of page.primitives) {
         for (const [x, y] of corners(p)) {
           expect(x).toBeGreaterThanOrEqual(SHEET_MARGIN_MM - 1e-6);
@@ -137,6 +156,7 @@ describe('páginas de soluciones', () => {
 
 describe('retícula', () => {
   const box = { x: 12, y: 44, w: 186, h: 231 };
+  const gapY = verticalGapMm('columns');
 
   it('los bloques de una hoja comparten el ancho del más ancho y quedan en columna', () => {
     const mixed = [op('add', 7, 8, 15), op('mul', 99999, 999, 99899001), op('add', 12, 34, 46)];
@@ -147,39 +167,59 @@ describe('retícula', () => {
     const starts = out.doc.pages[0]!.primitives.filter((p): p is Extract<Primitive, { t: 'text' }> => p.t === 'text' && INDEX.test(p.text)).map((p) => p.x);
     expect(starts).toHaveLength(3);
     for (const [i, start] of starts.entries()) {
+      // Dos operandos y el signo por bloque: los operandos acaban en el borde común y el signo, pegado a ellos.
       const column = ends.filter((t) => Math.abs(t.x - (start + widest)) < 1e-9);
-      // Dos operandos por bloque acabados en el mismo borde derecho.
       expect(column.length, `bloque ${i}`).toBe(2);
     }
   });
 
   it('recorta las columnas pedidas a las que caben de verdad', () => {
     const wide = measureBlock(op('mul', 99999, 999, 99899001), 'columns', 'es');
-    expect(arithmeticCapacity(box, wide, 5)?.columns).toBe(5);
+    expect(arithmeticCapacity(box, wide, 5, gapY)?.columns).toBe(5);
     // 186 mm de contenido solo dan para dos bloques de 60 mm con 6 mm de separación.
-    expect(arithmeticCapacity(box, { w: 60, h: 20 }, 5)?.columns).toBe(2);
+    expect(arithmeticCapacity(box, { w: 60, h: 20 }, 5, gapY)?.columns).toBe(2);
   });
 
   it('avisa si un solo bloque no cabe en la caja de contenido', () => {
-    expect(arithmeticCapacity(box, { w: 200, h: 20 }, 2)).toBeNull();
-    expect(arithmeticCapacity(box, { w: 20, h: 300 }, 2)).toBeNull();
-    expect(arithmeticCapacity(box, { w: box.w, h: box.h }, 2)).toEqual({ columns: 1, rows: 1, perPage: 1, stepXMm: 0, stepYMm: box.h + L.blockGapYMm });
+    expect(arithmeticCapacity(box, { w: 200, h: 20 }, 2, gapY)).toBeNull();
+    expect(arithmeticCapacity(box, { w: 20, h: 300 }, 2, gapY)).toBeNull();
+    expect(arithmeticCapacity(box, { w: box.w, h: box.h }, 2, gapY)).toEqual({
+      columns: 1,
+      rows: 1,
+      perPage: 1,
+      stepXMm: 0,
+      stepYMm: box.h + gapY,
+      offsetXMm: 0,
+    });
   });
 
-  it('las columnas se reparten por todo el ancho y nunca se solapan', () => {
+  it('las columnas nunca se solapan, nunca se separan más de maxGapXMm y la retícula queda centrada', () => {
     const block = { w: 30, h: 22 };
     for (const columns of [2, 3, 4, 5]) {
-      const grid = arithmeticCapacity(box, block, columns);
-      expect(grid?.stepXMm).toBeGreaterThanOrEqual(block.w + L.blockGapXMm - 1e-9);
-      expect(box.x + (grid!.columns - 1) * grid!.stepXMm + block.w).toBeCloseTo(box.x + box.w, 10);
+      const grid = arithmeticCapacity(box, block, columns, gapY)!;
+      expect(grid.stepXMm).toBeGreaterThanOrEqual(block.w + L.blockGapXMm - 1e-9);
+      expect(grid.stepXMm).toBeLessThanOrEqual(block.w + L.maxGapXMm + 1e-9);
+      const used = (grid.columns - 1) * grid.stepXMm + block.w;
+      expect(grid.offsetXMm).toBeCloseTo((box.w - used) / 2, 10);
+      expect(grid.offsetXMm * 2 + used).toBeCloseTo(box.w, 10);
     }
   });
 
-  it('en línea la ficha decide sola cuántas columnas caben', () => {
+  it('con pocos bloques anchos la retícula se estira hasta el borde, sin hueco muerto', () => {
+    const block = { w: 88, h: 22 };
+    const grid = arithmeticCapacity(box, block, 2, gapY)!;
+    expect(grid.columns).toBe(2);
+    expect(grid.stepXMm).toBeCloseTo(box.w - block.w, 10);
+    expect(grid.offsetXMm).toBeCloseTo(0, 10);
+  });
+
+  it('en línea la ficha respeta las columnas pedidas mientras quepan', () => {
     const out = lay({ operations: sums(60), paper: 'a4', columns: 2, layout: 'inline' });
     if (!out.ok) throw new Error('maquetación');
-    const perRow = new Set(out.doc.pages[0]!.primitives.filter((p) => p.t === 'text' && INDEX.test(p.text)).map((p) => (p.t === 'text' ? p.y : 0))).size;
-    expect(out.capacity.perPage).toBeGreaterThan(perRow);
+    const rows = new Set(
+      out.doc.pages[0]!.primitives.filter((p): p is Extract<Primitive, { t: 'text' }> => p.t === 'text' && INDEX.test(p.text)).map((p) => p.y),
+    ).size;
+    expect(out.capacity.perPage).toBe(rows * 2);
   });
 
   it('una ficha sin operaciones da una sola hoja vacía', () => {

@@ -65,7 +65,8 @@ export function validateArithmetic(input: ArithmeticInput): ArithmeticValidation
     errors.push({ code: 'count-out-of-range', min: minCount, max: maxCount });
   }
 
-  if (input.layout === 'columns' && (!Number.isInteger(input.columns) || input.columns < minColumns || input.columns > maxColumns)) {
+  // Las columnas valen en las dos disposiciones: la maquetación también reparte los renglones en columnas.
+  if (!Number.isInteger(input.columns) || input.columns < minColumns || input.columns > maxColumns) {
     errors.push({ code: 'columns-out-of-range', min: minColumns, max: maxColumns });
   }
 

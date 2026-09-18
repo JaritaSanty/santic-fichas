@@ -105,8 +105,13 @@ describe('validateArithmetic', () => {
     }
   });
 
-  it('ignora las columnas cuando la disposición es en línea', () => {
-    expect(validateArithmetic({ ...base, layout: 'inline', columns: 9 }).ok).toBe(true);
+  it('exige columnas válidas también con la disposición en línea', () => {
+    const v = validateArithmetic({ ...base, layout: 'inline', columns: 9 });
+    expect(v.ok).toBe(false);
+    if (!v.ok) {
+      expect(v.errors).toContainEqual({ code: 'columns-out-of-range', min: ARITHMETIC_LIMITS.minColumns, max: ARITHMETIC_LIMITS.maxColumns });
+    }
+    expect(validateArithmetic({ ...base, layout: 'inline', columns: 2 }).ok).toBe(true);
   });
 
   it('avisa de que la llevada no afecta a la división sola', () => {
