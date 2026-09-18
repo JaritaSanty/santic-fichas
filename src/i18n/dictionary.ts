@@ -61,6 +61,81 @@ export interface Dictionary {
     warnings: { duplicate: string; contained: string; containedReversed: string; largeList: string };
     unplaced: { title: string; intro: PluralMessage; increaseSize: string; enableDiagonal: string; enableReversed: string; removeWords: string; generateWithout: string };
   };
+  arithmetic: {
+    kindsLegend: string;
+    /** Etiquetas de los controles: forma suelta, con mayúscula inicial. */
+    kinds: { add: string; sub: string; mul: string; div: string };
+    /** Los mismos nombres dentro de una frase: minúscula y singular. */
+    kindNames: { add: string; sub: string; mul: string; div: string };
+    operandsLegend: string;
+    firstLabel: string;
+    secondLabel: string;
+    /** Nombre de cada operando dentro de una frase («el primer número»). */
+    firstName: string;
+    secondName: string;
+    minLabel: string;
+    maxLabel: string;
+    digitsLabel: string;
+    digitsHelp: string;
+    carryLegend: string;
+    carryAny: string;
+    carryWith: string;
+    carryWithout: string;
+    carryHelp: string;
+    divisionLegend: string;
+    divisionExact: string;
+    divisionRemainder: string;
+    countLabel: string;
+    countHelp: string;
+    layoutLegend: string;
+    layoutColumns: string;
+    layoutInline: string;
+    columnsLabel: string;
+    columnsHelp: string;
+    seedLabel: string;
+    seedHelp: string;
+    seedInvalid: string;
+    seedOtherVersion: string;
+    newSheet: string;
+    includeSolutions: string;
+    generating: string;
+    retry: string;
+    /** Aviso de paginación; `count` es el número de hojas y también se pasa como `pages`. */
+    pagination: PluralMessage;
+    errors: {
+      noKind: string;
+      rangeInverted: string;
+      operandOutOfRange: string;
+      countOutOfRange: string;
+      columnsOutOfRange: string;
+      divisorZero: string;
+      emptySpace: string;
+      blockTooLarge: string;
+      workerFailed: string;
+    };
+    warnings: { carryIgnored: string; factorCapped: string; kindMissing: string };
+    /** Ficha incompleta: menos operaciones distintas que las pedidas. */
+    shortfall: { title: string; none: string; intro: PluralMessage; apply: PluralMessage };
+    /**
+     * Un texto por código de sugerencia. Los códigos con `fills` llevan dos: la forma normal promete la ficha
+     * completa y la `…Partial` no promete nada, porque `fills: false` es «no se ha podido comprobar».
+     */
+    suggestions: {
+      raiseFirstMax: string;
+      raiseFirstMaxPartial: string;
+      lowerFirstMin: string;
+      lowerFirstMinPartial: string;
+      widenSecond: string;
+      widenSecondPartial: string;
+      allowRemainder: string;
+      allowRemainderPartial: string;
+      allowCarry: string;
+      allowCarryPartial: string;
+      allowAnyCarry: string;
+      allowAnyCarryPartial: string;
+      reduceCount: string;
+    };
+  };
   proof: {
     zoomLegend: string;
     zoomFit: string;

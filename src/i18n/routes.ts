@@ -1,10 +1,11 @@
 import { isLang, type Lang } from '@/core/lang';
 
-/** Secciones con slug traducido. Fases posteriores añaden crossword, arithmetic, author y legales. */
-export type SectionKey = 'wordsearch';
+/** Secciones con slug traducido. Fases posteriores añaden crossword, author y legales. */
+export type SectionKey = 'wordsearch' | 'arithmetic';
 
 export const SECTION_SLUGS: Record<SectionKey, Record<Lang, string>> = {
   wordsearch: { es: 'sopa-de-letras', en: 'word-search' },
+  arithmetic: { es: 'operaciones', en: 'arithmetic' },
 };
 
 const SECTION_KEYS = Object.keys(SECTION_SLUGS) as SectionKey[];

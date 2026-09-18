@@ -21,21 +21,28 @@ describe('rutas', () => {
     expect(homePath('en')).toBe('/en/');
     expect(sectionPath('es', 'wordsearch')).toBe('/es/sopa-de-letras/');
     expect(sectionPath('en', 'wordsearch')).toBe('/en/word-search/');
+    expect(sectionPath('es', 'arithmetic')).toBe('/es/operaciones/');
+    expect(sectionPath('en', 'arithmetic')).toBe('/en/arithmetic/');
   });
 
   it('resuelve slugs solo en su idioma', () => {
     expect(sectionFromSlug('es', 'sopa-de-letras')).toBe('wordsearch');
     expect(sectionFromSlug('en', 'sopa-de-letras')).toBeNull();
+    expect(sectionFromSlug('es', 'operaciones')).toBe('arithmetic');
+    expect(sectionFromSlug('en', 'operaciones')).toBeNull();
+    expect(sectionFromSlug('en', 'arithmetic')).toBe('arithmetic');
   });
 
   it('genera parámetros estáticos únicos por idioma', () => {
-    expect(sectionParams('es')).toEqual([{ section: 'sopa-de-letras' }]);
-    expect(sectionParams('en')).toEqual([{ section: 'word-search' }]);
+    expect(sectionParams('es')).toEqual([{ section: 'sopa-de-letras' }, { section: 'operaciones' }]);
+    expect(sectionParams('en')).toEqual([{ section: 'word-search' }, { section: 'arithmetic' }]);
   });
 
   it('traduce la ruta actual al otro idioma', () => {
     expect(equivalentPath('/es/sopa-de-letras/', 'en')).toBe('/en/word-search/');
     expect(equivalentPath('/en/word-search', 'es')).toBe('/es/sopa-de-letras/');
+    expect(equivalentPath('/es/operaciones/', 'en')).toBe('/en/arithmetic/');
+    expect(equivalentPath('/en/arithmetic/', 'es')).toBe('/es/operaciones/');
     expect(equivalentPath('/es/', 'en')).toBe('/en/');
     expect(equivalentPath('/es/desconocida/', 'en')).toBe('/en/');
     expect(equivalentPath('/', 'en')).toBe('/en/');
