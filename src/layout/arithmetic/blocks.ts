@@ -145,8 +145,8 @@ interface DivisionGeometry extends BlockBox {
   divisor: DigitSlot;
   /** Hueco del cociente: bajo la raya en la casita, encima en la galera (allí lleva ya el resto). */
   quotient: DigitSlot;
-  /** Resta y resto bajo el dividendo; solo en la casita con resto. */
-  work: { subtraction: DigitSlot; rule: Stroke; remainder: DigitSlot } | null;
+  /** Resto bajo el dividendo, en el renglón del cociente; solo en la casita con resto. */
+  remainder: DigitSlot | null;
 }
 
 /**
@@ -157,14 +157,13 @@ interface DivisionGeometry extends BlockBox {
  * ```
  *  1)            1)
  *      84 │ 7         17 │ 5
- *         └────      −15 └────
- *           12       ───    3
- *                      2
+ *         └────          └────
+ *           12         2   3
  * ```
  *
- * Con resto se reserva además, bajo el dividendo, la resta que lo produce (`− 15`), su raya y el resto: es lo que
- * el alumno escribe al dividir, así que el hueco existe también en la hoja sin resolver y el bloque es más alto.
- * El dividendo, la resta y el resto se alinean a la derecha entre sí, como en cualquier resta en columnas.
+ * Con resto, el resto se escribe bajo el dividendo en el mismo renglón del cociente, alineado a la derecha con él
+ * como en cualquier cuenta en columnas: es el estado final de la división, no el algoritmo paso a paso —la hoja
+ * de soluciones no lleva las restas parciales—, así que el bloque mide lo mismo con resto que sin él.
  */
 function spanishDivisionGeometry(op: Operation): DivisionGeometry {
   const digitCap = capHeightMm('sheet', L.digitSizeMm);
@@ -173,40 +172,23 @@ function spanishDivisionGeometry(op: Operation): DivisionGeometry {
   const ruleY = firstBaseline + L.lineGapMm;
   const quotientBaseline = ruleY + L.answerGapMm;
 
-  const subtraction = `${SIGN.sub} ${num(op.a - op.remainder)}`;
-  const leftWidth = Math.max(
-    digitWidth(num(op.a)),
-    op.remainder > 0 ? Math.max(digitWidth(subtraction), digitWidth(num(op.remainder))) : 0,
-  );
+  // Las cifras de Andika son tabulares y el resto nunca tiene más que el dividendo, pero el máximo lo deja dicho.
+  const leftWidth = Math.max(digitWidth(num(op.a)), op.remainder > 0 ? digitWidth(num(op.remainder)) : 0);
   const rightWidth = Math.max(digitWidth(num(op.b)), digitWidth(num(op.result)));
   const barX = leftWidth + L.lineGapMm;
   const rightX = barX + L.lineGapMm;
 
-  // La resta arranca justo bajo el dividendo (su altura de mayúscula empieza en la raya del divisor).
-  const subtractionBaseline = ruleY + digitCap;
-  const workRuleY = subtractionBaseline + L.lineGapMm;
-  const remainderBaseline = workRuleY + L.answerGapMm;
-  const work =
-    op.remainder > 0
-      ? {
-          subtraction: { x: leftWidth, baseline: subtractionBaseline, text: subtraction, align: 'end' as const },
-          rule: { at: workRuleY, from: 0, to: leftWidth },
-          remainder: { x: leftWidth, baseline: remainderBaseline, text: num(op.remainder), align: 'end' as const },
-        }
-      : null;
-
   const w = rightX + rightWidth;
-  const h = Math.max(quotientBaseline, work?.remainder.baseline ?? 0);
   return {
     w,
-    h,
+    h: quotientBaseline,
     indexBaseline,
-    bar: { at: barX, from: firstBaseline - digitCap, to: h },
+    bar: { at: barX, from: firstBaseline - digitCap, to: quotientBaseline },
     rule: { at: ruleY, from: barX, to: w },
     dividend: { x: leftWidth, baseline: firstBaseline, text: num(op.a), align: 'end' },
     divisor: { x: rightX, baseline: firstBaseline, text: num(op.b), align: 'start' },
     quotient: { x: rightX, baseline: quotientBaseline, text: num(op.result), align: 'start' },
-    work,
+    remainder: op.remainder > 0 ? { x: leftWidth, baseline: quotientBaseline, text: num(op.remainder), align: 'end' } : null,
   };
 }
 
@@ -249,7 +231,7 @@ function englishDivisionGeometry(op: Operation, lang: Lang): DivisionGeometry {
     dividend: { x: rightX, baseline: firstBaseline, text: num(op.a), align: 'start' },
     divisor: { x: 0, baseline: firstBaseline, text: num(op.b), align: 'start' },
     quotient: { x: rightX, baseline: quotientBaseline, text: quotient, align: 'start' },
-    work: null,
+    remainder: null,
   };
 }
 
@@ -289,7 +271,7 @@ function divisionPrimitives(op: Operation, x: number, y: number, lang: Lang, ind
   ];
   if (solved) {
     out.push(digit(g.quotient));
-    if (g.work) out.push(digit(g.work.subtraction), horizontal(g.work.rule), digit(g.work.remainder));
+    if (g.remainder) out.push(digit(g.remainder));
   }
   return out;
 }

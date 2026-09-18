@@ -250,31 +250,26 @@ describe('bloque de división: casita castellana', () => {
     expect(quotient.x).toBeCloseTo(texts(solved).find((t) => t.text === '7')!.x, 10);
   });
 
-  it('con resto reserva la resta bajo el dividendo y la escribe solo al resolver', () => {
+  it('con resto lo escribe bajo el dividendo, en el renglón del cociente y solo al resolver', () => {
     const withRemainder = op('div', 17, 5, 3, 2);
     const box = measureBlock(withRemainder, 'columns', 'es');
-    // El bloque crece: bajo el dividendo caben la resta, su raya y el resto.
-    expect(box.h).toBeGreaterThan(quotientBaseline);
-    expect(box.h).toBeCloseTo(ruleY + DIGIT_CAP + L.lineGapMm + L.answerGapMm, 10);
+    // El resto no añade renglones: es el estado final de la cuenta, no el algoritmo paso a paso.
+    expect(box.h).toBeCloseTo(quotientBaseline, 10);
+    expect(box.w).toBeCloseTo(digits('17') + 2 * L.lineGapMm + Math.max(digits('5'), digits('3')), 10);
 
     const blank = blockPrimitives(withRemainder, 0, 0, 'columns', 'es', 0, false);
-    expect(texts(blank).some((t) => t.text === '2' || t.text === '− 15')).toBe(false);
+    expect(texts(blank).some((t) => t.text === '2')).toBe(false);
     expect(lines(blank)).toHaveLength(2);
     expectInsideBox(blank, 0, 0, box.w, box.h);
 
     const solved = blockPrimitives(withRemainder, 0, 0, 'columns', 'es', 0, true);
-    const subtraction = texts(solved).find((t) => t.text === '− 15')!;
     const remainder = texts(solved).filter((t) => t.text === '2');
-    const workRule = horizontal(solved).find((l) => l.y1 > subtraction.y)!;
     expect(remainder).toHaveLength(1);
-    // Resta, raya y resto, en ese orden, bajo el dividendo y a la izquierda del trazo vertical.
-    expect(subtraction.y).toBeGreaterThan(texts(solved).find((t) => t.text === '17')!.y);
-    expect(workRule.y1).toBeGreaterThan(subtraction.y);
-    expect(remainder[0]!.y).toBeGreaterThan(workRule.y1);
+    // Mismo renglón que el cociente, al otro lado del trazo y alineado a la derecha con el dividendo.
+    expect(remainder[0]!.y).toBeCloseTo(texts(solved).find((t) => t.text === '3')!.y, 10);
+    expect(remainder[0]!.y).toBeCloseTo(quotientBaseline, 10);
     expect(span(remainder[0]!)[1]).toBeLessThan(vertical(solved)[0]!.x1);
-    // La resta, el dividendo y el resto comparten borde derecho, como en cualquier resta en columnas.
-    expect(span(subtraction)[1]).toBeCloseTo(span(texts(solved).find((t) => t.text === '17')!)[1], 10);
-    expect(span(remainder[0]!)[1]).toBeCloseTo(span(subtraction)[1], 10);
+    expect(span(remainder[0]!)[1]).toBeCloseTo(span(texts(solved).find((t) => t.text === '17')!)[1], 10);
     expectInsideBox(solved, 0, 0, box.w, box.h);
   });
 });
