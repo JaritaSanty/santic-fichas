@@ -54,9 +54,17 @@ const INDEX_RESERVE_MM = measureTextMm(blockIndexLabel(ARITHMETIC_LIMITS.maxCoun
  */
 const REMAINDER_MARK: Record<Lang, string> = { es: 'resto', en: 'r' };
 
+/**
+ * Cola del resto cuando se escribe a continuación del cociente: ` resto 2` o ` r 2`, con el espacio que la separa
+ * del cociente incluido (la galera la dibuja aparte, alineada a la izquierda donde acaba el cociente).
+ */
+function remainderSuffix(op: Operation, lang: Lang): string {
+  return op.remainder > 0 ? ` ${REMAINDER_MARK[lang]} ${num(op.remainder)}` : '';
+}
+
 /** Texto de la solución en línea; lo miden y lo dibujan las mismas funciones, así que nunca se desajustan. */
 function solutionText(op: Operation, lang: Lang): string {
-  return op.remainder > 0 ? `${num(op.result)} ${REMAINDER_MARK[lang]} ${num(op.remainder)}` : num(op.result);
+  return `${num(op.result)}${remainderSuffix(op, lang)}`;
 }
 
 interface ColumnsGeometry extends BlockBox {
@@ -143,9 +151,9 @@ interface DivisionGeometry extends BlockBox {
   rule: Stroke;
   dividend: DigitSlot;
   divisor: DigitSlot;
-  /** Hueco del cociente: bajo la raya en la casita, encima en la galera (allí lleva ya el resto). */
+  /** Hueco del cociente: bajo la raya en la casita, encima en la galera. */
   quotient: DigitSlot;
-  /** Resto bajo el dividendo, en el renglón del cociente; solo en la casita con resto. */
+  /** Resto, en el mismo renglón del cociente: bajo el dividendo en la casita, como cola (` r 2`) en la galera. */
   remainder: DigitSlot | null;
 }
 
@@ -157,9 +165,12 @@ interface DivisionGeometry extends BlockBox {
  * ```
  *  1)            1)
  *      84 │ 7         17 │ 5
- *         └────          └────
- *           12         2   3
+ *         ├────          ├────
+ *         │ 12         2 │ 3
  * ```
+ *
+ * El trazo vertical sigue por debajo de la raya hasta el fondo del bloque: es lo que deja el resto del lado del
+ * dividendo y el cociente del lado del divisor.
  *
  * Con resto, el resto se escribe bajo el dividendo en el mismo renglón del cociente, alineado a la derecha con él
  * como en cualquier cuenta en columnas: es el estado final de la división, no el algoritmo paso a paso —la hoja
@@ -194,18 +205,25 @@ function spanishDivisionGeometry(op: Operation): DivisionGeometry {
 
 /**
  * Galera inglesa: el divisor a la izquierda, el trazo vertical a su derecha y la raya horizontal sobre el
- * dividendo, formando el corchete; el hueco del cociente queda encima de la raya, alineado con el dividendo, y el
- * resto se escribe a su derecha (`12 r 3`), que es como se resuelve en inglés.
+ * dividendo, formando el corchete; el hueco del cociente queda encima de la raya y el resto se escribe a su
+ * derecha (`r 2`), que es como se resuelve en inglés.
  *
  * ```
  *  1)
- *       3  r 2
+ *          3 r 2
  *     5 ┌────
  *       │ 17
  * ```
  *
+ * **El cociente se alinea por las unidades, no por la izquierda**: su última cifra va sobre la última del
+ * dividendo (el `3` sobre el `7`), que es la columna en la que se escribe al dividir. Por eso se dibuja con
+ * `align: 'end'` en el borde derecho del dividendo, y no pegado a su borde izquierdo: `100 ÷ 4` pondría si no el
+ * `25` sobre el `10`. Cabe siempre, porque un cociente nunca tiene más cifras que su dividendo.
+ *
  * El hueco del cociente mide `answerGapMm` sobre la raya, igual que el de la respuesta en columnas y el de la
  * casita bajo la suya, y la línea base se apoya a `lineGapMm` de la raya: escrito, el cociente queda sobre ella.
+ *
+ * `lang` viaja solo para `REMAINDER_MARK`: si algún día otro idioma se dibujara con galera, traería su marca.
  */
 function englishDivisionGeometry(op: Operation, lang: Lang): DivisionGeometry {
   const digitCap = capHeightMm('sheet', L.digitSizeMm);
@@ -214,24 +232,24 @@ function englishDivisionGeometry(op: Operation, lang: Lang): DivisionGeometry {
   const quotientBaseline = ruleY - L.lineGapMm;
   const firstBaseline = ruleY + L.lineGapMm + digitCap;
 
-  // El cociente y el resto van juntos en el mismo renglón, así que el hueco reserva el texto entero.
-  const quotient = solutionText(op, lang);
   const dividendWidth = digitWidth(num(op.a));
   const barX = digitWidth(num(op.b)) + L.lineGapMm;
   const rightX = barX + L.lineGapMm;
-  // La raya cubre el dividendo, no el renglón entero: el cociente nunca tiene más cifras que el dividendo y la
-  // marca del resto (`r 2`) sobresale por la derecha, como se escribe a mano. El ancho sí la reserva.
-  const w = rightX + Math.max(dividendWidth, digitWidth(quotient));
+  // El resto va pegado al cociente, pero fuera de las columnas del dividendo: es una cola, no una cifra más.
+  const suffix = remainderSuffix(op, lang);
+  const unitsX = rightX + dividendWidth;
+  // La raya cubre el dividendo, no el renglón entero: la cola del resto sobresale por la derecha, como se escribe
+  // a mano. El ancho del bloque sí la reserva.
   return {
-    w,
+    w: unitsX + digitWidth(suffix),
     h: firstBaseline,
     indexBaseline,
     bar: { at: barX, from: ruleY, to: firstBaseline },
-    rule: { at: ruleY, from: barX, to: rightX + dividendWidth },
+    rule: { at: ruleY, from: barX, to: unitsX },
     dividend: { x: rightX, baseline: firstBaseline, text: num(op.a), align: 'start' },
     divisor: { x: 0, baseline: firstBaseline, text: num(op.b), align: 'start' },
-    quotient: { x: rightX, baseline: quotientBaseline, text: quotient, align: 'start' },
-    remainder: null,
+    quotient: { x: unitsX, baseline: quotientBaseline, text: num(op.result), align: 'end' },
+    remainder: suffix === '' ? null : { x: unitsX, baseline: quotientBaseline, text: suffix, align: 'start' },
   };
 }
 

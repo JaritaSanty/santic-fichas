@@ -281,7 +281,8 @@ describe('bloque de división: galera inglesa', () => {
   const firstBaseline = ruleY + L.lineGapMm + DIGIT_CAP;
   const barX = digits('7') + L.lineGapMm;
   const dividendX = barX + L.lineGapMm;
-  const w = dividendX + Math.max(digits('84'), digits('12'));
+  // Sin resto el bloque acaba en las unidades del dividendo: el cociente cae dentro de esas columnas.
+  const w = dividendX + digits('84');
 
   it('mide la caja del esquema y dibuja dentro de ella, resuelta o no', () => {
     const box = measureBlock(division, 'columns', 'en');
@@ -322,15 +323,27 @@ describe('bloque de división: galera inglesa', () => {
     expect(divisorRight).toBeLessThanOrEqual(dividendLeft);
   });
 
-  it('el cociente va encima de la raya, alineado con el dividendo, y solo al resolver', () => {
+  it('el cociente va encima de la raya y solo al resolver', () => {
     expect(texts(blockPrimitives(division, 0, 0, 'columns', 'en', 0, false)).some((t) => t.text === '12')).toBe(false);
     const solved = blockPrimitives(division, 0, 0, 'columns', 'en', 0, true);
     const quotient = texts(solved).find((t) => t.text === '12')!;
     const rule = horizontal(solved)[0]!;
     expect(quotient.y).toBeCloseTo(quotientBaseline, 10);
     expect(quotient.y).toBeLessThan(rule.y1);
-    expect(quotient.align).toBe('start');
-    expect(quotient.x).toBeCloseTo(texts(solved).find((t) => t.text === '84')!.x, 10);
+    expect(quotient.align).toBe('end');
+  });
+
+  it.each([
+    [op('div', 84, 7, 12), '84', '12'],
+    [op('div', 100, 4, 25), '100', '25'],
+    [op('div', 99999, 999, 100, 99), '99999', '100'],
+  ] as Array<[Operation, string, string]>)('el cociente se alinea por las unidades con el dividendo (%#)', (division, dividend, quotient) => {
+    const solved = blockPrimitives(division, 0, 0, 'columns', 'en', 0, true);
+    const units = span(texts(solved).find((t) => t.text === dividend)!)[1];
+    // La última cifra del cociente cae sobre la última del dividendo, tenga las cifras que tenga.
+    expect(span(texts(solved).find((t) => t.text === quotient)!)[1]).toBeCloseTo(units, 10);
+    expect(horizontal(solved)[0]!.x2).toBeCloseTo(units, 10);
+    expectInsideBox(solved, 0, 0, measureBlock(division, 'columns', 'en').w, measureBlock(division, 'columns', 'en').h);
   });
 
   it('con resto lo escribe a la derecha del cociente como «r 2», solo al resolver', () => {
@@ -341,13 +354,17 @@ describe('bloque de división: galera inglesa', () => {
     expectInsideBox(blank, 0, 0, box.w, box.h);
 
     const solved = blockPrimitives(withRemainder, 0, 0, 'columns', 'en', 0, true);
-    const quotient = texts(solved).find((t) => t.text === '3 r 2')!;
+    const quotient = texts(solved).find((t) => t.text === '3')!;
+    const suffix = texts(solved).find((t) => t.text === ' r 2')!;
     const rule = horizontal(solved)[0]!;
+    expect(suffix.y).toBeCloseTo(quotient.y, 10);
     expect(quotient.y).toBeLessThan(rule.y1);
-    // La raya cubre el dividendo y la marca del resto sobresale por la derecha, pero dentro de la caja medida.
+    // El cociente ocupa las columnas del dividendo y la cola del resto arranca donde acaba, fuera de la raya.
     expect(rule.x2).toBeCloseTo(span(texts(solved).find((t) => t.text === '17')!)[1], 10);
-    expect(span(quotient)[1]).toBeGreaterThan(rule.x2);
-    expect(span(quotient)[1]).toBeCloseTo(box.w, 10);
+    expect(span(quotient)[1]).toBeCloseTo(rule.x2, 10);
+    expect(suffix.align).toBe('start');
+    expect(suffix.x).toBeCloseTo(rule.x2, 10);
+    expect(span(suffix)[1]).toBeCloseTo(box.w, 10);
     expectInsideBox(solved, 0, 0, box.w, box.h);
   });
 });
