@@ -82,6 +82,7 @@ export const en: Dictionary = {
     },
   },
   arithmetic: {
+    defaultTitle: 'Arithmetic',
     kindsLegend: 'Operations',
     kinds: { add: 'Addition', sub: 'Subtraction', mul: 'Multiplication', div: 'Division' },
     kindNames: { add: 'addition', sub: 'subtraction', mul: 'multiplication', div: 'division' },

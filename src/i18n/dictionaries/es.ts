@@ -82,6 +82,7 @@ export const es: Dictionary = {
     },
   },
   arithmetic: {
+    defaultTitle: 'Operaciones',
     kindsLegend: 'Operaciones',
     kinds: { add: 'Suma', sub: 'Resta', mul: 'Multiplicación', div: 'División' },
     kindNames: { add: 'suma', sub: 'resta', mul: 'multiplicación', div: 'división' },

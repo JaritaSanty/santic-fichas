@@ -5,7 +5,7 @@ export type SectionKey = 'wordsearch' | 'arithmetic';
 
 export const SECTION_SLUGS: Record<SectionKey, Record<Lang, string>> = {
   wordsearch: { es: 'sopa-de-letras', en: 'word-search' },
-  arithmetic: { es: 'operaciones', en: 'arithmetic' },
+  arithmetic: { es: 'operaciones', en: 'math-worksheets' },
 };
 
 const SECTION_KEYS = Object.keys(SECTION_SLUGS) as SectionKey[];

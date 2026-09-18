@@ -62,6 +62,8 @@ export interface Dictionary {
     unplaced: { title: string; intro: PluralMessage; increaseSize: string; enableDiagonal: string; enableReversed: string; removeWords: string; generateWithout: string };
   };
   arithmetic: {
+    /** Título con el que sale la hoja antes de que el docente escriba el suyo (equivale a `sheet.defaultTitle`). */
+    defaultTitle: string;
     kindsLegend: string;
     /** Etiquetas de los controles: forma suelta, con mayúscula inicial. */
     kinds: { add: string; sub: string; mul: string; div: string };
