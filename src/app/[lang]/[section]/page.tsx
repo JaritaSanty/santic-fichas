@@ -4,6 +4,7 @@ import { ToolPageLayout } from '@/components/shell/ToolPageLayout';
 import { isLang } from '@/core/lang';
 import { getDictionary } from '@/i18n/dictionary';
 import { sectionFromSlug, sectionParams } from '@/i18n/routes';
+import { ArithmeticTool } from '@/tools/arithmetic';
 import { WordSearchTool } from '@/tools/wordsearch';
 
 export const dynamicParams = false;
@@ -30,12 +31,11 @@ export default async function SectionPage({ params }: { params: Params }) {
   const r = await resolve(params);
   if (!r) notFound();
   const { dict, key, lang } = r;
-  return (
-    <ToolPageLayout
-      title={dict.sections[key].title}
-      intro={dict.sections[key].description}
-      adLabel={dict.ads.label}
-      tool={key === 'wordsearch' ? <WordSearchTool lang={lang} labels={{ sheet: dict.sheet, tool: dict.tool, wordsearch: dict.wordsearch, proof: dict.proof }} /> : null}
-    />
-  );
+  const tool =
+    key === 'wordsearch' ? (
+      <WordSearchTool lang={lang} labels={{ sheet: dict.sheet, tool: dict.tool, wordsearch: dict.wordsearch, proof: dict.proof }} />
+    ) : key === 'arithmetic' ? (
+      <ArithmeticTool lang={lang} labels={{ sheet: dict.sheet, tool: dict.tool, arithmetic: dict.arithmetic, proof: dict.proof }} />
+    ) : null;
+  return <ToolPageLayout title={dict.sections[key].title} intro={dict.sections[key].description} adLabel={dict.ads.label} tool={tool} />;
 }

@@ -118,6 +118,8 @@ export const en: Dictionary = {
     includeSolutions: 'Include answer key',
     generating: 'Generating…',
     retry: 'Retry',
+    quote: '“{text}”',
+    optionsDetail: { one: '1 operation · {seed}', other: '{count} operations · {seed}' },
     pagination: { one: '1 sheet will be generated, up to {perPage} per sheet.', other: '{pages} sheets will be generated, up to {perPage} per sheet.' },
     errors: {
       noKind: 'At least one operation is needed: addition, subtraction, multiplication or division.',

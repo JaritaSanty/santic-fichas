@@ -118,6 +118,8 @@ export const es: Dictionary = {
     includeSolutions: 'Incluir soluciones',
     generating: 'Generando…',
     retry: 'Reintentar',
+    quote: '«{text}»',
+    optionsDetail: { one: '1 operación · {seed}', other: '{count} operaciones · {seed}' },
     pagination: { one: 'Se generará 1 hoja, máx. {perPage} por hoja.', other: 'Se generarán {pages} hojas, máx. {perPage} por hoja.' },
     errors: {
       noKind: 'Se necesita al menos una operación: suma, resta, multiplicación o división.',

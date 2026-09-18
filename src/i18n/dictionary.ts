@@ -102,6 +102,9 @@ export interface Dictionary {
     includeSolutions: string;
     generating: string;
     retry: string;
+    quote: string;
+    /** Resumen del parte plegado en móvil; `count` es el número de operaciones pedidas. */
+    optionsDetail: PluralMessage;
     /** Aviso de paginación; `count` es el número de hojas y también se pasa como `pages`. */
     pagination: PluralMessage;
     errors: {
