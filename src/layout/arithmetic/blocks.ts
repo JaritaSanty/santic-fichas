@@ -1,6 +1,6 @@
 import type { Lang } from '@/core/lang';
 import { capHeightMm, measureTextMm } from '@/core/measure';
-import type { Primitive } from '@/core/sheet';
+import type { Primitive, TextAlign } from '@/core/sheet';
 import { ARITHMETIC_LIMITS, type Operation, type OperationKind, type SheetLayout } from '@/generators/arithmetic';
 
 /** Geometría del bloque de una operación, en milímetros. */
@@ -44,10 +44,15 @@ export function blockIndexLabel(index: number): string {
 const INDEX_RESERVE_MM = measureTextMm(blockIndexLabel(ARITHMETIC_LIMITS.maxCount - 1), 'sheet', L.indexSizeMm);
 
 /**
- * Marca del resto en la disposición en línea. Hoy es la misma en los dos idiomas —la forma `r 3` que el plan fija
- * para `en`—; **la Tarea 7 decide la castellana**. La tabla existe para que ese cambio entre por un solo sitio.
+ * Marca del resto cuando el resto se escribe en línea con el cociente: `17 ÷ 5 = 3 resto 2` en castellano y
+ * `17 ÷ 5 = 3 r 2` en inglés, la forma que el plan fija para `en`. En castellano se escribe la palabra entera
+ * porque es la que usa la clase —la abreviatura `r` solo aparece en la prueba de la división— y porque la ficha
+ * es para niños; cuesta unos milímetros de hueco, que la medida ya reserva.
+ *
+ * Es el único sitio donde la notación del resto cambia de idioma: la usan la disposición en línea (los dos
+ * idiomas) y el cociente de la galera inglesa, siempre a través de `solutionText`.
  */
-const REMAINDER_MARK: Record<Lang, string> = { es: 'r', en: 'r' };
+const REMAINDER_MARK: Record<Lang, string> = { es: 'resto', en: 'r' };
 
 /** Texto de la solución en línea; lo miden y lo dibujan las mismas funciones, así que nunca se desajustan. */
 function solutionText(op: Operation, lang: Lang): string {
@@ -115,78 +120,176 @@ function columnsPrimitives(op: Operation, x: number, y: number, index: number, s
   return out;
 }
 
+/** Cifra colocada: `x` es el borde que fija `align` (el izquierdo con `start`, el derecho con `end`). */
+interface DigitSlot {
+  x: number;
+  baseline: number;
+  text: string;
+  align: TextAlign;
+}
+
+/** Trazo recto del esquema, en los ejes del bloque. */
+interface Stroke {
+  /** Coordenada constante: la `x` del trazo vertical, la `y` de los horizontales. */
+  at: number;
+  from: number;
+  to: number;
+}
+
 interface DivisionGeometry extends BlockBox {
   indexBaseline: number;
-  lineTop: number;
-  firstBaseline: number;
-  ruleY: number;
-  quotientBaseline: number;
-  barX: number;
-  dividendX: number;
-  divisorX: number;
-  ruleFrom: number;
-  ruleTo: number;
+  /** Trazo vertical (de `from` a `to` en vertical) y raya horizontal del esquema. */
+  bar: Stroke;
+  rule: Stroke;
+  dividend: DigitSlot;
+  divisor: DigitSlot;
+  /** Hueco del cociente: bajo la raya en la casita, encima en la galera (allí lleva ya el resto). */
+  quotient: DigitSlot;
+  /** Resta y resto bajo el dividendo; solo en la casita con resto. */
+  work: { subtraction: DigitSlot; rule: Stroke; remainder: DigitSlot } | null;
 }
 
 /**
- * Esquema neutro mínimo de la división: dividendo, divisor y hueco de cociente separados por un trazo vertical,
- * con el divisor del lado que le corresponde a cada idioma (`es` a la derecha, `en` a la izquierda).
+ * Casita castellana: el dividendo a la izquierda, el trazo vertical a su derecha —desde el alto de las cifras
+ * hasta el fondo del bloque—, el divisor al otro lado y la raya horizontal bajo él; el hueco del cociente queda
+ * bajo esa raya, alineado con el divisor.
  *
- * **La Tarea 7 sustituye este dibujo** por la casita española (corchete bajo el divisor, resto bajo el dividendo)
- * y la galera inglesa (corchete sobre el dividendo, cociente encima). Aquí solo se garantiza que la rama exista,
- * que mida una caja no vacía y que lo dibujado quepa dentro de ella.
+ * ```
+ *  1)            1)
+ *      84 │ 7         17 │ 5
+ *         └────      −15 └────
+ *           12       ───    3
+ *                      2
+ * ```
+ *
+ * Con resto se reserva además, bajo el dividendo, la resta que lo produce (`− 15`), su raya y el resto: es lo que
+ * el alumno escribe al dividir, así que el hueco existe también en la hoja sin resolver y el bloque es más alto.
+ * El dividendo, la resta y el resto se alinean a la derecha entre sí, como en cualquier resta en columnas.
  */
-function divisionGeometry(op: Operation, lang: Lang): DivisionGeometry {
+function spanishDivisionGeometry(op: Operation): DivisionGeometry {
   const digitCap = capHeightMm('sheet', L.digitSizeMm);
   const indexBaseline = capHeightMm('sheet', L.indexSizeMm);
-  const lineTop = indexBaseline + L.lineGapMm;
-  const firstBaseline = lineTop + digitCap;
+  const firstBaseline = indexBaseline + L.lineGapMm + digitCap;
   const ruleY = firstBaseline + L.lineGapMm;
   const quotientBaseline = ruleY + L.answerGapMm;
-  const dividend = digitWidth(num(op.a));
-  // El lado del divisor carga también con el cociente, que se escribe debajo.
-  const divisor = Math.max(digitWidth(num(op.b)), digitWidth(num(op.result)));
-  const spanish = lang === 'es';
-  const barX = (spanish ? dividend : divisor) + L.lineGapMm;
-  const dividendX = spanish ? 0 : barX + L.lineGapMm;
-  const divisorX = spanish ? barX + L.lineGapMm : 0;
+
+  const subtraction = `${SIGN.sub} ${num(op.a - op.remainder)}`;
+  const leftWidth = Math.max(
+    digitWidth(num(op.a)),
+    op.remainder > 0 ? Math.max(digitWidth(subtraction), digitWidth(num(op.remainder))) : 0,
+  );
+  const rightWidth = Math.max(digitWidth(num(op.b)), digitWidth(num(op.result)));
+  const barX = leftWidth + L.lineGapMm;
+  const rightX = barX + L.lineGapMm;
+
+  // La resta arranca justo bajo el dividendo (su altura de mayúscula empieza en la raya del divisor).
+  const subtractionBaseline = ruleY + digitCap;
+  const workRuleY = subtractionBaseline + L.lineGapMm;
+  const remainderBaseline = workRuleY + L.answerGapMm;
+  const work =
+    op.remainder > 0
+      ? {
+          subtraction: { x: leftWidth, baseline: subtractionBaseline, text: subtraction, align: 'end' as const },
+          rule: { at: workRuleY, from: 0, to: leftWidth },
+          remainder: { x: leftWidth, baseline: remainderBaseline, text: num(op.remainder), align: 'end' as const },
+        }
+      : null;
+
+  const w = rightX + rightWidth;
+  const h = Math.max(quotientBaseline, work?.remainder.baseline ?? 0);
   return {
-    w: spanish ? divisorX + divisor : dividendX + dividend,
-    h: quotientBaseline,
+    w,
+    h,
     indexBaseline,
-    lineTop,
-    firstBaseline,
-    ruleY,
-    quotientBaseline,
-    barX,
-    dividendX,
-    divisorX,
-    ruleFrom: spanish ? barX : 0,
-    ruleTo: divisorX + divisor,
+    bar: { at: barX, from: firstBaseline - digitCap, to: h },
+    rule: { at: ruleY, from: barX, to: w },
+    dividend: { x: leftWidth, baseline: firstBaseline, text: num(op.a), align: 'end' },
+    divisor: { x: rightX, baseline: firstBaseline, text: num(op.b), align: 'start' },
+    quotient: { x: rightX, baseline: quotientBaseline, text: num(op.result), align: 'start' },
+    work,
   };
 }
 
 /**
- * El índice se queda en el borde izquierdo de la columna, como en los demás bloques, y el dibujo se cuelga del
- * borde derecho común de la hoja (`width`). La Tarea 7 hereda ese desplazamiento para colocar la casita y la
- * galera en la misma retícula.
+ * Galera inglesa: el divisor a la izquierda, el trazo vertical a su derecha y la raya horizontal sobre el
+ * dividendo, formando el corchete; el hueco del cociente queda encima de la raya, alineado con el dividendo, y el
+ * resto se escribe a su derecha (`12 r 3`), que es como se resuelve en inglés.
+ *
+ * ```
+ *  1)
+ *       3  r 2
+ *     5 ┌────
+ *       │ 17
+ * ```
+ *
+ * El hueco del cociente mide `answerGapMm` sobre la raya, igual que el de la respuesta en columnas y el de la
+ * casita bajo la suya, y la línea base se apoya a `lineGapMm` de la raya: escrito, el cociente queda sobre ella.
+ */
+function englishDivisionGeometry(op: Operation, lang: Lang): DivisionGeometry {
+  const digitCap = capHeightMm('sheet', L.digitSizeMm);
+  const indexBaseline = capHeightMm('sheet', L.indexSizeMm);
+  const ruleY = indexBaseline + L.lineGapMm + L.answerGapMm;
+  const quotientBaseline = ruleY - L.lineGapMm;
+  const firstBaseline = ruleY + L.lineGapMm + digitCap;
+
+  // El cociente y el resto van juntos en el mismo renglón, así que el hueco reserva el texto entero.
+  const quotient = solutionText(op, lang);
+  const dividendWidth = digitWidth(num(op.a));
+  const barX = digitWidth(num(op.b)) + L.lineGapMm;
+  const rightX = barX + L.lineGapMm;
+  // La raya cubre el dividendo, no el renglón entero: el cociente nunca tiene más cifras que el dividendo y la
+  // marca del resto (`r 2`) sobresale por la derecha, como se escribe a mano. El ancho sí la reserva.
+  const w = rightX + Math.max(dividendWidth, digitWidth(quotient));
+  return {
+    w,
+    h: firstBaseline,
+    indexBaseline,
+    bar: { at: barX, from: ruleY, to: firstBaseline },
+    rule: { at: ruleY, from: barX, to: rightX + dividendWidth },
+    dividend: { x: rightX, baseline: firstBaseline, text: num(op.a), align: 'start' },
+    divisor: { x: 0, baseline: firstBaseline, text: num(op.b), align: 'start' },
+    quotient: { x: rightX, baseline: quotientBaseline, text: quotient, align: 'start' },
+    work: null,
+  };
+}
+
+/** Cada idioma dibuja la división como la enseña: casita en castellano, galera en inglés. */
+function divisionGeometry(op: Operation, lang: Lang): DivisionGeometry {
+  return lang === 'es' ? spanishDivisionGeometry(op) : englishDivisionGeometry(op, lang);
+}
+
+/**
+ * El índice se queda en el borde izquierdo de la columna, como en los demás bloques, y el esquema se cuelga del
+ * borde derecho común de la hoja (`width`).
+ *
+ * Todo lo que se dibuja sale de `divisionGeometry` —textos incluidos—, así que la caja que mide `measureBlock`
+ * y el dibujo no pueden desajustarse.
  */
 function divisionPrimitives(op: Operation, x: number, y: number, lang: Lang, index: number, solved: boolean, width: number): Primitive[] {
   const g = divisionGeometry(op, lang);
   const left = x + width - g.w;
+  const digit = (slot: DigitSlot): Primitive => ({
+    t: 'text',
+    x: left + slot.x,
+    y: y + slot.baseline,
+    text: slot.text,
+    size: L.digitSizeMm,
+    font: 'sheet',
+    align: slot.align,
+    tone: 'ink',
+  });
+  const horizontal = (s: Stroke): Primitive => ({ t: 'line', x1: left + s.from, y1: y + s.at, x2: left + s.to, y2: y + s.at, stroke: 'ink', strokeWidth: L.ruleWidthMm });
   const out: Primitive[] = [
     { t: 'text', x, y: y + g.indexBaseline, text: blockIndexLabel(index), size: L.indexSizeMm, font: 'sheet', align: 'start', tone: 'muted' },
-    { t: 'text', x: left + g.dividendX, y: y + g.firstBaseline, text: num(op.a), size: L.digitSizeMm, font: 'sheet', align: 'start', tone: 'ink' },
-    { t: 'text', x: left + g.divisorX, y: y + g.firstBaseline, text: num(op.b), size: L.digitSizeMm, font: 'sheet', align: 'start', tone: 'ink' },
-    // El trazo vertical se detiene medio grosor antes del borde inferior: así la caja medida contiene la tinta.
-    { t: 'line', x1: left + g.barX, y1: y + g.lineTop, x2: left + g.barX, y2: y + g.h - L.ruleWidthMm / 2, stroke: 'ink', strokeWidth: L.ruleWidthMm },
-    { t: 'line', x1: left + g.ruleFrom, y1: y + g.ruleY, x2: left + g.ruleTo, y2: y + g.ruleY, stroke: 'ink', strokeWidth: L.ruleWidthMm },
+    digit(g.dividend),
+    digit(g.divisor),
+    // Los dos renderizadores rematan el trazo a tope (butt cap): la tinta acaba justo en `to`, dentro de la caja.
+    { t: 'line', x1: left + g.bar.at, y1: y + g.bar.from, x2: left + g.bar.at, y2: y + g.bar.to, stroke: 'ink', strokeWidth: L.ruleWidthMm },
+    horizontal(g.rule),
   ];
   if (solved) {
-    out.push({ t: 'text', x: left + g.divisorX, y: y + g.quotientBaseline, text: num(op.result), size: L.digitSizeMm, font: 'sheet', align: 'start', tone: 'ink' });
-    if (op.remainder > 0) {
-      out.push({ t: 'text', x: left + g.dividendX, y: y + g.quotientBaseline, text: num(op.remainder), size: L.digitSizeMm, font: 'sheet', align: 'start', tone: 'ink' });
-    }
+    out.push(digit(g.quotient));
+    if (g.work) out.push(digit(g.work.subtraction), horizontal(g.work.rule), digit(g.work.remainder));
   }
   return out;
 }
