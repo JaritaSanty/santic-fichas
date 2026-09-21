@@ -46,3 +46,21 @@ test('la aplicación funciona sin red tras la primera carga', async ({ page, con
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await context.setOffline(false);
 });
+
+test('el cuadernillo de operaciones también se genera sin red tras la primera carga', async ({ page, context }) => {
+  await page.goto('es/operaciones/');
+  await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
+
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Cuadernillo de operaciones');
+  // Sin red, el Worker del segundo generador tiene que salir de la precarga: si faltara, no se llegaría a «done».
+  await page.getByLabel('Número de operaciones').fill('6');
+  await expect(page.locator('[data-generation]')).toHaveAttribute('data-generation', 'done', { timeout: 10_000 });
+  const drawn = await page
+    .locator('[data-tool-canvas] svg[role="img"]')
+    .first()
+    .evaluate((svg) => Array.from(svg.querySelectorAll('text'), (t) => t.textContent ?? '').filter((t) => /^\d+\)$/.test(t)));
+  expect(drawn).toEqual(['1)', '2)', '3)', '4)', '5)', '6)']);
+  await context.setOffline(false);
+});

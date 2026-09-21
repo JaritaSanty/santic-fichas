@@ -14,6 +14,29 @@ async function box(locator: Locator): Promise<Box> {
   return b;
 }
 
+const settle = (page: Page) => expect(page.locator('[data-generation]')).toHaveAttribute('data-generation', 'done', { timeout: 10_000 });
+
+/**
+ * Cuadernillo con menos operaciones de las pedidas: el panel de ficha corta añade un cuarto `data-action`
+ * («Generar N operaciones») dentro del lienzo, bajo la vista previa, que es la única acción de la aplicación
+ * que no vive ni en la línea de trabajo ni en el parte.
+ */
+async function arithmeticShortfall(page: Page) {
+  await page.goto('es/operaciones/');
+  await settle(page);
+  // En móvil el parte nace plegado y sus campos no se pueden tocar: se abre y se deja abierto para medirlo.
+  const docket = page.locator('[data-docket]');
+  if (!(await docket.evaluate((d) => (d as HTMLDetailsElement).open))) await page.getByText('Opciones de la ficha').click();
+  for (const kind of ['Suma', 'Resta']) await page.getByLabel(kind, { exact: true }).uncheck();
+  await page.getByLabel('División', { exact: true }).check();
+  const second = page.getByRole('group', { name: 'Segundo número', exact: true });
+  await second.getByLabel('Mínimo').fill('2');
+  await second.getByLabel('Máximo').fill('9');
+  await page.getByLabel('Número de operaciones').fill('200');
+  await settle(page);
+  await expect(page.locator('[data-tool-canvas] section [data-action="generate"]')).toBeVisible();
+}
+
 async function expectAdsFarFromActions(page: Page) {
   // Solo las acciones con caja visible se pueden medir: en móvil hay que abrir antes el parte plegado.
   const actions = page.locator('[data-action]:visible');
@@ -67,8 +90,31 @@ test.describe('zonas publicitarias', () => {
   test('ninguna unidad supera tres por vista', async ({ page }) => {
     for (const size of [{ width: 1280, height: 900 }, { width: 360, height: 740 }]) {
       await page.setViewportSize(size);
-      await page.goto('es/sopa-de-letras/');
-      expect(await page.locator('.ad-slot:visible').count()).toBeLessThanOrEqual(3);
+      for (const path of ['es/sopa-de-letras/', 'es/operaciones/']) {
+        await page.goto(path);
+        expect(await page.locator('.ad-slot:visible').count()).toBeLessThanOrEqual(3);
+      }
     }
+  });
+
+  test('escritorio: el cuadernillo con la ficha corta mantiene la distancia también en el botón del panel', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await arithmeticShortfall(page);
+    await expect(page.locator('.ad-slot[data-ad-format="sidebar"]')).toBeVisible();
+    await expect(page.locator('[data-tool-canvas] .ad-slot')).toHaveCount(0);
+    // Imprimir, Descargar PDF, «Nuevo cuadernillo» y el botón del panel de ficha corta.
+    expect(await page.locator('[data-action]:visible').count()).toBe(4);
+    await expectAdsFarFromActions(page);
+  });
+
+  test('móvil 360: el cuadernillo con la ficha corta no acerca ninguna acción al anclaje', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 740 });
+    await arithmeticShortfall(page);
+    await expect(page.locator('[data-ad-anchor]')).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+    // El parte queda abierto: se mide también «Nuevo cuadernillo», que en móvil vive dentro del plegable.
+    await expect(page.getByRole('button', { name: 'Nuevo cuadernillo' })).toBeVisible();
+    expect(await page.locator('[data-action]:visible').count()).toBe(4);
+    await expectAdsFarFromActions(page);
   });
 });

@@ -52,6 +52,50 @@ test.describe('impresión directa', () => {
     await expect(page.locator('#print-root')).toHaveCount(0);
   });
 
+  test('el cuadernillo de operaciones también imprime solo la hoja', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto('es/operaciones/');
+    await expect(page.locator('[data-generation]')).toHaveAttribute('data-generation', 'done', { timeout: 10_000 });
+    await page.getByLabel('Título').fill('Sumas y restas: segundo curso');
+    await expect(page.locator('html')).toHaveAttribute('data-print-sheet', 'true');
+    const pages = Number(await page.locator('[data-job-line] dl > div').filter({ hasText: 'Páginas' }).locator('dd').textContent());
+
+    await page.emulateMedia({ media: 'print' });
+    const visible = await page.evaluate(() =>
+      Array.from(document.body.children)
+        .filter((el) => getComputedStyle(el).display !== 'none')
+        .map((el) => el.id),
+    );
+    expect(visible).toEqual(['print-root']);
+    await expect(page.locator('#print-root .print-page')).toHaveCount(pages);
+    await expect(page.locator('#print-root')).toContainText('Sumas y restas: segundo curso');
+    for (const ad of await page.locator('.ad-slot').all()) await expect(ad).toBeHidden();
+
+    expect(await pageCount(await page.pdf({ preferCSSPageSize: true, printBackground: true }))).toBe(pages);
+  });
+
+  test('un cuadernillo sin ejercicios no monta ninguna hoja de impresión', async ({ page }) => {
+    await page.goto('es/operaciones/');
+    await expect(page.locator('[data-generation]')).toHaveAttribute('data-generation', 'done', { timeout: 10_000 });
+    // Solo divisiones exactas de 100–101 entre 7: no sale ninguna, así que no hay nada que imprimir.
+    for (const kind of ['Suma', 'Resta']) await page.getByLabel(kind, { exact: true }).uncheck();
+    await page.getByLabel('División', { exact: true }).check();
+    const first = page.getByRole('group', { name: 'Primer número', exact: true });
+    await first.getByLabel('Mínimo').fill('100');
+    await first.getByLabel('Máximo').fill('101');
+    const second = page.getByRole('group', { name: 'Segundo número', exact: true });
+    await second.getByLabel('Mínimo').fill('7');
+    await second.getByLabel('Máximo').fill('7');
+    await expect(page.locator('[data-generation]')).toHaveAttribute('data-generation', 'done', { timeout: 10_000 });
+
+    // Ctrl+P no puede sacar hojas en blanco: sin ficha imprimible la página se imprime como una página normal.
+    await expect(page.locator('#print-root')).toHaveCount(0);
+    await expect(page.locator('html')).not.toHaveAttribute('data-print-sheet', 'true');
+    await page.emulateMedia({ media: 'print' });
+    await expect(page.locator('main')).toBeVisible();
+    for (const ad of await page.locator('.ad-slot').all()) await expect(ad).toBeHidden();
+  });
+
   test('sin soluciones se imprime una sola página', async ({ page }) => {
     await page.goto('es/sopa-de-letras/');
     await expect(page.locator('[data-generation]')).toHaveAttribute('data-generation', 'done', { timeout: 10_000 });

@@ -50,6 +50,29 @@ test.describe('descarga en PDF', () => {
     expect(pdf.numPages).toBe(1);
   });
 
+  test('el cuadernillo de operaciones descarga alumno y soluciones con los ejercicios numerados', async ({ page }) => {
+    await page.goto('es/operaciones/');
+    await settle(page);
+    // Hojas de alumno anunciadas por la herramienta: el PDF debe llevar esas y otras tantas de soluciones.
+    const [sheets = 0] = (((await page.locator('[data-notices] li').first().textContent()) ?? '').match(/\d+/g) ?? []).map(Number);
+    expect(sheets).toBeGreaterThan(0);
+    await expect(page.locator('[data-job-line] dl > div').filter({ hasText: 'Páginas' }).locator('dd')).toHaveText(String(sheets * 2));
+
+    const { download, pdf, text, items } = await downloadPdf(page);
+    expect(download.suggestedFilename()).toBe('operaciones.pdf');
+    expect(pdf.numPages).toBe(sheets * 2);
+    expect(await text(1)).toContain('Operaciones');
+    expect(await text(sheets + 1)).toContain('Soluciones');
+
+    // La hoja del alumno lleva los ejercicios numerados y sus signos; la de soluciones repite la misma numeración.
+    const student = (await items(1)).map((s) => s.trim());
+    expect(student).toContain('1)');
+    expect(student.filter((s) => s === '+' || s === '−').length).toBeGreaterThan(0);
+    expect(student.join('')).not.toContain('�');
+    const indexes = (n: number) => items(n).then((list) => list.map((s) => s.trim()).filter((s) => /^\d+\)$/.test(s)));
+    expect(await indexes(sheets + 1)).toEqual(await indexes(1));
+  });
+
   test('el PDF se genera sin conexión tras la primera carga', async ({ page, context }) => {
     await page.goto('es/sopa-de-letras/');
     await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
