@@ -23,6 +23,8 @@ export interface Dictionary {
     optionsDetail: PluralMessage;
     headerUnsupportedChars: string;
     headerTitleShortened: string;
+    /** Comillas del idioma para citar un carácter dentro de una frase; las usan las dos herramientas. */
+    quote: string;
   };
   wordsearch: {
     sampleWords: string;
@@ -44,7 +46,6 @@ export interface Dictionary {
     includeSolutions: string;
     generating: string;
     retry: string;
-    quote: string;
     errors: {
       noWords: string;
       tooManyWords: string;
@@ -69,6 +70,8 @@ export interface Dictionary {
     kinds: { add: string; sub: string; mul: string; div: string };
     /** Los mismos nombres dentro de una frase: minúscula y singular. */
     kindNames: { add: string; sub: string; mul: string; div: string };
+    /** Leyenda del grupo de llevada, división, cantidad, disposición y columnas. */
+    optionsLegend: string;
     operandsLegend: string;
     firstLabel: string;
     secondLabel: string;
@@ -102,7 +105,6 @@ export interface Dictionary {
     includeSolutions: string;
     generating: string;
     retry: string;
-    quote: string;
     /** Resumen del parte plegado en móvil; `count` es el número de operaciones pedidas. */
     optionsDetail: PluralMessage;
     /** Aviso de paginación; `count` es el número de hojas y también se pasa como `pages`. */
@@ -118,7 +120,7 @@ export interface Dictionary {
       blockTooLarge: string;
       workerFailed: string;
     };
-    warnings: { carryIgnored: string; factorCapped: string; kindMissing: string };
+    warnings: { carryIgnored: string; factorCapped: string; kindMissing: string; columnsReduced: string };
     /** Ficha incompleta: menos operaciones distintas que las pedidas. */
     shortfall: { title: string; none: string; intro: PluralMessage; apply: PluralMessage };
     /**

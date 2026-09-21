@@ -105,7 +105,7 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
     return { paper, lang, pages: [{ role: 'student', primitives: buildFrame({ paper, header, labels: frameLabels, role: 'student' }).primitives }] };
   }, [layout, paper, lang, header, frameLabels]);
 
-  const quote = (chars: string[]) => chars.map((c) => formatMessage(t.quote, { text: c })).join(' ');
+  const quote = (chars: string[]) => chars.map((c) => formatMessage(labels.tool.quote, { text: c })).join(' ');
   const headerChars = unsupportedSheetChars(`${header.title}${header.school}`.replace(/\s+/g, ' '));
   const headerFit = fitHeader({ paper, header, labels: frameLabels, role: includeSolutions ? 'solution' : 'student' });
   const headerNotices = [
@@ -113,7 +113,7 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
     ...(headerFit.title.truncated ? [labels.tool.headerTitleShortened] : []),
   ];
 
-  const lineMessages = [...validation.rejected.map((r) => describeRejected(r, t)), ...validation.warnings.map((w) => describeWarning(w, t))];
+  const lineMessages = [...validation.rejected.map((r) => describeRejected(r, t, labels.tool)), ...validation.warnings.map((w) => describeWarning(w, t))];
   const wordCount = validation.wordCount;
   const failed = current && generation.status === 'failed';
   const blocking = [

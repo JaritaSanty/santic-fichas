@@ -13,6 +13,7 @@ import {
   readSeedInput,
   suggestArithmetic,
   validateArithmetic,
+  type ArithmeticError,
   type ArithmeticInput,
   type CarryMode,
   type DivisionMode,
@@ -123,12 +124,13 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
   // Mientras corre el debounce o el Worker, la vista previa conserva el cuadernillo anterior: no se imprime ni se descarga.
   const pending = requestKey !== null && !(current && (generation.status === 'done' || generation.status === 'failed'));
   const result = requestKey && generation.response?.ok ? generation.response.result : null;
+  const hasOperations = result !== null && result.operations.length > 0;
   // Resultado vigente: lo que se puede contar y aconsejar (operaciones que no han salido, ficha corta).
   const settled = current && generation.status === 'done' && result !== null;
   // Solo se imprime o descarga un cuadernillo generado para la clave actual, y con operaciones dentro: nunca el
   // anterior, ni el marco vacío (código mal escrito o de otra versión, opciones no válidas, fallo del Worker), ni una
   // hoja sin un solo ejercicio.
-  const ready = settled && result !== null && result.operations.length > 0;
+  const ready = settled && hasOperations;
   // Con un código erróneo la ficha no corresponde a ningún código: no se muestra el anterior.
   const shownSeed = seedInvalid || seedCode === '' ? '—' : seedCode;
   const frameLabels = useMemo(() => ({ name: labels.sheet.name, date: labels.sheet.date, solutions: labels.sheet.solutions }), [labels.sheet]);
@@ -137,12 +139,14 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
       result ? layoutArithmetic({ result, header, labels: frameLabels, paper, lang, includeSolutions, layout: sheetLayout, columns }) : null,
     [result, header, frameLabels, paper, lang, includeSolutions, sheetLayout, columns],
   );
+  // Sin operaciones se usa el marco vacío de una sola hoja: el documento maquetado serían dos hojas en blanco y la
+  // línea de trabajo anunciaría dos páginas que nadie quiere imprimir.
   const doc = useMemo<SheetDocument>(() => {
-    if (laid?.ok) return laid.doc;
+    if (laid?.ok && hasOperations) return laid.doc;
     return { paper, lang, pages: [{ role: 'student', primitives: buildFrame({ paper, header, labels: frameLabels, role: 'student' }).primitives }] };
-  }, [laid, paper, lang, header, frameLabels]);
+  }, [laid, hasOperations, paper, lang, header, frameLabels]);
 
-  const quote = (chars: string[]) => chars.map((c) => formatMessage(t.quote, { text: c })).join(' ');
+  const quote = (chars: string[]) => chars.map((c) => formatMessage(labels.tool.quote, { text: c })).join(' ');
   const headerChars = unsupportedSheetChars(`${header.title}${header.school}`.replace(/\s+/g, ' '));
   const headerFit = fitHeader({ paper, header, labels: frameLabels, role: includeSolutions ? 'solution' : 'student' });
   const headerNotices = [
@@ -150,11 +154,22 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
     ...(headerFit.title.truncated ? [labels.tool.headerTitleShortened] : []),
   ];
 
+  const errors = validation.ok ? [] : validation.errors;
+  // Cada campo numérico repite bajo sí el problema que le toca, como el código de ficha: el aviso bloqueante es el
+  // resumen, pero el docente corrige mirando el campo.
+  const fieldError = (match: (e: ArithmeticError) => boolean): string | null => {
+    const found = errors.find(match);
+    return found ? describeError(found, t) : null;
+  };
+  const rangeError = (operand: 'first' | 'second') =>
+    fieldError((e) => (e.code === 'operand-out-of-range' || e.code === 'range-inverted') && e.operand === operand);
+  const countError = fieldError((e) => e.code === 'count-out-of-range');
+
   const failed = current && generation.status === 'failed';
   // El mismo problema puede llegar por dos caminos (los dos extremos de un operando fuera de rango): no se repite.
   const blocking = [
     ...new Set([
-      ...(validation.ok ? [] : validation.errors.map((e) => describeError(e, t))),
+      ...errors.map((e) => describeError(e, t)),
       ...(laid && !laid.ok ? [t.errors.blockTooLarge] : []),
       ...(failed ? [t.errors.workerFailed] : []),
     ]),
@@ -164,10 +179,15 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
   const missingKinds = settled && result && validation.ok ? validation.value.kinds.filter((kind) => !result.operations.some((op) => op.kind === kind)) : [];
   const notices = [
     ...new Set([
-      // Hojas de alumno: con soluciones el documento lleva el doble, y eso lo dice la línea de trabajo. Sin ninguna
-      // operación no se anuncia la capacidad («máx. 0 por hoja» no dice nada): lo explica el panel de ficha corta.
-      ...(laid?.ok && laid.capacity.perPage > 0
+      // Hojas de alumno: con soluciones el documento lleva el doble, y eso lo dice la línea de trabajo. Solo con el
+      // resultado vigente: es el único aviso que podría cantar un número equivocado mientras se genera el siguiente.
+      // Sin ninguna operación no se anuncia la capacidad («máx. 0 por hoja» no dice nada): lo dice la ficha corta.
+      ...(settled && laid?.ok && laid.capacity.perPage > 0
         ? [formatPlural(t.pagination, laid.capacity.pages, { pages: laid.capacity.pages, perPage: laid.capacity.perPage })]
+        : []),
+      // Las columnas pedidas se recortan a las que caben; el selector sigue marcando las pedidas, así que se dice.
+      ...(settled && laid?.ok && laid.capacity.columns < columns
+        ? [formatMessage(t.warnings.columnsReduced, { columns: laid.capacity.columns })]
         : []),
       ...validation.warnings.map((w) => describeWarning(w, t)),
       ...missingKinds.map((kind) => describeKindMissing(kind, t)),
@@ -186,7 +206,10 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
     if (requestKey && validation.ok) client.request(requestKey, { value: validation.value, seedCode });
   };
 
-  const requestedCount = Number.isInteger(input.count) ? input.count : 0;
+  // Con la cantidad a medias el resumen del parte no inventa un cero: «—», como el código de ficha.
+  const docketDetail = Number.isInteger(input.count)
+    ? formatPlural(t.optionsDetail, input.count, { seed: shownSeed })
+    : formatMessage(t.optionsDetail.other, { count: '—', seed: shownSeed });
   const secondMaxDigits = kinds.mul || kinds.div ? ARITHMETIC_LIMITS.maxFactorDigits : ARITHMETIC_LIMITS.maxDigits;
   const filename = worksheetFilename(header.title, lang === 'es' ? 'ficha' : 'worksheet');
   const proof = labels.proof;
@@ -194,7 +217,7 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
   return (
     <div data-generation={current ? generation.status : 'pending'} className="grid gap-6 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
       <form className="md:self-start" onSubmit={(e) => e.preventDefault()}>
-        <Docket summary={labels.tool.optionsSummary} detail={formatPlural(t.optionsDetail, requestedCount, { seed: shownSeed })}>
+        <Docket summary={labels.tool.optionsSummary} detail={docketDetail}>
           <SheetHeaderFields
             value={header}
             onChange={setHeader}
@@ -209,6 +232,8 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
             onSecondChange={setSecond}
             firstMaxDigits={ARITHMETIC_LIMITS.maxDigits}
             secondMaxDigits={secondMaxDigits}
+            firstError={rangeError('first')}
+            secondError={rangeError('second')}
             labels={{
               legend: t.operandsLegend,
               first: t.firstLabel,
@@ -226,11 +251,13 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
             onDivisionChange={setDivision}
             count={countText}
             onCountChange={setCountText}
+            countError={countError}
             layout={sheetLayout}
             onLayoutChange={setSheetLayout}
             columns={columns}
             onColumnsChange={setColumns}
             labels={{
+              legend: t.optionsLegend,
               carryLegend: t.carryLegend,
               carryAny: t.carryAny,
               carryWith: t.carryWith,
@@ -310,13 +337,16 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
           </div>
         )}
 
-        {notices.length > 0 && (
-          <ul data-notices aria-live="polite" className="grid gap-1 border border-line bg-surface p-4 text-sm text-ink">
-            {notices.map((message) => (
-              <li key={message}>{message}</li>
-            ))}
-          </ul>
-        )}
+        {/* La región viva se monta siempre: si apareciera con su primer mensaje, los lectores de pantalla no lo leerían. */}
+        <div data-notices aria-live="polite">
+          {notices.length > 0 && (
+            <ul className="grid gap-1 border border-line bg-surface p-4 text-sm text-ink">
+              {notices.map((message) => (
+                <li key={message}>{message}</li>
+              ))}
+            </ul>
+          )}
+        </div>
 
         {shortfall && (
           <ShortfallPanel
@@ -336,7 +366,8 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
         />
       </div>
 
-      <PrintRoot doc={doc} label={labels.sheet.previewLabel} />
+      {/* Solo con una ficha imprimible: sin esto, Ctrl+P sacaría hojas en blanco con el botón deshabilitado. */}
+      {ready && <PrintRoot doc={doc} label={labels.sheet.previewLabel} />}
     </div>
   );
 }

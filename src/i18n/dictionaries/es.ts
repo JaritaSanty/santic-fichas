@@ -29,6 +29,7 @@ export const es: Dictionary = {
     optionsSummary: 'Opciones de la ficha',
     optionsDetail: { one: '1 palabra · {size} × {size} · {seed}', other: '{count} palabras · {size} × {size} · {seed}' },
     headerUnsupportedChars: 'La tipografía de la ficha no incluye {chars}; esos caracteres no aparecerán en la hoja.',
+    quote: '«{text}»',
     headerTitleShortened: 'El título no cabe completo en la hoja y se acortará.',
   },
   wordsearch: {
@@ -51,7 +52,6 @@ export const es: Dictionary = {
     includeSolutions: 'Incluir soluciones',
     generating: 'Generando…',
     retry: 'Reintentar',
-    quote: '«{text}»',
     errors: {
       noWords: 'Falta al menos una palabra válida.',
       tooManyWords: 'Hay {count} palabras; el máximo es {max}.',
@@ -86,6 +86,7 @@ export const es: Dictionary = {
     kindsLegend: 'Operaciones',
     kinds: { add: 'Suma', sub: 'Resta', mul: 'Multiplicación', div: 'División' },
     kindNames: { add: 'suma', sub: 'resta', mul: 'multiplicación', div: 'división' },
+    optionsLegend: 'Ejercicios y disposición',
     operandsLegend: 'Números',
     firstLabel: 'Primer número',
     secondLabel: 'Segundo número',
@@ -118,7 +119,6 @@ export const es: Dictionary = {
     includeSolutions: 'Incluir soluciones',
     generating: 'Generando…',
     retry: 'Reintentar',
-    quote: '«{text}»',
     optionsDetail: { one: '1 operación · {seed}', other: '{count} operaciones · {seed}' },
     pagination: { one: 'Se generará 1 hoja, máx. {perPage} por hoja.', other: 'Se generarán {pages} hojas, máx. {perPage} por hoja.' },
     errors: {
@@ -135,6 +135,7 @@ export const es: Dictionary = {
     warnings: {
       carryIgnored: 'La llevada no afecta a las operaciones elegidas ({kinds}); se ignora.',
       factorCapped: 'Con multiplicación o división, el segundo número se limita a {max}; el rango se recorta.',
+      columnsReduced: 'Con estas operaciones solo caben {columns} columnas por hoja; se usan esas.',
       kindMissing: 'No ha salido ninguna {kind} con estas opciones.',
     },
     shortfall: {

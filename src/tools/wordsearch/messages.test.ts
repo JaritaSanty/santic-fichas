@@ -5,6 +5,7 @@ import { readSeedInput } from '@/generators/wordsearch';
 import { describeError, describeRejected, describeSeed, describeSuggestion, describeWarning } from './messages';
 
 const es = getDictionary('es').wordsearch;
+const esTool = getDictionary('es').tool;
 const en = getDictionary('en').wordsearch;
 
 describe('mensajes de la sopa de letras', () => {
@@ -16,7 +17,7 @@ describe('mensajes de la sopa de letras', () => {
   });
 
   it('líneas rechazadas y avisos', () => {
-    expect(describeRejected({ code: 'unsupported-glyph', line: 3, chars: ['ő'] }, es)).toBe('Línea 3: la tipografía de la ficha no incluye «ő».');
+    expect(describeRejected({ code: 'unsupported-glyph', line: 3, chars: ['ő'] }, es, esTool)).toBe('Línea 3: la tipografía de la ficha no incluye «ő».');
     expect(describeWarning({ code: 'duplicate', line: 4, duplicateOf: 1 }, es)).toBe('Línea 4: palabra repetida (igual que la línea 1); se ignora.');
     expect(describeWarning({ code: 'contained', line: 2, containerLine: 1, reversed: false }, es)).toBe('Línea 2: la palabra aparece dentro de la línea 1; la solución puede ser ambigua.');
     expect(describeWarning({ code: 'contained', line: 2, containerLine: 1, reversed: true }, en)).toBe('Line 2: the word appears backwards inside line 1; with reversed words the answer may be ambiguous.');

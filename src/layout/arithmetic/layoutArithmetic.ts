@@ -20,7 +20,12 @@ export interface ArithmeticCapacity {
 }
 
 export type ArithmeticLayoutResult =
-  | { ok: true; doc: SheetDocument; capacity: { perPage: number; pages: number } }
+  | {
+      ok: true;
+      doc: SheetDocument;
+      /** `columns` son las columnas realmente usadas: las pedidas recortadas a las que caben. */
+      capacity: { columns: number; perPage: number; pages: number };
+    }
   | { ok: false; error: { code: 'block-too-large' } };
 
 export interface ArithmeticLayoutInput {
@@ -81,7 +86,8 @@ export function layoutArithmetic(input: ArithmeticLayoutInput): ArithmeticLayout
   if (operations.length === 0) {
     const pages: SheetPage[] = [emptyPage('student')];
     if (input.includeSolutions) pages.push(emptyPage('solution'));
-    return { ok: true, doc: { paper, lang, pages }, capacity: { perPage: 0, pages: 1 } };
+    // Sin operaciones no hay retícula que recortar: se devuelven las columnas pedidas para no anunciar un recorte.
+    return { ok: true, doc: { paper, lang, pages }, capacity: { columns: input.columns, perPage: 0, pages: 1 } };
   }
 
   const boxes = operations.map((op) => measureBlock(op, layout, lang));
@@ -113,5 +119,5 @@ export function layoutArithmetic(input: ArithmeticLayoutInput): ArithmeticLayout
     for (let page = 0; page < pageCount; page++) pages.push(buildPage('solution', page));
   }
 
-  return { ok: true, doc: { paper, lang, pages }, capacity: { perPage: grid.perPage, pages: pageCount } };
+  return { ok: true, doc: { paper, lang, pages }, capacity: { columns: grid.columns, perPage: grid.perPage, pages: pageCount } };
 }

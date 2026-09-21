@@ -29,6 +29,7 @@ export const en: Dictionary = {
     optionsSummary: 'Worksheet options',
     optionsDetail: { one: '1 word · {size} × {size} · {seed}', other: '{count} words · {size} × {size} · {seed}' },
     headerUnsupportedChars: 'The worksheet typeface has no {chars}; those characters will not appear on the sheet.',
+    quote: '“{text}”',
     headerTitleShortened: 'The title does not fit on the sheet and will be shortened.',
   },
   wordsearch: {
@@ -51,7 +52,6 @@ export const en: Dictionary = {
     includeSolutions: 'Include answer key',
     generating: 'Generating…',
     retry: 'Retry',
-    quote: '“{text}”',
     errors: {
       noWords: 'At least one valid word is needed.',
       tooManyWords: 'There are {count} words; the maximum is {max}.',
@@ -86,6 +86,7 @@ export const en: Dictionary = {
     kindsLegend: 'Operations',
     kinds: { add: 'Addition', sub: 'Subtraction', mul: 'Multiplication', div: 'Division' },
     kindNames: { add: 'addition', sub: 'subtraction', mul: 'multiplication', div: 'division' },
+    optionsLegend: 'Exercises and layout',
     operandsLegend: 'Numbers',
     firstLabel: 'First number',
     secondLabel: 'Second number',
@@ -118,7 +119,6 @@ export const en: Dictionary = {
     includeSolutions: 'Include answer key',
     generating: 'Generating…',
     retry: 'Retry',
-    quote: '“{text}”',
     optionsDetail: { one: '1 operation · {seed}', other: '{count} operations · {seed}' },
     pagination: { one: '1 sheet will be generated, up to {perPage} per sheet.', other: '{pages} sheets will be generated, up to {perPage} per sheet.' },
     errors: {
@@ -135,6 +135,7 @@ export const en: Dictionary = {
     warnings: {
       carryIgnored: 'Carrying does not apply to the selected operations ({kinds}); it is ignored.',
       factorCapped: 'With multiplication or division the second number is capped at {max}; the range is trimmed.',
+      columnsReduced: 'With these operations only {columns} columns fit on the sheet; that many are used.',
       kindMissing: 'These options produced no {kind} exercises.',
     },
     shortfall: {

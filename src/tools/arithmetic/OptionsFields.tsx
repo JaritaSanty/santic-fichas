@@ -40,6 +40,7 @@ function RadioGroup<T extends string>({ legend, name, value, options, onChange, 
 }
 
 export interface OptionsLabels {
+  legend: string;
   carryLegend: string;
   carryAny: string;
   carryWith: string;
@@ -61,7 +62,7 @@ export interface OptionsLabels {
  * Llevada, modo de división, número de operaciones, disposición y columnas por hoja. Las columnas valen en las dos
  * disposiciones (también en línea reparten los renglones), así que el control nunca se oculta.
  */
-export function OptionsFields({ carry, onCarryChange, division, onDivisionChange, count, onCountChange, layout, onLayoutChange, columns, onColumnsChange, labels }: {
+export function OptionsFields({ carry, onCarryChange, division, onDivisionChange, count, onCountChange, countError, layout, onLayoutChange, columns, onColumnsChange, labels }: {
   carry: CarryMode;
   onCarryChange: (next: CarryMode) => void;
   division: DivisionMode;
@@ -69,6 +70,8 @@ export function OptionsFields({ carry, onCarryChange, division, onDivisionChange
   /** Texto, no número: un campo vacío debe poder escribirse sin romper la vista previa. */
   count: string;
   onCountChange: (next: string) => void;
+  /** El problema de la cantidad, repetido bajo el campo: el aviso bloqueante es el resumen. */
+  countError: string | null;
   layout: SheetLayout;
   onLayoutChange: (next: SheetLayout) => void;
   columns: number;
@@ -79,73 +82,84 @@ export function OptionsFields({ carry, onCarryChange, division, onDivisionChange
   const divisionName = useId();
   const layoutName = useId();
   const countHelpId = useId();
+  const countErrorId = useId();
   const columnsHelpId = useId();
   return (
-    <div className="grid gap-4 border-t border-line pt-4">
-      <RadioGroup
-        legend={labels.carryLegend}
-        name={carryName}
-        value={carry}
-        onChange={onCarryChange}
-        help={labels.carryHelp}
-        options={[
-          { value: 'any', label: labels.carryAny },
-          { value: 'with', label: labels.carryWith },
-          { value: 'without', label: labels.carryWithout },
-        ] as const}
-      />
-      <RadioGroup
-        legend={labels.divisionLegend}
-        name={divisionName}
-        value={division}
-        onChange={onDivisionChange}
-        options={[
-          { value: 'exact', label: labels.divisionExact },
-          { value: 'remainder', label: labels.divisionRemainder },
-        ] as const}
-      />
-      <div className="grid gap-1">
-        <label className="grid gap-1 text-sm">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted">{labels.countLabel}</span>
-          <input
-            type="text"
-            inputMode="numeric"
-            value={count}
-            onChange={(e) => onCountChange(e.target.value)}
-            autoComplete="off"
-            spellCheck={false}
-            aria-describedby={countHelpId}
-            className="border border-line bg-surface px-3 py-2 text-base tabular-nums text-ink"
-          />
-        </label>
-        <p id={countHelpId} className="text-xs text-muted">{labels.countHelp}</p>
-      </div>
-      <RadioGroup
-        legend={labels.layoutLegend}
-        name={layoutName}
-        value={layout}
-        onChange={onLayoutChange}
-        options={[
-          { value: 'columns', label: labels.layoutColumns },
-          { value: 'inline', label: labels.layoutInline },
-        ] as const}
-      />
-      <div className="grid gap-1">
-        <label className="grid gap-1 text-sm">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted">{labels.columnsLabel}</span>
-          <select
-            value={columns}
-            onChange={(e) => onColumnsChange(Number(e.target.value))}
-            aria-describedby={columnsHelpId}
-            className="border border-line bg-surface px-3 py-2 text-base tabular-nums text-ink"
-          >
-            {COLUMN_VALUES.map((n) => (
-              <option key={n} value={n}>{n}</option>
-            ))}
-          </select>
-        </label>
-        <p id={columnsHelpId} className="text-xs text-muted">{labels.columnsHelp}</p>
-      </div>
+    // El filete va en el envoltorio, no en el `fieldset`: con `border-t` propio, la leyenda parte la línea en dos.
+    <div className="border-t border-line pt-4">
+      <fieldset className="grid gap-4">
+        <legend className="mb-3 text-base font-semibold text-ink">{labels.legend}</legend>
+        <RadioGroup
+          legend={labels.carryLegend}
+          name={carryName}
+          value={carry}
+          onChange={onCarryChange}
+          help={labels.carryHelp}
+          options={[
+            { value: 'any', label: labels.carryAny },
+            { value: 'with', label: labels.carryWith },
+            { value: 'without', label: labels.carryWithout },
+          ] as const}
+        />
+        <RadioGroup
+          legend={labels.divisionLegend}
+          name={divisionName}
+          value={division}
+          onChange={onDivisionChange}
+          options={[
+            { value: 'exact', label: labels.divisionExact },
+            { value: 'remainder', label: labels.divisionRemainder },
+          ] as const}
+        />
+        <div className="grid gap-1">
+          <label className="grid gap-1 text-sm">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted">{labels.countLabel}</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={count}
+              onChange={(e) => onCountChange(e.target.value)}
+              autoComplete="off"
+              spellCheck={false}
+              aria-invalid={countError ? true : undefined}
+              aria-describedby={countError ? `${countHelpId} ${countErrorId}` : countHelpId}
+              className="w-full min-w-0 border border-line bg-surface px-3 py-2 text-base tabular-nums text-ink"
+            />
+          </label>
+          <p id={countHelpId} className="text-xs text-muted">{labels.countHelp}</p>
+          {countError && (
+            <p id={countErrorId} className="text-xs font-semibold text-ink">
+              {countError}
+            </p>
+          )}
+        </div>
+        <RadioGroup
+          legend={labels.layoutLegend}
+          name={layoutName}
+          value={layout}
+          onChange={onLayoutChange}
+          options={[
+            { value: 'columns', label: labels.layoutColumns },
+            { value: 'inline', label: labels.layoutInline },
+          ] as const}
+        />
+        <div className="grid gap-1">
+          <label className="grid gap-1 text-sm">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted">{labels.columnsLabel}</span>
+            <select
+              value={columns}
+              onChange={(e) => onColumnsChange(Number(e.target.value))}
+              aria-describedby={columnsHelpId}
+              className="border border-line bg-surface px-3 py-2 text-base tabular-nums text-ink"
+            >
+              {COLUMN_VALUES.map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+          </label>
+          <p id={columnsHelpId} className="text-xs text-muted">{labels.columnsHelp}</p>
+        </div>
+      </fieldset>
     </div>
   );
 }

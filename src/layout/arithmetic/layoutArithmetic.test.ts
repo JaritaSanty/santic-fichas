@@ -92,6 +92,18 @@ describe.each(['a4', 'letter'] as PaperSize[])('capacidad en %s', (paper) => {
     expect(out.doc.pages.map((p) => indices(p).length).reduce((a, b) => a + b, 0)).toBe(200);
   });
 
+  it('la capacidad dice las columnas usadas, no las pedidas', () => {
+    // Renglones anchísimos (cinco cifras entre tres, con resto): no caben cinco columnas y la hoja usa las que quepan.
+    const out = lay({ operations: worst(30), paper, columns: 5, layout: 'inline' });
+    if (!out.ok) throw new Error('maquetación');
+    const starts = new Set(
+      out.doc.pages[0]!.primitives.filter((p): p is Extract<Primitive, { t: 'text' }> => p.t === 'text' && p.size === L.indexSizeMm && INDEX.test(p.text)).map((p) => Math.round(p.x * 1000)),
+    );
+    expect(out.capacity.columns).toBeLessThan(5);
+    expect(out.capacity.columns).toBe(starts.size);
+    expect(out.capacity.perPage % out.capacity.columns).toBe(0);
+  });
+
   it('el número de bloques dibujados es el de operaciones, con sus índices en orden', () => {
     const out = lay({ operations: sums(47), paper, columns: 3 });
     if (!out.ok) throw new Error('maquetación');
@@ -225,7 +237,7 @@ describe('retícula', () => {
   it('una ficha sin operaciones da una sola hoja vacía', () => {
     const out = lay({ operations: [], paper: 'a4', columns: 2, includeSolutions: true });
     if (!out.ok) throw new Error('maquetación');
-    expect(out.capacity).toEqual({ perPage: 0, pages: 1 });
+    expect(out.capacity).toEqual({ columns: 2, perPage: 0, pages: 1 });
     expect(out.doc.pages.map((p) => p.role)).toEqual(['student', 'solution']);
     expect(out.doc.pages.flatMap((p) => indices(p))).toEqual([]);
   });
