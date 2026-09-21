@@ -120,7 +120,8 @@ export const en: Dictionary = {
     generating: 'Generating…',
     retry: 'Retry',
     optionsDetail: { one: '1 operation · {seed}', other: '{count} operations · {seed}' },
-    pagination: { one: '1 sheet will be generated, up to {perPage} per sheet.', other: '{pages} sheets will be generated, up to {perPage} per sheet.' },
+    // The singular interpolates {pages} too: a bare “1” would put a wrong single-sheet count beyond any check.
+    pagination: { one: '{pages} sheet will be generated, up to {perPage} per sheet.', other: '{pages} sheets will be generated, up to {perPage} per sheet.' },
     errors: {
       noKind: 'At least one operation is needed: addition, subtraction, multiplication or division.',
       rangeInverted: 'In {operand}, the minimum cannot be greater than the maximum.',

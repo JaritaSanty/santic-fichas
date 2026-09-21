@@ -54,8 +54,15 @@ test.describe('descarga en PDF', () => {
     await page.goto('es/operaciones/');
     await settle(page);
     // Hojas de alumno anunciadas por la herramienta: el PDF debe llevar esas y otras tantas de soluciones.
-    const [sheets = 0] = (((await page.locator('[data-notices] li').first().textContent()) ?? '').match(/\d+/g) ?? []).map(Number);
-    expect(sheets).toBeGreaterThan(0);
+    const announced = async () => {
+      const [sheets = 0, perPage = 0] = (((await page.locator('[data-notices] li').first().textContent()) ?? '').match(/\d+/g) ?? []).map(Number);
+      return { sheets, perPage };
+    };
+    // Una operación más de las que caben en una hoja: el cuadernillo se pagina de verdad dentro del PDF.
+    await page.getByLabel('Número de operaciones').fill(String((await announced()).perPage + 1));
+    await settle(page);
+    const { sheets } = await announced();
+    expect(sheets).toBeGreaterThan(1);
     await expect(page.locator('[data-job-line] dl > div').filter({ hasText: 'Páginas' }).locator('dd')).toHaveText(String(sheets * 2));
 
     const { download, pdf, text, items } = await downloadPdf(page);
@@ -71,6 +78,12 @@ test.describe('descarga en PDF', () => {
     expect(student.join('')).not.toContain('�');
     const indexes = (n: number) => items(n).then((list) => list.map((s) => s.trim()).filter((s) => /^\d+\)$/.test(s)));
     expect(await indexes(sheets + 1)).toEqual(await indexes(1));
+
+    // La segunda hoja continúa la numeración donde acaba la primera: ni repite ni se salta ningún ejercicio.
+    const firstSheet = await indexes(1);
+    const secondSheet = await indexes(2);
+    expect(secondSheet[0]).toBe(`${firstSheet.length + 1})`);
+    expect(firstSheet.length + secondSheet.length).toBe(Number(await page.getByLabel('Número de operaciones').inputValue()));
   });
 
   test('el PDF se genera sin conexión tras la primera carga', async ({ page, context }) => {

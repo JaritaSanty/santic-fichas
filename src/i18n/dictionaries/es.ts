@@ -120,7 +120,9 @@ export const es: Dictionary = {
     generating: 'Generando…',
     retry: 'Reintentar',
     optionsDetail: { one: '1 operación · {seed}', other: '{count} operaciones · {seed}' },
-    pagination: { one: 'Se generará 1 hoja, máx. {perPage} por hoja.', other: 'Se generarán {pages} hojas, máx. {perPage} por hoja.' },
+    // El singular también interpola {pages}: si el mensaje dijera «1» a secas, una cuenta equivocada de una sola
+    // hoja quedaría fuera del alcance de cualquier comprobación.
+    pagination: { one: 'Se generará {pages} hoja, máx. {perPage} por hoja.', other: 'Se generarán {pages} hojas, máx. {perPage} por hoja.' },
     errors: {
       noKind: 'Se necesita al menos una operación: suma, resta, multiplicación o división.',
       rangeInverted: 'En {operand}, el mínimo no puede ser mayor que el máximo.',

@@ -22,11 +22,13 @@ test('la raíz redirige, la herramienta genera y el service worker cubre todo el
   await page.goto('/es/operaciones/');
   await expect(page.locator('[data-generation]')).toHaveAttribute('data-generation', 'done', { timeout: 10_000 });
   const requested = Number(await page.getByLabel('Número de operaciones').inputValue());
+  // La primera hoja lleva lo que se pide o lo que cabe: la capacidad se lee del aviso, no se da por supuesta.
+  const [, perPage = 0] = (((await page.locator('[data-notices] li').first().textContent()) ?? '').match(/\d+/g) ?? []).map(Number);
   const exercises = await page
     .locator('[data-tool-canvas] svg[role="img"]')
     .first()
     .evaluate((svg) => Array.from(svg.querySelectorAll('text'), (t) => t.textContent ?? '').filter((t) => /^\d+\)$/.test(t)).length);
-  expect(exercises).toBe(requested);
+  expect(exercises).toBe(Math.min(requested, perPage));
 
   const scope = await page.evaluate(() => navigator.serviceWorker.ready.then((r) => new URL(r.scope).pathname));
   expect(scope).toBe('/');

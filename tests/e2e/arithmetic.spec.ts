@@ -27,6 +27,7 @@ const ROUTES = [
 ] as const;
 
 const ES = ROUTES[0];
+const EN = ROUTES[1];
 const SIGNS = ['+', '−', '×', '÷'] as const;
 
 const settle = (page: Page) => expect(page.locator('[data-generation]')).toHaveAttribute('data-generation', 'done', { timeout: 10_000 });
@@ -85,6 +86,7 @@ test.describe('cuadernillo de operaciones', () => {
       const count = await requestedCount(page, route.countLabel);
       expect(sheets).toBe(Math.ceil(count / perPage));
       // Con soluciones el documento lleva el doble de páginas que hojas de alumno, y la línea de trabajo lo dice.
+      // El aviso interpola el número también en singular, así que una hoja de más o de menos se ve aquí.
       await expect(jobValue(page, route.pagesLabel)).toHaveText(String(sheets * 2));
       await expect(jobValue(page, route.codeItem)).toHaveText(/^v1-[0-9A-Z]{6}$/);
 
@@ -106,7 +108,7 @@ test.describe('cuadernillo de operaciones', () => {
     await page.getByLabel(ES.seedLabel).fill('v1-ABC234');
     await settle(page);
     const single = await announced(page);
-    expect(single.sheets).toBe(1);
+    expect(single.sheets).toBe(Math.ceil((await requestedCount(page, ES.countLabel)) / single.perPage));
 
     for (const kind of ['Multiplicación', 'División']) await page.getByLabel(kind, { exact: true }).check();
     await page.getByLabel(ES.countLabel).fill('200');
@@ -129,6 +131,110 @@ test.describe('cuadernillo de operaciones', () => {
     const inline = await announced(page);
     expect(inline.sheets).toBe(Math.ceil(200 / inline.perPage));
     await expect(jobValue(page, ES.pagesLabel)).toHaveText(String(inline.sheets * 2));
+  });
+
+  test('las opciones imposibles se explican arriba y bajo el campo que las causa', async ({ page }) => {
+    await page.goto(ES.path);
+    await settle(page);
+    const alert = page.locator('[data-tool-canvas] [role="alert"]');
+    await expect(alert).toHaveCount(0);
+
+    // Sin ninguna operación marcada no hay ficha posible y la herramienta lo dice en vez de quedarse quieta.
+    for (const kind of ['Suma', 'Resta']) await page.getByLabel(kind, { exact: true }).uncheck();
+    await expect(alert).toContainText('Se necesita al menos una operación: suma, resta, multiplicación o división.');
+    await expect(page.locator('[data-action="print"]')).toBeDisabled();
+    await expect(page.locator('[data-action="pdf"]')).toBeDisabled();
+    await page.getByLabel('Suma', { exact: true }).check();
+    await expect(alert).toHaveCount(0);
+
+    // Rango invertido: el resumen arriba y el mismo mensaje bajo el operando que lo causa, con el campo marcado.
+    const first = page.getByRole('group', { name: 'Primer número', exact: true });
+    const second = page.getByRole('group', { name: 'Segundo número', exact: true });
+    await first.getByLabel('Mínimo').fill('99');
+    await first.getByLabel('Máximo').fill('10');
+    const inverted = 'En el primer número, el mínimo no puede ser mayor que el máximo.';
+    await expect(alert).toContainText(inverted);
+    await expect(first.getByText(inverted)).toBeVisible();
+    await expect(first.getByLabel('Mínimo')).toHaveAttribute('aria-invalid', 'true');
+    await expect(first.getByLabel('Máximo')).toHaveAttribute('aria-invalid', 'true');
+    // El error de un operando no salpica al otro ni al resto del parte.
+    await expect(second.getByText(inverted)).toHaveCount(0);
+    await expect(second.getByLabel('Mínimo')).not.toHaveAttribute('aria-invalid', 'true');
+    await expect(page.locator('[data-action="print"]')).toBeDisabled();
+
+    // Cantidad vacía: mismo trato, bajo su propio campo.
+    await first.getByLabel('Máximo').fill('99');
+    await settle(page);
+    await page.getByLabel(ES.countLabel).fill('');
+    const outOfRange = 'El número de operaciones debe estar entre 1 y 200.';
+    await expect(alert).toContainText(outOfRange);
+    await expect(page.getByLabel(ES.countLabel)).toHaveAttribute('aria-invalid', 'true');
+    await expect(page.locator('[data-docket] summary')).toContainText('— operaciones');
+  });
+
+  test('cuando no caben las columnas pedidas se dice cuántas se usan', async ({ page }) => {
+    await page.goto(ES.path);
+    await settle(page);
+    // Por defecto caben las cuatro pedidas: no hay más aviso que el de paginación.
+    await expect(page.locator('[data-notices] li')).toHaveCount(1);
+
+    for (const kind of ['Suma', 'Resta']) await page.getByLabel(kind, { exact: true }).uncheck();
+    await page.getByLabel('División', { exact: true }).check();
+    await page.getByLabel('Con resto').check();
+    const first = page.getByRole('group', { name: 'Primer número', exact: true });
+    await first.getByLabel('Mínimo').fill('10000');
+    await first.getByLabel('Máximo').fill('99999');
+    const second = page.getByRole('group', { name: 'Segundo número', exact: true });
+    await second.getByLabel('Mínimo').fill('2');
+    await second.getByLabel('Máximo').fill('9');
+    await page.getByLabel('En línea').check();
+    await page.getByLabel('Columnas por hoja').selectOption('5');
+    await settle(page);
+
+    await expect(page.locator('[data-notices] li').nth(1)).toHaveText('Con estas operaciones solo caben 2 columnas por hoja; se usan esas.');
+    // El selector sigue marcando lo que se pidió: el aviso explica la diferencia, no la esconde.
+    await expect(page.getByLabel('Columnas por hoja')).toHaveValue('5');
+
+    // Al pedir las que caben, el aviso desaparece: sigue al recorte real, no al número del selector.
+    await page.getByLabel('Columnas por hoja').selectOption('2');
+    await settle(page);
+    await expect(page.locator('[data-notices] li')).toHaveCount(1);
+  });
+
+  test('«Nuevo cuadernillo» cambia el código y el cuadernillo con él', async ({ page }) => {
+    await page.goto(ES.path);
+    await settle(page);
+    const before = await sheet(page).innerHTML();
+    const code = await jobValue(page, ES.codeItem).textContent();
+    expect(code).toMatch(/^v1-[0-9A-Z]{6}$/);
+
+    await page.getByRole('button', { name: 'Nuevo cuadernillo' }).click();
+    await settle(page);
+    await expect(jobValue(page, ES.codeItem)).toHaveText(/^v1-[0-9A-Z]{6}$/);
+    await expect(jobValue(page, ES.codeItem)).not.toHaveText(code!);
+    expect(await sheet(page).innerHTML()).not.toBe(before);
+  });
+
+  test(`${EN.path} dibuja la división a la inglesa y escribe el resto con «r»`, async ({ page }) => {
+    await page.goto(EN.path);
+    // Código fijo: con resto, que alguna división deje resto deja de depender del sorteo de cada carga.
+    await page.getByLabel(EN.seedLabel).fill('v1-ABC234');
+    await settle(page);
+    for (const kind of ['Addition', 'Subtraction']) await page.getByLabel(kind, { exact: true }).uncheck();
+    await page.getByLabel('Division', { exact: true }).check();
+    await page.getByLabel('With remainder').check();
+    await settle(page);
+
+    // La galera inglesa dibuja el esquema con trazos: no hay signo ÷ en ninguna hoja.
+    expect(await signs(page)).toEqual([]);
+    expect(await exercises(page)).toHaveLength(await requestedCount(page, EN.countLabel));
+    // El resto va pegado al cociente en la hoja de soluciones, con la marca inglesa y no con «resto».
+    const remainders = await page
+      .locator('[data-tool-canvas] svg[role="img"]')
+      .last()
+      .evaluate((svg) => Array.from(svg.querySelectorAll('text'), (t) => t.textContent ?? '').filter((t) => /^\s*(r|resto)\s+\d+$/.test(t)));
+    expect(remainders.length).toBeGreaterThan(0);
+    for (const mark of remainders) expect(mark.trim()).toMatch(/^r \d+$/);
   });
 
   test('el mismo código reproduce el mismo cuadernillo en dos cargas distintas', async ({ page }) => {
@@ -234,12 +340,20 @@ test.describe('cuadernillo de operaciones', () => {
   test('la hoja de impresión lleva las páginas anunciadas y sin soluciones se queda en la mitad', async ({ page }) => {
     await page.goto(ES.path);
     await settle(page);
-    const { sheets } = await announced(page);
+    const { sheets, perPage } = await announced(page);
     await expect(page.locator('#print-root .print-page')).toHaveCount(sheets * 2);
     await expect(jobValue(page, ES.pagesLabel)).toHaveText(String(sheets * 2));
 
+    // Una operación más de las que caben: el cuadernillo pasa a varias hojas y la impresión las lleva todas.
+    await page.getByLabel(ES.countLabel).fill(String(perPage + 1));
+    await settle(page);
+    const many = await announced(page);
+    expect(many.sheets).toBeGreaterThan(1);
+    await expect(page.locator('#print-root .print-page')).toHaveCount(many.sheets * 2);
+    await expect(jobValue(page, ES.pagesLabel)).toHaveText(String(many.sheets * 2));
+
     await page.getByLabel('Incluir soluciones').uncheck();
-    await expect(page.locator('#print-root .print-page')).toHaveCount(sheets);
-    await expect(jobValue(page, ES.pagesLabel)).toHaveText(String(sheets));
+    await expect(page.locator('#print-root .print-page')).toHaveCount(many.sheets);
+    await expect(jobValue(page, ES.pagesLabel)).toHaveText(String(many.sheets));
   });
 });
