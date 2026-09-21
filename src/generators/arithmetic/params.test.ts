@@ -56,6 +56,28 @@ describe('validateArithmetic', () => {
     }
   });
 
+  it('rechaza extremos que no son enteros, sin inventar además un rango invertido', () => {
+    const outOfRange = (operand: 'first' | 'second') => ({
+      code: 'operand-out-of-range' as const,
+      operand,
+      min: ARITHMETIC_LIMITS.minOperand,
+      max: ARITHMETIC_LIMITS.maxOperand,
+    });
+    // NaN es lo que deja un campo vacío o a medias en la interfaz, y no dispara ninguna comparación.
+    for (const first of [{ min: Number.NaN, max: 99 }, { min: 10, max: Number.NaN }, { min: 10.5, max: 99 }, { min: 10, max: Infinity }]) {
+      const v = validateArithmetic({ ...base, first });
+      expect(v.ok).toBe(false);
+      if (!v.ok) {
+        expect(v.errors).toContainEqual(outOfRange('first'));
+        expect(v.errors).not.toContainEqual({ code: 'range-inverted', operand: 'first' });
+      }
+    }
+
+    const second = validateArithmetic({ ...base, second: { min: 0, max: Number.NaN } });
+    expect(second.ok).toBe(false);
+    if (!second.ok) expect(second.errors).toContainEqual(outOfRange('second'));
+  });
+
   it('recorta el segundo operando a tres dígitos con multiplicación y avisa', () => {
     const v = validateArithmetic({ ...base, kinds: { add: false, sub: false, mul: true, div: false }, second: { min: 10, max: 5000 } });
     expect(v.ok).toBe(true);

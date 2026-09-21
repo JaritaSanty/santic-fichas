@@ -13,7 +13,6 @@ import {
   readSeedInput,
   suggestArithmetic,
   validateArithmetic,
-  type ArithmeticError,
   type ArithmeticInput,
   type CarryMode,
   type DivisionMode,
@@ -65,7 +64,6 @@ const DEFAULT_FIRST: RangeText = { min: '10', max: '99' };
 const DEFAULT_SECOND: RangeText = { min: '10', max: '99' };
 const DEFAULT_COUNT = '20';
 const DEFAULT_COLUMNS = 4;
-const OPERANDS = ['first', 'second'] as const;
 const DEBOUNCE_MS = 250;
 
 export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: ArithmeticLabels }) {
@@ -104,17 +102,15 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
     }),
     [kinds, first, second, carry, division, countText, sheetLayout, columns],
   );
+  // Un extremo de rango a medias llega como NaN y `validateArithmetic` lo rechaza como valor fuera de rango, así que
+  // la vista previa conserva la ficha anterior y no se sortea con un número inventado.
   const validation = useMemo(() => validateArithmetic(input), [input]);
-  // Un extremo de rango a medias llega como NaN, que no dispara ninguna comparación de la validación: se comprueba
-  // aquí y se avisa con el mismo texto que un valor fuera de rango, en vez de sortear con un número inventado.
-  const incompleteRanges = OPERANDS.filter((operand) => !Number.isInteger(input[operand].min) || !Number.isInteger(input[operand].max));
 
   const seedRead = readSeedInput(seedInput);
   const seedError = describeSeed(seedRead, t);
   const seedInvalid = seedError !== null;
   const seedCode = (seedRead.status === 'ok' ? seedRead.code : null) ?? regeneratedSeed ?? initialSeedCode;
-  const requestKey =
-    validation.ok && incompleteRanges.length === 0 && seedCode !== '' && !seedInvalid ? generationKey(validation.value, seedCode) : null;
+  const requestKey = validation.ok && seedCode !== '' && !seedInvalid ? generationKey(validation.value, seedCode) : null;
 
   useEffect(() => {
     if (!requestKey || !validation.ok) return;
@@ -127,9 +123,12 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
   // Mientras corre el debounce o el Worker, la vista previa conserva el cuadernillo anterior: no se imprime ni se descarga.
   const pending = requestKey !== null && !(current && (generation.status === 'done' || generation.status === 'failed'));
   const result = requestKey && generation.response?.ok ? generation.response.result : null;
-  // Solo se imprime o descarga un cuadernillo generado para la clave actual: nunca el anterior ni el marco vacío
-  // (código mal escrito o de otra versión, opciones no válidas, fallo del Worker).
-  const ready = current && generation.status === 'done' && result !== null;
+  // Resultado vigente: lo que se puede contar y aconsejar (operaciones que no han salido, ficha corta).
+  const settled = current && generation.status === 'done' && result !== null;
+  // Solo se imprime o descarga un cuadernillo generado para la clave actual, y con operaciones dentro: nunca el
+  // anterior, ni el marco vacío (código mal escrito o de otra versión, opciones no válidas, fallo del Worker), ni una
+  // hoja sin un solo ejercicio.
+  const ready = settled && result !== null && result.operations.length > 0;
   // Con un código erróneo la ficha no corresponde a ningún código: no se muestra el anterior.
   const shownSeed = seedInvalid || seedCode === '' ? '—' : seedCode;
   const frameLabels = useMemo(() => ({ name: labels.sheet.name, date: labels.sheet.date, solutions: labels.sheet.solutions }), [labels.sheet]);
@@ -152,24 +151,17 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
   ];
 
   const failed = current && generation.status === 'failed';
-  const rangeErrors: ArithmeticError[] = incompleteRanges.map((operand) => ({
-    code: 'operand-out-of-range',
-    operand,
-    min: ARITHMETIC_LIMITS.minOperand,
-    max: ARITHMETIC_LIMITS.maxOperand,
-  }));
-  // El mismo problema puede llegar por dos caminos (los dos extremos vacíos de un operando): el texto no se repite.
+  // El mismo problema puede llegar por dos caminos (los dos extremos de un operando fuera de rango): no se repite.
   const blocking = [
     ...new Set([
       ...(validation.ok ? [] : validation.errors.map((e) => describeError(e, t))),
-      ...rangeErrors.map((e) => describeError(e, t)),
       ...(laid && !laid.ok ? [t.errors.blockTooLarge] : []),
       ...(failed ? [t.errors.workerFailed] : []),
     ]),
   ];
 
   // Una operación elegida que no ha aportado ninguna no la señala el generador: se deduce del resultado vigente.
-  const missingKinds = ready && result && validation.ok ? validation.value.kinds.filter((kind) => !result.operations.some((op) => op.kind === kind)) : [];
+  const missingKinds = settled && result && validation.ok ? validation.value.kinds.filter((kind) => !result.operations.some((op) => op.kind === kind)) : [];
   const notices = [
     ...new Set([
       // Hojas de alumno: con soluciones el documento lleva el doble, y eso lo dice la línea de trabajo. Sin ninguna
@@ -182,7 +174,9 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
     ]),
   ];
 
-  const shortfall = ready && result && result.operations.length < result.requested ? result : null;
+  // La ficha corta se aconseja aunque no salga ninguna operación (justo entonces es cuando más falta hace), así que
+  // cuelga del resultado vigente y no de `ready`, que además exige que haya algo que imprimir.
+  const shortfall = settled && result && result.operations.length < result.requested ? result : null;
   const available = shortfall ? shortfall.operations.length : 0;
   const suggestions = useMemo(
     () => (shortfall && validation.ok ? suggestArithmetic(validation.value, shortfall.operations.length).map((s) => describeSuggestion(s, t)) : []),

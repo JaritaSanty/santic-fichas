@@ -72,11 +72,9 @@ describe('campos numéricos', () => {
     expect(!validation.ok && validation.errors).toContainEqual({ code: 'count-out-of-range', min: 1, max: 200 });
   });
 
-  it('un extremo de rango vacío se le escapa a la validación: lo comprueba la herramienta', () => {
-    // NaN no dispara ninguna de las comparaciones de `validateRange`, así que `ArithmeticTool` exige
-    // `Number.isInteger` en los cuatro extremos antes de pedir nada al Worker.
+  it('un extremo de rango vacío lo rechaza la validación como valor fuera de rango', () => {
     const validation = validateArithmetic({ ...BASE, first: { min: readNumberField(''), max: 99 } });
-    expect(validation.ok).toBe(true);
-    expect(Number.isInteger(readNumberField(''))).toBe(false);
+    expect(validation.ok).toBe(false);
+    expect(!validation.ok && validation.errors).toContainEqual({ code: 'operand-out-of-range', operand: 'first', min: 0, max: 99999 });
   });
 });

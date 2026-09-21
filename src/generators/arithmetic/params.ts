@@ -34,10 +34,14 @@ export function rangeForDigits(digits: number, maxDigits: number): Range {
 
 function validateRange(range: Range, operand: 'first' | 'second', errors: ArithmeticError[]): void {
   const { minOperand, maxOperand } = ARITHMETIC_LIMITS;
-  if (range.min < minOperand || range.max > maxOperand) {
+  // Se comprueba que sean enteros antes que nada: ninguna comparación se dispara con NaN (un campo vacío o a medias),
+  // y un decimal tampoco es un operando. Los tres casos se cuentan como «fuera de rango», que es lo que el docente lee.
+  const integers = Number.isInteger(range.min) && Number.isInteger(range.max);
+  if (!integers || range.min < minOperand || range.max > maxOperand) {
     errors.push({ code: 'operand-out-of-range', operand, min: minOperand, max: maxOperand });
   }
-  if (range.min > range.max) errors.push({ code: 'range-inverted', operand });
+  // Solo tiene sentido comparar los extremos si son números de verdad (NaN no es mayor ni menor que nada).
+  if (integers && range.min > range.max) errors.push({ code: 'range-inverted', operand });
 }
 
 export function validateArithmetic(input: ArithmeticInput): ArithmeticValidation {
