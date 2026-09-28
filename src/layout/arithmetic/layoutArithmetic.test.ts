@@ -228,6 +228,43 @@ describe('retícula', () => {
     expect(new Set(baselines.map((y) => Math.round(y * 1e6))).size).toBe(1);
   });
 
+  // El índice se ancla al borde de la fila, no al del bloque: si siguiera al bloque, la galera —que ha subido para
+  // alinear su dividendo— se llevaría su número un `answerGapMm` por encima de los de al lado.
+  it.each(['es', 'en'] as const)('los índices de una fila se numeran en un solo renglón (%s)', (lang) => {
+    const mixed = [op('add', 15, 34, 49), op('div', 84, 7, 12), op('mul', 23, 45, 1035), op('sub', 98, 56, 42)];
+    const out = lay({ operations: mixed, paper: 'a4', columns: 4, lang });
+    if (!out.ok) throw new Error('maquetación');
+    const drawn = out.doc.pages[0]!.primitives.filter(
+      (p): p is Extract<Primitive, { t: 'text' }> => p.t === 'text' && p.size === L.indexSizeMm && INDEX.test(p.text),
+    );
+    expect(drawn.map((p) => p.text)).toEqual(['1)', '2)', '3)', '4)']);
+    expect(new Set(drawn.map((p) => Math.round(p.y * 1e6))).size).toBe(1);
+  });
+
+  // El paso vertical es el mismo en todas las filas, se mezclen o no los esquemas: lo que cambia de una fila a otra
+  // es cuánto cuelga por debajo de la línea base, no dónde empieza.
+  it.each(['es', 'en'] as const)('las filas se reparten con un paso constante (%s)', (lang) => {
+    const kinds: OperationKind[] = ['add', 'div', 'mul', 'sub'];
+    const mixed = Array.from({ length: 16 }, (_, i) => {
+      const kind = kinds[(i + Math.floor(i / 4)) % 4] as OperationKind;
+      if (kind === 'div') return op('div', 84, 7, 12);
+      if (kind === 'mul') return op('mul', 23, 45, 1035);
+      return kind === 'add' ? op('add', 15, 34, 49) : op('sub', 98, 56, 42);
+    });
+    const out = lay({ operations: mixed, paper: 'a4', columns: 4, lang });
+    if (!out.ok) throw new Error('maquetación');
+    const rows = [
+      ...new Set(
+        out.doc.pages[0]!.primitives
+          .filter((p): p is Extract<Primitive, { t: 'text' }> => p.t === 'text' && p.size === L.indexSizeMm && INDEX.test(p.text))
+          .map((p) => p.y),
+      ),
+    ].sort((a, b) => a - b);
+    expect(rows.length).toBeGreaterThan(2);
+    const steps = rows.slice(1).map((y, i) => y - (rows[i] as number));
+    for (const step of steps) expect(step).toBeCloseTo(steps[0] as number, 9);
+  });
+
   it('recorta las columnas pedidas a las que caben de verdad', () => {
     const wide = measureBlock(op('mul', 99999, 999, 99899001), 'columns', 'es');
     expect(arithmeticCapacity(box, wide, 5, gapY)?.columns).toBe(5);

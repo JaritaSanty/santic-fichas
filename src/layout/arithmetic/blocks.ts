@@ -115,14 +115,14 @@ function columnsGeometry(op: Operation): ColumnsGeometry {
  * propio bloque: en una ficha con multiplicaciones, una suma de dos cifras tendría si no el signo a más de un
  * centímetro de su número y una raya del doble de largo que la operación.
  */
-function columnsPrimitives(op: Operation, x: number, y: number, index: number, solved: boolean, width: number): Primitive[] {
+function columnsPrimitives(op: Operation, x: number, y: number, rowTop: number, index: number, solved: boolean, width: number): Primitive[] {
   const g = columnsGeometry(op);
   const right = x + width;
   // El signo termina a `lineGapMm` de la columna de cifras; la raya arranca donde empieza el signo.
   const signRight = right - g.operandWidth - L.lineGapMm;
   const ruleLeft = signRight - digitWidth(SIGN[op.kind]);
   const out: Primitive[] = [
-    { t: 'text', x, y: y + g.indexBaseline, text: blockIndexLabel(index), size: L.indexSizeMm, font: 'sheet', align: 'start', tone: 'muted' },
+    { t: 'text', x, y: rowTop + g.indexBaseline, text: blockIndexLabel(index), size: L.indexSizeMm, font: 'sheet', align: 'start', tone: 'muted' },
     { t: 'text', x: right, y: y + g.firstBaseline, text: num(op.a), size: L.digitSizeMm, font: 'sheet', align: 'end', tone: 'ink' },
     { t: 'text', x: signRight, y: y + g.secondBaseline, text: SIGN[op.kind], size: L.digitSizeMm, font: 'sheet', align: 'end', tone: 'ink' },
     { t: 'text', x: right, y: y + g.secondBaseline, text: num(op.b), size: L.digitSizeMm, font: 'sheet', align: 'end', tone: 'ink' },
@@ -275,7 +275,7 @@ function divisionGeometry(op: Operation, lang: Lang): DivisionGeometry {
  * Todo lo que se dibuja sale de `divisionGeometry` —textos incluidos—, así que la caja que mide `measureBlock`
  * y el dibujo no pueden desajustarse.
  */
-function divisionPrimitives(op: Operation, x: number, y: number, lang: Lang, index: number, solved: boolean, width: number): Primitive[] {
+function divisionPrimitives(op: Operation, x: number, y: number, rowTop: number, lang: Lang, index: number, solved: boolean, width: number): Primitive[] {
   const g = divisionGeometry(op, lang);
   const left = x + width - g.w;
   const digit = (slot: DigitSlot): Primitive => ({
@@ -290,7 +290,7 @@ function divisionPrimitives(op: Operation, x: number, y: number, lang: Lang, ind
   });
   const horizontal = (s: Stroke): Primitive => ({ t: 'line', x1: left + s.from, y1: y + s.at, x2: left + s.to, y2: y + s.at, stroke: 'ink', strokeWidth: L.ruleWidthMm });
   const out: Primitive[] = [
-    { t: 'text', x, y: y + g.indexBaseline, text: blockIndexLabel(index), size: L.indexSizeMm, font: 'sheet', align: 'start', tone: 'muted' },
+    { t: 'text', x, y: rowTop + g.indexBaseline, text: blockIndexLabel(index), size: L.indexSizeMm, font: 'sheet', align: 'start', tone: 'muted' },
     digit(g.dividend),
     digit(g.divisor),
     // Los dos renderizadores rematan el trazo a tope (butt cap): la tinta acaba justo en `to`, dentro de la caja.
@@ -334,11 +334,11 @@ function inlineGeometry(op: Operation, lang: Lang): InlineGeometry {
   };
 }
 
-function inlinePrimitives(op: Operation, x: number, y: number, lang: Lang, index: number, solved: boolean): Primitive[] {
+function inlinePrimitives(op: Operation, x: number, y: number, rowTop: number, lang: Lang, index: number, solved: boolean): Primitive[] {
   const g = inlineGeometry(op, lang);
   const baseline = y + g.baseline;
   const out: Primitive[] = [
-    { t: 'text', x, y: baseline, text: blockIndexLabel(index), size: L.indexSizeMm, font: 'sheet', align: 'start', tone: 'muted' },
+    { t: 'text', x, y: rowTop + g.baseline, text: blockIndexLabel(index), size: L.indexSizeMm, font: 'sheet', align: 'start', tone: 'muted' },
     { t: 'text', x: x + g.expressionX, y: baseline, text: g.expression, size: L.inlineSizeMm, font: 'sheet', align: 'start', tone: 'ink' },
   ];
   out.push(
@@ -363,6 +363,11 @@ export function measureBlock(op: Operation, layout: SheetLayout, lang: Lang): Bl
  *
  * `width` es el ancho común de la hoja (el del bloque más ancho) para que las cifras alineadas a la derecha
  * queden en columna; si no se pasa, el bloque se dibuja con su propio ancho.
+ *
+ * `rowTop` es el borde superior de la **fila**, que no es el del bloque cuando este ha bajado para alinear su
+ * primer operando (la galera inglesa reserva el hueco del cociente encima del dividendo). El índice se ancla ahí:
+ * los ejercicios de una fila se numeran en un solo renglón, sea cual sea el esquema que venga debajo. Por defecto
+ * es el borde del propio bloque, que es lo que vale cuando se dibuja suelto.
  */
 export function blockPrimitives(
   op: Operation,
@@ -373,8 +378,9 @@ export function blockPrimitives(
   index: number,
   solved: boolean,
   width: number = measureBlock(op, layout, lang).w,
+  rowTop: number = y,
 ): Primitive[] {
-  if (layout === 'inline') return inlinePrimitives(op, x, y, lang, index, solved);
-  if (op.kind === 'div') return divisionPrimitives(op, x, y, lang, index, solved, width);
-  return columnsPrimitives(op, x, y, index, solved, width);
+  if (layout === 'inline') return inlinePrimitives(op, x, y, rowTop, lang, index, solved);
+  if (op.kind === 'div') return divisionPrimitives(op, x, y, rowTop, lang, index, solved, width);
+  return columnsPrimitives(op, x, y, rowTop, index, solved, width);
 }

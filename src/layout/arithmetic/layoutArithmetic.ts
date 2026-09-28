@@ -120,7 +120,7 @@ export function layoutArithmetic(input: ArithmeticLayoutInput): ArithmeticLayout
       const rowTop = box.y + Math.floor(slot / grid.columns) * grid.stepYMm;
       // Cada bloque baja lo que le falte para que su primer operando caiga en la línea base común de la fila.
       const y = rowTop + block.firstBaseline - (boxes[start + slot] as BlockBox).firstBaseline;
-      primitives.push(...blockPrimitives(op, x, y, layout, lang, start + slot, role === 'solution', block.w));
+      primitives.push(...blockPrimitives(op, x, y, layout, lang, start + slot, role === 'solution', block.w, rowTop));
     });
     return { role, primitives };
   };
