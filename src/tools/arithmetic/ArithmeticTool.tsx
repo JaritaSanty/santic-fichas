@@ -37,7 +37,7 @@ import { SheetHeaderFields } from '@/tools/shared/SheetHeaderFields';
 import { ToneWedge } from '@/tools/shared/ToneWedge';
 import { createArithmeticClient, type ArithmeticWorkerLike } from './arithmeticClient';
 import { KindsField } from './KindsField';
-import { describeError, describeKindMissing, describeSeed, describeSuggestion, describeWarning } from './messages';
+import { describeError, describeKindMissing, describeSeed, describeSuggestion, describeSuggestionsLead, describeWarning } from './messages';
 import { OptionsFields } from './OptionsFields';
 import { RangeFields, type RangeText } from './RangeFields';
 import { generationKey, readNumberField } from './request';
@@ -176,15 +176,13 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
   ];
 
   // Una operación elegida que no ha aportado ninguna no la señala el generador: se deduce del resultado vigente.
-  const missingKinds = settled && result && validation.ok ? validation.value.kinds.filter((kind) => !result.operations.some((op) => op.kind === kind)) : [];
+  // Con cero operaciones no se dice una por una: ese estado ya lo explica entero el panel de ficha corta.
+  const missingKinds =
+    settled && result && result.operations.length > 0 && validation.ok
+      ? validation.value.kinds.filter((kind) => !result.operations.some((op) => op.kind === kind))
+      : [];
   const notices = [
     ...new Set([
-      // Hojas de alumno: con soluciones el documento lleva el doble, y eso lo dice la línea de trabajo. Solo con el
-      // resultado vigente: es el único aviso que podría cantar un número equivocado mientras se genera el siguiente.
-      // Sin ninguna operación no se anuncia la capacidad («máx. 0 por hoja» no dice nada): lo dice la ficha corta.
-      ...(settled && laid?.ok && laid.capacity.perPage > 0
-        ? [formatPlural(t.pagination, laid.capacity.pages, { pages: laid.capacity.pages, perPage: laid.capacity.perPage })]
-        : []),
       // Las columnas pedidas se recortan a las que caben; el selector sigue marcando las pedidas, así que se dice.
       ...(settled && laid?.ok && laid.capacity.columns < columns
         ? [formatMessage(t.warnings.columnsReduced, { columns: laid.capacity.columns })]
@@ -198,13 +196,25 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
   // cuelga del resultado vigente y no de `ready`, que además exige que haya algo que imprimir.
   const shortfall = settled && result && result.operations.length < result.requested ? result : null;
   const available = shortfall ? shortfall.operations.length : 0;
-  const suggestions = useMemo(
-    () => (shortfall && validation.ok ? suggestArithmetic(validation.value, shortfall.operations.length).map((s) => describeSuggestion(s, t)) : []),
-    [shortfall, validation, t],
+  const advice = useMemo(
+    () => (shortfall && validation.ok ? suggestArithmetic(validation.value, shortfall.operations.length) : []),
+    [shortfall, validation],
   );
+  const suggestions = advice.map((s) => describeSuggestion(s, t));
+  // La salvedad sobre la ficha completa se dice una vez, en la entrada de la lista, no al final de cada sugerencia.
+  const suggestionsLead = describeSuggestionsLead(advice, t);
   const retry = () => {
     if (requestKey && validation.ok) client.request(requestKey, { value: validation.value, seedCode });
   };
+
+  // La hoja que se ve es imprimible: hay maquetación y lleva ejercicios. Es la condición del documento de la vista
+  // previa, así que la línea de trabajo y la prueba dicen siempre lo mismo que se está mirando (mientras se genera la
+  // siguiente ficha sigue vigente la anterior, y sus cifras con ella).
+  const printable = laid?.ok === true && hasOperations;
+  const paperName = paper === 'a4' ? labels.tool.paperA4 : labels.tool.paperLetter;
+  // Cuántas hojas de alumno salen y cuántos ejercicios caben en cada una: un dato del trabajo, no un aviso.
+  const sheetsValue =
+    printable && laid?.ok ? formatMessage(t.sheets, { pages: laid.capacity.pages, perPage: laid.capacity.perPage }) : '—';
 
   // Con la cantidad a medias el resumen del parte no inventa un cero: «—», como el código de ficha.
   const docketDetail = Number.isInteger(input.count)
@@ -315,8 +325,10 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
             </>
           }
           items={[
-            { label: proof.jobPaper, value: paper === 'a4' ? labels.tool.paperA4 : labels.tool.paperLetter },
-            { label: proof.jobPages, value: String(doc.pages.length) },
+            { label: proof.jobPaper, value: paperName },
+            { label: proof.jobSheets, value: sheetsValue },
+            // Sin ejercicios no hay páginas que imprimir: «—», como el código de ficha con un código erróneo.
+            { label: proof.jobPages, value: printable ? String(doc.pages.length) : '—' },
             { label: proof.jobSeed, value: shownSeed },
           ]}
         />
@@ -352,6 +364,7 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
           <ShortfallPanel
             title={t.shortfall.title}
             intro={available === 0 ? t.shortfall.none : formatPlural(t.shortfall.intro, available, { requested: shortfall.requested })}
+            lead={suggestionsLead}
             suggestions={suggestions}
             action={available > 0 ? formatPlural(t.shortfall.apply, available) : null}
             onApply={() => setCountText(String(available))}
@@ -360,6 +373,7 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
 
         <ProofSheet
           doc={doc}
+          state={printable ? undefined : t.emptySheet}
           docKey={JSON.stringify([requestKey ?? 'frame', header.title, header.school, paper, includeSolutions])}
           label={labels.sheet.previewLabel}
           labels={{ zoomLegend: proof.zoomLegend, zoomFit: proof.zoomFit, zoomActual: proof.zoomActual, enlarge: proof.enlarge, close: proof.close }}

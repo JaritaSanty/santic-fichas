@@ -47,27 +47,35 @@ export function describeKindMissing(kind: OperationKind, t: Strings): string {
   return formatMessage(t.warnings.kindMissing, { kind: kindName(kind, t) });
 }
 
-/**
- * `fills: false` es «no se ha podido comprobar que llene la ficha» (informe de la Tarea 4), así que su texto no promete
- * la ficha completa; solo la variante con `fills: true` lo hace.
- */
+/** Cada sugerencia es su acción y nada más: la salvedad sobre la ficha completa la dice `suggestionsLead` una vez. */
 export function describeSuggestion(s: ArithmeticSuggestion, t: Strings): string {
   switch (s.code) {
     case 'raise-first-max':
-      return formatMessage(s.fills ? t.suggestions.raiseFirstMax : t.suggestions.raiseFirstMaxPartial, { to: s.to });
+      return formatMessage(t.suggestions.raiseFirstMax, { to: s.to });
     case 'lower-first-min':
-      return formatMessage(s.fills ? t.suggestions.lowerFirstMin : t.suggestions.lowerFirstMinPartial, { to: s.to });
+      return formatMessage(t.suggestions.lowerFirstMin, { to: s.to });
     case 'widen-second':
-      return formatMessage(s.fills ? t.suggestions.widenSecond : t.suggestions.widenSecondPartial, { min: s.min, max: s.max });
+      return formatMessage(t.suggestions.widenSecond, { min: s.min, max: s.max });
     case 'allow-remainder':
-      return s.fills ? t.suggestions.allowRemainder : t.suggestions.allowRemainderPartial;
+      return t.suggestions.allowRemainder;
     case 'allow-carry':
-      return s.fills ? t.suggestions.allowCarry : t.suggestions.allowCarryPartial;
+      return t.suggestions.allowCarry;
     case 'allow-any-carry':
-      return s.fills ? t.suggestions.allowAnyCarry : t.suggestions.allowAnyCarryPartial;
+      return t.suggestions.allowAnyCarry;
     case 'reduce-count':
       return formatMessage(t.suggestions.reduceCount, { to: s.to });
   }
+}
+
+/**
+ * Entrada de la lista de ajustes. `fills: false` es «no se ha podido comprobar que llene la ficha» (informe de la
+ * Tarea 4): basta con que uno de los ajustes no lo prometa para que la salvedad valga para toda la lista, que es lo
+ * que permite decirla una sola vez en lugar de repetirla en cada sugerencia. `reduce-count` sí llena siempre la
+ * ficha: pide exactamente lo que hay.
+ */
+export function describeSuggestionsLead(suggestions: ArithmeticSuggestion[], t: Strings): string {
+  const fills = suggestions.every((s) => s.code === 'reduce-count' || s.fills);
+  return fills ? t.shortfall.suggestionsFill : t.shortfall.suggestionsPartial;
 }
 
 export function describeSeed(seed: SeedInput, t: Strings): string | null {

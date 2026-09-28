@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { readSeedInput, type ArithmeticError, type ArithmeticSuggestion, type ArithmeticWarning } from '@/generators/arithmetic';
 import { getDictionary } from '@/i18n/dictionary';
-import { formatPlural } from '@/i18n/format';
-import { describeError, describeKindMissing, describeSeed, describeSuggestion, describeWarning } from './messages';
+import { formatMessage, formatPlural } from '@/i18n/format';
+import { describeError, describeKindMissing, describeSeed, describeSuggestion, describeSuggestionsLead, describeWarning } from './messages';
 
 const es = getDictionary('es').arithmetic;
 const en = getDictionary('en').arithmetic;
@@ -86,24 +86,30 @@ describe('mensajes del cuadernillo de operaciones', () => {
     }
   });
 
-  it('solo la variante comprobada promete la ficha completa', () => {
-    const promise = { es: /sale la ficha completa/, en: /fills the whole worksheet/ };
+  // La salvedad se dice una vez, en la entrada del panel: ninguna sugerencia la arrastra al final.
+  it('ninguna sugerencia promete ni desmiente la ficha completa por su cuenta', () => {
+    const tail = { es: /ficha completa|puede que no lleguen/, en: /whole worksheet|may not be enough/ };
     for (const suggestion of SUGGESTIONS) {
-      if (suggestion.code === 'reduce-count') continue;
-      expect(describeSuggestion(suggestion, es), suggestion.code).toMatch(suggestion.fills ? promise.es : /puede que no lleguen/);
-      expect(describeSuggestion(suggestion, en), suggestion.code).toMatch(suggestion.fills ? promise.en : /may not be enough/);
-      if (!suggestion.fills) {
-        expect(describeSuggestion(suggestion, es), suggestion.code).not.toMatch(promise.es);
-        expect(describeSuggestion(suggestion, en), suggestion.code).not.toMatch(promise.en);
-      }
+      expect(describeSuggestion(suggestion, es), suggestion.code).not.toMatch(tail.es);
+      expect(describeSuggestion(suggestion, en), suggestion.code).not.toMatch(tail.en);
     }
+    // El mismo código dice lo mismo se haya comprobado o no: lo que cambia es la entrada de la lista.
+    expect(describeSuggestion({ code: 'allow-carry', fills: true }, es)).toBe(describeSuggestion({ code: 'allow-carry', fills: false }, es));
+  });
+
+  it('la entrada de la lista promete solo si todos los ajustes están comprobados', () => {
+    const checked: ArithmeticSuggestion[] = [{ code: 'allow-remainder', fills: true }, { code: 'reduce-count', to: 17 }];
+    const unchecked: ArithmeticSuggestion[] = [{ code: 'allow-remainder', fills: true }, { code: 'widen-second', min: 2, max: 14, fills: false }];
+    expect(describeSuggestionsLead(checked, es)).toBe(es.shortfall.suggestionsFill);
+    expect(describeSuggestionsLead(unchecked, es)).toBe(es.shortfall.suggestionsPartial);
+    expect(describeSuggestionsLead(unchecked, en)).toMatch(/may not be enough/);
   });
 
   it('sugerencias con sus números', () => {
-    expect(describeSuggestion({ code: 'raise-first-max', to: 105, fills: true }, es)).toBe('Ampliar el máximo del primer número hasta 105: con ese cambio sale la ficha completa.');
-    expect(describeSuggestion({ code: 'lower-first-min', to: 98, fills: false }, es)).toBe('Reducir el mínimo del primer número hasta 98: así hay divisiones posibles, aunque puede que no lleguen para la ficha completa.');
-    expect(describeSuggestion({ code: 'widen-second', min: 2, max: 14, fills: true }, en)).toBe('Widen the second number to the range 2–14: that fills the whole worksheet.');
-    expect(describeSuggestion({ code: 'reduce-count', to: 17 }, es)).toBe('Pedir 17 operaciones: es todo lo que permiten estas opciones.');
+    expect(describeSuggestion({ code: 'raise-first-max', to: 105, fills: true }, es)).toBe('Ampliar el máximo del primer número hasta 105.');
+    expect(describeSuggestion({ code: 'lower-first-min', to: 98, fills: false }, es)).toBe('Reducir el mínimo del primer número hasta 98.');
+    expect(describeSuggestion({ code: 'widen-second', min: 2, max: 14, fills: true }, en)).toBe('Widen the second number to the range 2–14.');
+    expect(describeSuggestion({ code: 'reduce-count', to: 17 }, es)).toBe('Pedir 17 operaciones, que es todo lo que permiten estas opciones.');
   });
 
   it('códigos de ficha de otra versión se rechazan con un mensaje concreto', () => {
@@ -113,11 +119,13 @@ describe('mensajes del cuadernillo de operaciones', () => {
     expect(describeSeed(readSeedInput('   '), es)).toBeNull();
   });
 
-  it('paginación y ficha corta usan el singular y el plural correctos', () => {
-    expect(formatPlural(es.pagination, 1, { pages: 1, perPage: 30 })).toBe('Se generará 1 hoja, máx. 30 por hoja.');
-    expect(formatPlural(es.pagination, 3, { pages: 3, perPage: 30 })).toBe('Se generarán 3 hojas, máx. 30 por hoja.');
-    expect(formatPlural(en.pagination, 1, { pages: 1, perPage: 30 })).toBe('1 sheet will be generated, up to 30 per sheet.');
-    expect(formatPlural(en.pagination, 3, { pages: 3, perPage: 30 })).toBe('3 sheets will be generated, up to 30 per sheet.');
+  it('las hojas son un dato de la línea de trabajo, con su máximo por hoja', () => {
+    expect(formatMessage(es.sheets, { pages: 1, perPage: 30 })).toBe('1 · máx. 30 por hoja');
+    expect(formatMessage(es.sheets, { pages: 3, perPage: 30 })).toBe('3 · máx. 30 por hoja');
+    expect(formatMessage(en.sheets, { pages: 3, perPage: 28 })).toBe('3 · up to 28 per sheet');
+  });
+
+  it('la ficha corta usa el singular y el plural correctos', () => {
     expect(formatPlural(es.shortfall.intro, 1, { requested: 20 })).toBe('Con estas opciones solo hay 1 operación distinta y se han pedido 20.');
     expect(formatPlural(es.shortfall.intro, 17, { requested: 20 })).toBe('Con estas opciones solo hay 17 operaciones distintas y se han pedido 20.');
     expect(formatPlural(en.shortfall.intro, 17, { requested: 20 })).toBe('With these options there are only 17 distinct operations and 20 were requested.');

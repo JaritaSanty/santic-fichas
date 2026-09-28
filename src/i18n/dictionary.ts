@@ -107,8 +107,13 @@ export interface Dictionary {
     retry: string;
     /** Resumen del parte plegado en móvil; `count` es el número de operaciones pedidas. */
     optionsDetail: PluralMessage;
-    /** Aviso de paginación; `count` es el número de hojas y también se pasa como `pages`. */
-    pagination: PluralMessage;
+    /**
+     * Hojas de alumno y máximo por hoja, como dato de la línea de trabajo (no como aviso: el número de hojas es una
+     * propiedad permanente del trabajo, no una condición).
+     */
+    sheets: string;
+    /** Estado con nombre sobre la prueba cuando la hoja no lleva ningún ejercicio. */
+    emptySheet: string;
     errors: {
       noKind: string;
       rangeInverted: string;
@@ -121,25 +126,20 @@ export interface Dictionary {
       workerFailed: string;
     };
     warnings: { carryIgnored: string; factorCapped: string; kindMissing: string; columnsReduced: string };
-    /** Ficha incompleta: menos operaciones distintas que las pedidas. */
-    shortfall: { title: string; none: string; intro: PluralMessage; apply: PluralMessage };
     /**
-     * Un texto por código de sugerencia. Los códigos con `fills` llevan dos: la forma normal promete la ficha
-     * completa y la `…Partial` no promete nada, porque `fills: false` es «no se ha podido comprobar».
+     * Ficha incompleta: menos operaciones distintas que las pedidas. `suggestionsFill` y `suggestionsPartial` son la
+     * entrada de la lista de ajustes: dicen **una sola vez** si aplicarlos deja sitio para todo lo pedido, para que
+     * cada sugerencia sea solo su acción.
      */
+    shortfall: { title: string; none: string; intro: PluralMessage; apply: PluralMessage; suggestionsFill: string; suggestionsPartial: string };
+    /** Un texto por código de sugerencia: la acción y nada más; la salvedad la dice la entrada del panel. */
     suggestions: {
       raiseFirstMax: string;
-      raiseFirstMaxPartial: string;
       lowerFirstMin: string;
-      lowerFirstMinPartial: string;
       widenSecond: string;
-      widenSecondPartial: string;
       allowRemainder: string;
-      allowRemainderPartial: string;
       allowCarry: string;
-      allowCarryPartial: string;
       allowAnyCarry: string;
-      allowAnyCarryPartial: string;
       reduceCount: string;
     };
   };
@@ -152,6 +152,8 @@ export interface Dictionary {
     toneLegend: string;
     jobPaper: string;
     jobPages: string;
+    /** Hojas de alumno del trabajo; el cuadernillo añade el máximo por hoja al valor. */
+    jobSheets: string;
     jobSeed: string;
     downloadPdf: string;
     preparingPdf: string;
