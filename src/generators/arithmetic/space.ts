@@ -93,6 +93,16 @@ function keyOf(op: Operation): string {
 }
 
 /**
+ * `n − n` y `n ÷ n` son operaciones válidas pero no son ejercicio: la respuesta (0 o 1) no depende de los números y
+ * una ficha de rangos estrechos se llenaba de ellas (`22 ÷ 22`, `16 ÷ 16`…). No se prohíben —una ficha de
+ * `10..10 − 10..10` no tiene otra cosa que sortear—, se dejan en reserva: solo entran cuando el espacio no da más de
+ * sí. En la suma y en la multiplicación el par igual sí es ejercicio (`24 + 24`, `7 × 7`), así que no se toca.
+ */
+function isIdentity(op: Operation): boolean {
+  return (op.kind === 'sub' || op.kind === 'div') && op.a === op.b;
+}
+
+/**
  * Cocientes válidos de un divisor: nunca 0 y con el dividendo dentro del rango del primer operando.
  * Con resto el dividendo es `b·q + r` con `r` entre 1 y `b - 1`, así que el cociente mínimo baja un escalón
  * (`b·q` puede quedar por debajo de `first.min`) y el máximo sube uno menos (`b·q` debe dejar sitio a `r`).
@@ -150,6 +160,19 @@ function takeShuffled(ops: Operation[], wanted: number, rand: () => number): Ope
 }
 
 /**
+ * Sorteo de un espacio enumerado dejando las identidades (`n − n`, `n ÷ n`) para el final: primero se baraja lo que
+ * sí es ejercicio y, solo si no llega a lo pedido, se completa con la reserva barajada. Sin identidades no se toca
+ * nada —ni se consume azar de más—, así que las fichas que no las tenían salen exactamente igual que antes.
+ */
+function takeUseful(ops: Operation[], wanted: number, rand: () => number): Operation[] {
+  const reserve = ops.filter(isIdentity);
+  if (reserve.length === 0) return takeShuffled(ops, wanted, rand);
+  const out = takeShuffled(ops.filter((op) => !isIdentity(op)), wanted, rand);
+  if (out.length >= wanted) return out;
+  return [...out, ...takeShuffled(reserve, wanted - out.length, rand)];
+}
+
+/**
  * Intentos que recorre el muestreo, **fijos**: los de una ficha entera, se pida lo que se pida. Nunca son menos que
  * antes (`wanted <= maxCount` siempre) y ya no dependen de la petición, que es lo que hace falta. Además ponen tope
  * absoluto al coste, que antes crecía con `wanted` sin límite.
@@ -167,6 +190,8 @@ function takeShuffled(ops: Operation[], wanted: number, rand: () => number): Ope
  */
 function sampleOperations(wanted: number, draw: () => Operation | null): Operation[] {
   const out: Operation[] = [];
+  // Las identidades salen del mismo sorteo (no cuestan azar aparte) pero esperan al final de la cola.
+  const reserve: Operation[] = [];
   const seen = new Set<string>();
   const attempts = SAMPLE_ATTEMPTS;
   for (let attempt = 0; attempt < attempts && out.length < wanted; attempt++) {
@@ -175,9 +200,10 @@ function sampleOperations(wanted: number, draw: () => Operation | null): Operati
     const key = keyOf(op);
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push(op);
+    if (isIdentity(op)) reserve.push(op);
+    else out.push(op);
   }
-  return out;
+  return out.length >= wanted ? out : [...out, ...reserve.slice(0, wanted - out.length)];
 }
 
 /**
@@ -222,7 +248,7 @@ function drawDivisions(value: ValidArithmetic, wanted: number, rand: () => numbe
         for (let rest = r.min; rest <= r.max; rest++) all.push(divisionAt(b, quotient, rest));
       }
     }
-    return takeShuffled(all, wanted, rand);
+    return takeUseful(all, wanted, rand);
   }
 
   return sampleOperations(wanted, () => {
@@ -263,7 +289,7 @@ export function drawOperations(kind: OperationKind, value: ValidArithmetic, want
         all.push(op);
       }
     }
-    return takeShuffled(all, wanted, rand);
+    return takeUseful(all, wanted, rand);
   }
 
   return sampleOperations(wanted, () =>

@@ -161,6 +161,25 @@ describe('generateArithmetic', () => {
     expect(generateArithmetic(valueOf({ ...config, count: full }), 'v1-MUESTR').operations).toHaveLength(full);
   });
 
+  // `n ÷ n` y `n − n` no son ejercicio: con 10–99 y división exacta llegaron a ser 2 de cada 5 divisiones de la hoja.
+  it('con 10–99 no sale ninguna identidad mientras haya otras operaciones', () => {
+    const value = valueOf({ kinds: { add: false, sub: true, mul: false, div: true }, count: 200 });
+    for (const seed of ['v1-IDENT1', 'v1-IDENT2', 'v1-PORTADA', 'v1-ABC234']) {
+      const ops = generateArithmetic(value, seed).operations;
+      expect(ops.length).toBeGreaterThan(100);
+      expect(ops.filter((o) => o.a === o.b)).toEqual([]);
+    }
+  });
+
+  it('las identidades siguen saliendo cuando no queda otra cosa que sortear', () => {
+    const only = valueOf({ kinds: { add: false, sub: true, mul: false, div: false }, first: { min: 10, max: 10 }, second: { min: 10, max: 10 }, count: 5 });
+    expect(serialize(generateArithmetic(only, 'v1-UNICA1').operations)).toEqual(['sub 10 10 = 0 r0']);
+    // Con una sola alternativa, la identidad completa la hoja en vez de dejarla corta, pero va detrás.
+    const pair = valueOf({ kinds: { add: false, sub: false, mul: false, div: true }, first: { min: 10, max: 11 }, second: { min: 10, max: 11 }, count: 5 });
+    const drawn = generateArithmetic(pair, 'v1-UNICA2').operations;
+    expect(serialize(drawn).sort()).toEqual(['div 10 10 = 1 r0', 'div 11 11 = 1 r0']);
+  });
+
   it('el código se lleva a su forma canónica antes de sembrar', () => {
     const value = valueOf({ count: 10 });
     const lower = generateArithmetic(value, ' v1-abc234 ');
