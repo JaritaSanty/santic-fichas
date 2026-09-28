@@ -137,6 +137,27 @@ test.describe('cuadernillo de operaciones', () => {
     await expect(jobValue(page, ES.pagesLabel)).toHaveText(String(inline.sheets * 2));
   });
 
+  // El cupo se reparte a partes iguales: con 2 ejercicios y las cuatro operaciones marcadas, a la multiplicación y a
+  // la división les tocan cero. No haberlas sacado no es culpa de los rangos y la ficha está completa, así que la
+  // herramienta no puede echarlas en falta.
+  test('con menos ejercicios que operaciones elegidas no se echa en falta ninguna', async ({ page }) => {
+    await page.goto(ES.path);
+    await settle(page);
+    for (const kind of ['Multiplicación', 'División']) await page.getByLabel(kind, { exact: true }).check();
+    await page.getByLabel(ES.countLabel).fill('2');
+    await settle(page);
+
+    expect(await exercises(page)).toEqual(['1)', '2)']);
+    await expect(page.locator('[data-notices] li')).toHaveCount(0);
+    await expect(page.locator('[data-tool-canvas] section')).toHaveCount(0);
+    await expect(page.locator('[data-action="print"]')).toBeEnabled();
+
+    // Con tantos ejercicios como operaciones, a todas les toca al menos una y el aviso vuelve a ser posible.
+    await page.getByLabel(ES.countLabel).fill('4');
+    await settle(page);
+    expect(await exercises(page)).toHaveLength(4);
+  });
+
   test('las opciones imposibles se explican arriba y bajo el campo que las causa', async ({ page }) => {
     await page.goto(ES.path);
     await settle(page);

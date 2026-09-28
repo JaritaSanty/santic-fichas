@@ -40,7 +40,7 @@ import { KindsField } from './KindsField';
 import { describeError, describeKindMissing, describeSeed, describeSuggestion, describeSuggestionsLead, describeWarning } from './messages';
 import { OptionsFields } from './OptionsFields';
 import { RangeFields, type RangeText } from './RangeFields';
-import { generationKey, readNumberField } from './request';
+import { generationKey, missingKinds, readNumberField } from './request';
 import { ShortfallPanel } from './ShortfallPanel';
 
 export interface ArithmeticLabels {
@@ -188,11 +188,12 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
     ]),
   ];
 
-  // Una operación elegida que no ha aportado ninguna no la señala el generador: se deduce del resultado vigente.
-  // Con cero operaciones no se dice una por una: ese estado ya lo explica entero el panel de ficha corta.
-  const missingKinds =
+  // Una operación elegida que no ha aportado ninguna no la señala el generador: se deduce del resultado vigente
+  // (`missingKinds`, que además calla cuando el cupo repartido dejaba a alguna en cero). Con cero operaciones no se
+  // dice una por una: ese estado ya lo explica entero el panel de ficha corta.
+  const absentKinds =
     settled && result && result.operations.length > 0 && validation.ok
-      ? validation.value.kinds.filter((kind) => !result.operations.some((op) => op.kind === kind))
+      ? missingKinds(validation.value.kinds, result.operations, result.requested)
       : [];
   const notices = [
     ...new Set([
@@ -201,7 +202,7 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
         ? [formatMessage(t.warnings.columnsReduced, { columns: laid.capacity.columns })]
         : []),
       ...validation.warnings.map((w) => describeWarning(w, t)),
-      ...missingKinds.map((kind) => describeKindMissing(kind, t)),
+      ...absentKinds.map((kind) => describeKindMissing(kind, t)),
     ]),
   ];
 
@@ -386,7 +387,7 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
         <ProofSheet
           doc={doc}
           state={printable ? undefined : t.emptySheet}
-          docKey={JSON.stringify([requestKey ?? 'frame', header.title, header.school, paper, includeSolutions])}
+          docKey={JSON.stringify([requestKey ?? 'frame', header.title, header.school, paper, includeSolutions, sheetLayout, columns])}
           label={labels.sheet.previewLabel}
           labels={{ zoomLegend: proof.zoomLegend, zoomFit: proof.zoomFit, zoomActual: proof.zoomActual, enlarge: proof.enlarge, close: proof.close }}
         />

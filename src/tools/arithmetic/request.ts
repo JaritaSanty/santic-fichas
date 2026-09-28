@@ -1,4 +1,4 @@
-import type { ValidArithmetic } from '@/generators/arithmetic';
+import type { Operation, OperationKind, ValidArithmetic } from '@/generators/arithmetic';
 
 /** Solo cifras: un campo vacío o a medias («», «-», «1e», «2,5») da NaN y la validación lo rechaza sin romper la vista. */
 const DIGITS = /^\d{1,9}$/;
@@ -13,12 +13,15 @@ export function readNumberField(text: string): number {
 }
 
 /**
- * Clave de la petición: todo lo que cambia la ficha —operaciones, rangos, llevada, modo de división, cantidad,
- * disposición, columnas y código de semilla—, tomado del valor ya validado (el segundo operando puede venir
- * recortado por `factor-capped`, y es el recortado el que se sortea).
+ * Clave de la petición: todo lo que cambia **el sorteo** —operaciones, rangos, llevada, modo de división, cantidad y
+ * código de semilla—, tomado del valor ya validado (el segundo operando puede venir recortado por `factor-capped`,
+ * y es el recortado el que se sortea).
  *
  * El encabezado y el papel **no** entran: solo cambian el marco, que se vuelve a maquetar sin sortear de nuevo.
- * Tampoco el idioma: `generateArithmetic` no lo recibe; la maquetación sí lo usa y se rehace sola.
+ * Tampoco la disposición ni las columnas: `generateArithmetic` no las lee, así que pedirlas de nuevo costaba un
+ * debounce y una vuelta al Worker para recibir el mismo cuadernillo, y mientras tanto la ficha dejaba de estar
+ * vigente y desaparecían justo los avisos que ese cambio debe destapar (columnas recortadas, ficha corta). Tampoco
+ * el idioma: `generateArithmetic` no lo recibe; la maquetación sí lo usa y se rehace sola.
  */
 export function generationKey(value: ValidArithmetic, seedCode: string): string {
   return JSON.stringify({
@@ -28,8 +31,18 @@ export function generationKey(value: ValidArithmetic, seedCode: string): string 
     carry: value.carry,
     division: value.division,
     count: value.count,
-    layout: value.layout,
-    columns: value.columns,
     seedCode,
   });
+}
+
+/**
+ * Operaciones elegidas que no han aportado ninguna a la ficha. El generador reparte el cupo a partes iguales
+ * (`shareOut`), así que **con menos ejercicios que operaciones elegidas hay operaciones a las que les tocan cero**:
+ * con 2 ejercicios y las cuatro marcadas, la multiplicación y la división no salen porque no se les ha pedido
+ * ninguna, y decir «no ha salido ninguna multiplicación con estas opciones» culparía a los rangos de algo que no
+ * han hecho, con la ficha además completa. Por eso solo se señala cuando a todas les tocaba al menos una.
+ */
+export function missingKinds(kinds: readonly OperationKind[], operations: readonly Operation[], requested: number): OperationKind[] {
+  if (requested < kinds.length) return [];
+  return kinds.filter((kind) => !operations.some((op) => op.kind === kind));
 }

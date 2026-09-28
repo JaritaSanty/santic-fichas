@@ -124,6 +124,23 @@ describe('marca de página', () => {
     expect(data!.x - measureTextMm(data!.text, data!.font, data!.size)).toBeGreaterThan(footerEnd);
   });
 
+  // El código lo escribe el docente: uno larguísimo hacía una línea de 183 mm impresa encima del isotipo y del
+  // dominio. Se recorta por ancho medido (no por número de caracteres), que es la regla de la hoja.
+  it.each(['a4', 'letter'] as PaperSize[])('un código larguísimo se recorta antes de llegar a la marca del pie en %s', (paper) => {
+    const long = stampPrimitives({ paper, labels, role: 'student', stamp: { page: 1, pages: 1, code: `v1-${'W'.repeat(150)}` } });
+    const { primitives } = buildFrame({ paper, header, labels, role: 'student' });
+    const domain = primitives.find((p): p is Extract<Primitive, { t: 'text' }> => p.t === 'text' && p.text === BRAND_DOMAIN);
+    const data = long.find((p): p is Extract<Primitive, { t: 'text' }> => p.t === 'text' && p.text.startsWith('Página'));
+    const footerEnd = domain!.x + measureTextMm(domain!.text, domain!.font, domain!.size);
+    expect(data!.text).toContain('Página 1/1 · A4 · v1-');
+    expect(data!.x - measureTextMm(data!.text, data!.font, data!.size)).toBeGreaterThan(footerEnd);
+    // Y sigue dentro del margen de impresión por la derecha, como cualquier otra primitiva del marco.
+    for (const [x] of corners(data!)) {
+      expect(x).toBeGreaterThanOrEqual(12 - 1e-6);
+      expect(x).toBeLessThanOrEqual(PAPER[paper].widthMm - 12 + 1e-6);
+    }
+  });
+
   it('numera las hojas de un documento y deja el resto de primitivas intacto', () => {
     const page = (role: 'student' | 'solution') => ({ role, primitives: buildFrame({ paper: 'a4', header, labels, role }).primitives });
     const pages = stampPages([page('student'), page('student'), page('solution')], { paper: 'a4', labels, code: 'v1-ABC234' });

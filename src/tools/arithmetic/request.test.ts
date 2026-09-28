@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { validateArithmetic, type ArithmeticInput } from '@/generators/arithmetic';
-import { generationKey, readNumberField } from './request';
+import { validateArithmetic, type ArithmeticInput, type Operation, type OperationKind } from '@/generators/arithmetic';
+import { generationKey, missingKinds, readNumberField } from './request';
 
 const BASE: ArithmeticInput = {
   kinds: { add: true, sub: true, mul: false, div: false },
@@ -30,10 +30,18 @@ describe('petición del cuadernillo', () => {
     ['segundo número', { second: { min: 11, max: 99 } }],
     ['llevada', { carry: 'without' }],
     ['cantidad', { count: 21 }],
-    ['disposición', { layout: 'inline' }],
-    ['columnas', { columns: 3 }],
   ] as [string, Partial<ArithmeticInput>][])('cambiar %s cambia la clave', (_label, patch) => {
     expect(keyFor(patch)).not.toBe(keyFor());
+  });
+
+  // La disposición y las columnas son de la maquetación, como el papel o el encabezado: `generateArithmetic` no las
+  // lee, así que volver a sortear devolvería el mismo cuadernillo tras un debounce y una vuelta al Worker, dejando
+  // mientras tanto la ficha sin vigencia (y sin el aviso de columnas recortadas ni el panel de ficha corta).
+  it.each([
+    ['disposición', { layout: 'inline' }],
+    ['columnas', { columns: 3 }],
+  ] as [string, Partial<ArithmeticInput>][])('cambiar %s no cambia la clave', (_label, patch) => {
+    expect(keyFor(patch)).toBe(keyFor());
   });
 
   it('el modo de división cambia la clave cuando hay divisiones', () => {
@@ -50,6 +58,25 @@ describe('petición del cuadernillo', () => {
     // tope sortean lo mismo y deben compartir clave.
     const mul = { add: false, sub: false, mul: true, div: false };
     expect(keyFor({ kinds: mul, second: { min: 10, max: 5000 } })).toBe(keyFor({ kinds: mul, second: { min: 10, max: 9999 } }));
+  });
+});
+
+describe('operaciones que no han salido', () => {
+  const op = (kind: OperationKind): Operation => ({ kind, a: 10, b: 2, result: 5, remainder: 0 });
+  const ALL: OperationKind[] = ['add', 'sub', 'mul', 'div'];
+
+  it('señala la operación elegida que no ha aportado ninguna', () => {
+    expect(missingKinds(ALL, [op('add'), op('sub'), op('mul')], 20)).toEqual(['div']);
+    expect(missingKinds(ALL, ALL.map(op), 20)).toEqual([]);
+  });
+
+  // `shareOut(2, 4)` es [1, 1, 0, 0]: a la multiplicación y a la división no se les ha pedido ninguna, así que no
+  // haberlas sacado no es culpa de los rangos y la ficha está completa.
+  it('calla cuando el cupo repartido deja alguna operación en cero', () => {
+    expect(missingKinds(ALL, [op('add'), op('sub')], 2)).toEqual([]);
+    expect(missingKinds(ALL, [op('add'), op('sub'), op('mul')], 3)).toEqual([]);
+    // Con tantos ejercicios como operaciones a todas les toca al menos una, y entonces sí se dice.
+    expect(missingKinds(ALL, [op('add'), op('sub'), op('mul')], 4)).toEqual(['div']);
   });
 });
 

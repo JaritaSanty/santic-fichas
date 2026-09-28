@@ -1,5 +1,5 @@
 import { BRAND_DOMAIN, BRAND_MARK_ASPECT } from '@/core/brand';
-import { capHeightMm, fitTextToWidth, measureTextMm, stripUnsupportedSheetChars, type FittedText } from '@/core/measure';
+import { capHeightMm, ELLIPSIS, fitTextToWidth, measureTextMm, stripUnsupportedSheetChars, type FittedText } from '@/core/measure';
 import { PAPER, SHEET_MARGIN_MM, type PaperSize } from '@/core/paper';
 import type { Primitive, SheetPage } from '@/core/sheet';
 import { collapseSpaces } from '@/core/text';
@@ -131,6 +131,18 @@ function fillPage(template: string, stamp: PageStamp): string {
 }
 
 /**
+ * Recorte por **ancho medido**, no por número de caracteres: el código de ficha lo escribe el docente y uno muy largo
+ * hacía una línea de datos de 183 mm que se imprimía encima del isotipo y del dominio. La hoja se mide, nunca se
+ * calcula a ojo, así que la línea se corta donde acaba el sitio que deja el pie.
+ */
+function clipToWidth(text: string, sizeMm: number, maxWidth: number): string {
+  if (measureTextMm(text, 'sheet', sizeMm) <= maxWidth) return text;
+  const chars = Array.from(text);
+  while (chars.length > 0 && measureTextMm(`${chars.join('').trimEnd()}${ELLIPSIS}`, 'sheet', sizeMm) > maxWidth) chars.pop();
+  return chars.length === 0 ? '' : `${chars.join('').trimEnd()}${ELLIPSIS}`;
+}
+
+/**
  * Marca de página del marco: la línea de datos del margen inferior (`página n/N · papel · código`) y la pestaña de
  * rol colgada del filete del encabezado (alumno / soluciones).
  *
@@ -144,7 +156,9 @@ export function stampPrimitives(input: { paper: PaperSize; labels: FrameLabels; 
   const { labels, stamp } = input;
 
   const parts = [fillPage(labels.pageOf, stamp), labels.paperName, ...(stamp.code ? [stamp.code] : [])];
-  const dataLine = clip(parts.join(STAMP_SEPARATOR), 120);
+  // Sitio libre del pie: lo que queda a la derecha del isotipo y el dominio, con un hueco entre los dos bloques.
+  const footerEnd = m + MARK_HEIGHT * BRAND_MARK_ASPECT + FOOTER_GAP + measureTextMm(BRAND_DOMAIN, 'sheet', FOOTER_TEXT_SIZE);
+  const dataLine = clipToWidth(clip(parts.join(STAMP_SEPARATOR), 120), FOOTER_TEXT_SIZE, W - m - footerEnd - 2 * FOOTER_GAP);
 
   const roleText = clip(input.role === 'solution' ? labels.solutions : labels.student, 40);
   const tagWidth = measureTextMm(roleText, 'sheet', TAG_TEXT_SIZE) + 2 * TAG_PAD_X;
