@@ -22,6 +22,10 @@ test.describe('impresión directa', () => {
     await expect(page.locator('#print-root svg')).toHaveCount(2);
     await expect(page.locator('#print-root')).toContainText('Animales de la granja: ñandú');
     await expect(page.locator('#print-root')).toContainText('santiceducation.com');
+    // La marca de página también se imprime: la pila de fotocopias dice cuál es cada hoja y cuál es la del docente.
+    await expect(page.locator('#print-root')).toContainText('Página 1/2');
+    await expect(page.locator('#print-root')).toContainText('Alumno');
+    await expect(page.locator('#print-root')).toContainText('Soluciones');
     for (const ad of await page.locator('.ad-slot').all()) await expect(ad).toBeHidden();
 
     const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });

@@ -24,6 +24,13 @@ test.describe('descarga en PDF', () => {
     expect(await text(1)).toContain('Animales de la granja: ñandú');
     expect(await text(1)).toContain('pingüino');
     expect(await text(2)).toContain('Soluciones');
+    // Marca de página del marco compartido: cada hoja dice cuál es, en qué papel y con qué código, y la del docente
+    // lleva además su pestaña de rol. El papel es el detectado por el navegador de la prueba (en-US: Carta).
+    const paper = (await page.locator('[data-job-line] dl > div').filter({ hasText: 'Papel' }).locator('dd').textContent()) ?? '';
+    const code = (await page.locator('[data-job-line] dl > div').filter({ hasText: 'Código' }).locator('dd').textContent()) ?? '';
+    expect(await text(1)).toContain(`Página 1/2 · ${paper} · ${code}`);
+    expect(await text(1)).toContain('Alumno');
+    expect(await text(2)).toContain(`Página 2/2 · ${paper} · ${code}`);
 
     // Sin .notdef ni glifos vacíos (§13.1): la lista del alumno extrae cada palabra con tilde, diéresis o Ñ tal cual,
     // y ninguna página contiene U+FFFD ni controles.
@@ -55,7 +62,8 @@ test.describe('descarga en PDF', () => {
     await settle(page);
     // Hojas de alumno anunciadas por la herramienta: el PDF debe llevar esas y otras tantas de soluciones.
     const announced = async () => {
-      const [sheets = 0, perPage = 0] = (((await page.locator('[data-notices] li').first().textContent()) ?? '').match(/\d+/g) ?? []).map(Number);
+      const sheetsItem = page.locator('[data-job-line] dl > div').filter({ hasText: 'Hojas' }).locator('dd');
+      const [sheets = 0, perPage = 0] = (((await sheetsItem.textContent()) ?? '').match(/\d+/g) ?? []).map(Number);
       return { sheets, perPage };
     };
     // Una operación más de las que caben en una hoja: el cuadernillo se pagina de verdad dentro del PDF.

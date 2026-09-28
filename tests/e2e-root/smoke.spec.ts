@@ -23,7 +23,8 @@ test('la raíz redirige, la herramienta genera y el service worker cubre todo el
   await expect(page.locator('[data-generation]')).toHaveAttribute('data-generation', 'done', { timeout: 10_000 });
   const requested = Number(await page.getByLabel('Número de operaciones').inputValue());
   // La primera hoja lleva lo que se pide o lo que cabe: la capacidad se lee del aviso, no se da por supuesta.
-  const [, perPage = 0] = (((await page.locator('[data-notices] li').first().textContent()) ?? '').match(/\d+/g) ?? []).map(Number);
+  const sheetsItem = page.locator('[data-job-line] dl > div').filter({ hasText: 'Hojas' }).locator('dd');
+  const [, perPage = 0] = (((await sheetsItem.textContent()) ?? '').match(/\d+/g) ?? []).map(Number);
   const exercises = await page
     .locator('[data-tool-canvas] svg[role="img"]')
     .first()

@@ -10,6 +10,7 @@ const ROUTES = [
     path: 'es/operaciones/',
     heading: 'Cuadernillo de operaciones',
     pagesLabel: 'Páginas',
+    sheetsLabel: 'Hojas',
     codeItem: 'Código',
     seedLabel: 'Código de ficha',
     countLabel: 'Número de operaciones',
@@ -19,6 +20,7 @@ const ROUTES = [
     path: 'en/math-worksheets/',
     heading: 'Arithmetic booklet',
     pagesLabel: 'Pages',
+    sheetsLabel: 'Sheets',
     codeItem: 'Code',
     seedLabel: 'Worksheet code',
     countLabel: 'Number of operations',
@@ -51,14 +53,15 @@ const signs = (page: Page) =>
 const numbersIn = (text: string) => (text.match(/\d+/g) ?? []).map(Number);
 
 /**
- * Hojas de alumno y capacidad por hoja según el aviso de paginación, que es el primero de `[data-notices]`.
- * Todo lo demás (páginas del documento, hojas impresas, ejercicios dibujados) se contrasta con esto: si la
- * herramienta anunciara un número y produjera otro, la prueba falla sin depender de ninguna cifra fija.
+ * Hojas de alumno y capacidad por hoja según el dato HOJAS de la línea de trabajo («1 · máx. 28 por hoja»), que es
+ * donde el cuadernillo dice cuántas salen. Todo lo demás (páginas del documento, hojas impresas, ejercicios
+ * dibujados) se contrasta con esto: si la herramienta anunciara un número y produjera otro, la prueba falla sin
+ * depender de ninguna cifra fija.
  */
-async function announced(page: Page): Promise<{ sheets: number; perPage: number }> {
-  const notice = page.locator('[data-notices] li').first();
-  await expect(notice).toBeVisible();
-  const [sheets = 0, perPage = 0] = numbersIn((await notice.textContent()) ?? '');
+async function announced(page: Page, label: string = ES.sheetsLabel): Promise<{ sheets: number; perPage: number }> {
+  const item = jobValue(page, label);
+  await expect(item).toBeVisible();
+  const [sheets = 0, perPage = 0] = numbersIn((await item.textContent()) ?? '');
   return { sheets, perPage };
 }
 
@@ -82,7 +85,7 @@ test.describe('cuadernillo de operaciones', () => {
       await expect(page.getByRole('heading', { level: 1 })).toHaveText(route.heading);
       await settle(page);
 
-      const { sheets, perPage } = await announced(page);
+      const { sheets, perPage } = await announced(page, route.sheetsLabel);
       const count = await requestedCount(page, route.countLabel);
       expect(sheets).toBe(Math.ceil(count / perPage));
       // Con soluciones el documento lleva el doble de páginas que hojas de alumno, y la línea de trabajo lo dice.
@@ -121,8 +124,9 @@ test.describe('cuadernillo de operaciones', () => {
     await expect(page.locator('[data-tool-canvas] svg[role="img"]')).toHaveCount(sheets * 2);
     // En columnas la división se dibuja como galera, sin signo; las otras tres sí dejan el suyo en la hoja.
     expect(await signs(page)).toEqual(['+', '−', '×']);
-    // Solo queda el aviso de paginación: la herramienta no echa en falta ninguna de las cuatro operaciones.
-    await expect(page.locator('[data-notices] li')).toHaveCount(1);
+    // Ni un aviso: la herramienta no echa en falta ninguna de las cuatro operaciones y las hojas son un dato, no
+    // una condición.
+    await expect(page.locator('[data-notices] li')).toHaveCount(0);
 
     // En línea la división sí lleva ÷, y la capacidad de la hoja se vuelve a anunciar para la nueva disposición.
     await page.getByLabel('En línea').check();
@@ -175,8 +179,8 @@ test.describe('cuadernillo de operaciones', () => {
   test('cuando no caben las columnas pedidas se dice cuántas se usan', async ({ page }) => {
     await page.goto(ES.path);
     await settle(page);
-    // Por defecto caben las cuatro pedidas: no hay más aviso que el de paginación.
-    await expect(page.locator('[data-notices] li')).toHaveCount(1);
+    // Por defecto caben las cuatro pedidas: no hay ningún aviso.
+    await expect(page.locator('[data-notices] li')).toHaveCount(0);
 
     for (const kind of ['Suma', 'Resta']) await page.getByLabel(kind, { exact: true }).uncheck();
     await page.getByLabel('División', { exact: true }).check();
@@ -191,14 +195,14 @@ test.describe('cuadernillo de operaciones', () => {
     await page.getByLabel('Columnas por hoja').selectOption('5');
     await settle(page);
 
-    await expect(page.locator('[data-notices] li').nth(1)).toHaveText('Con estas operaciones solo caben 2 columnas por hoja; se usan esas.');
+    await expect(page.locator('[data-notices] li')).toHaveText(['Con estas operaciones solo caben 2 columnas por hoja; se usan esas.']);
     // El selector sigue marcando lo que se pidió: el aviso explica la diferencia, no la esconde.
     await expect(page.getByLabel('Columnas por hoja')).toHaveValue('5');
 
     // Al pedir las que caben, el aviso desaparece: sigue al recorte real, no al número del selector.
     await page.getByLabel('Columnas por hoja').selectOption('2');
     await settle(page);
-    await expect(page.locator('[data-notices] li')).toHaveCount(1);
+    await expect(page.locator('[data-notices] li')).toHaveCount(0);
   });
 
   test('«Nuevo cuadernillo» cambia el código y el cuadernillo con él', async ({ page }) => {
@@ -290,9 +294,14 @@ test.describe('cuadernillo de operaciones', () => {
     // No hay nada que generar: el panel no ofrece aplicar ninguna cantidad.
     await expect(panel.locator('[data-action="generate"]')).toHaveCount(0);
 
-    await expect(page.locator('[data-notices] li')).toHaveText(['No ha salido ninguna división con estas opciones.']);
+    // Sin ninguna operación, el aviso por operación no se repite encima del panel: ese estado ya es suyo entero.
+    await expect(page.locator('[data-notices] li')).toHaveCount(0);
     expect(await exercises(page)).toEqual([]);
-    await expect(jobValue(page, ES.pagesLabel)).toHaveText('1');
+    // Nada que imprimir: ni páginas ni hojas, como el código de ficha cuando no corresponde a ninguna.
+    await expect(jobValue(page, ES.pagesLabel)).toHaveText('—');
+    await expect(jobValue(page, ES.sheetsLabel)).toHaveText('—');
+    // La prueba lleva su estado con nombre, no una hoja en blanco a tamaño real.
+    await expect(page.locator('[data-sheet-state]')).toHaveText('Hoja sin ejercicios');
     await expect(page.locator('[data-action="print"]')).toBeDisabled();
     await expect(page.locator('[data-action="pdf"]')).toBeDisabled();
   });
