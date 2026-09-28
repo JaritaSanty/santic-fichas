@@ -16,7 +16,7 @@ export const en: Dictionary = {
       cta: 'Create an arithmetic booklet',
     },
   },
-  sheet: { name: 'Name', date: 'Date', solutions: 'Answer key', defaultTitle: 'Word search', previewLabel: 'Worksheet preview' },
+  sheet: { name: 'Name', date: 'Date', solutions: 'Answer key', student: 'Student', pageOf: 'Page {page}/{pages}', defaultTitle: 'Word search', previewLabel: 'Worksheet preview' },
   tool: {
     headerLegend: 'Worksheet header',
     titleLabel: 'Title',

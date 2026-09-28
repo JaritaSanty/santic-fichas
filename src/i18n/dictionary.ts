@@ -9,7 +9,18 @@ export interface Dictionary {
   nav: { languageSwitch: string; languageName: Record<Lang, string>; skipToContent: string; home: string };
   home: { heading: string; intro: string };
   sections: Record<SectionKey, { title: string; description: string; cta: string }>;
-  sheet: { name: string; date: string; solutions: string; defaultTitle: string; previewLabel: string };
+  sheet: {
+    name: string;
+    date: string;
+    /** Marca de rol de la hoja del docente, y sufijo de su título. */
+    solutions: string;
+    /** Marca de rol de la hoja del alumno, en el marco. */
+    student: string;
+    /** Línea de datos del margen de la hoja: lleva {page} y {pages}. */
+    pageOf: string;
+    defaultTitle: string;
+    previewLabel: string;
+  };
   tool: {
     headerLegend: string;
     titleLabel: string;

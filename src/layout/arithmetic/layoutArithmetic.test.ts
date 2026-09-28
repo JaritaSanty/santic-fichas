@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { PAPER, SHEET_MARGIN_MM, type PaperSize } from '@/core/paper';
 import type { Primitive, SheetPage } from '@/core/sheet';
 import type { ArithmeticResult, Operation, OperationKind, SheetLayout } from '@/generators/arithmetic';
-import { buildFrame } from '@/layout/common/frame';
+import { buildFrame, stampPrimitives } from '@/layout/common/frame';
 import { ARITHMETIC_LAYOUT, measureBlock } from './blocks';
 import { arithmeticCapacity, layoutArithmetic, verticalGapMm } from './layoutArithmetic';
-import { corners } from './primitiveBounds';
+import { corners } from '@/layout/common/primitiveBounds';
 
 const L = ARITHMETIC_LAYOUT;
-const labels = { name: 'Nombre', date: 'Fecha', solutions: 'Soluciones' };
+const labels = { name: 'Nombre', date: 'Fecha', solutions: 'Soluciones', student: 'Alumno', paperName: 'A4', pageOf: 'Página {page}/{pages}' };
 const header = { title: 'Operaciones', school: 'Escuela Nº 5' };
 
 const op = (kind: OperationKind, a: number, b: number, result: number, remainder = 0): Operation => ({ kind, a, b, result, remainder });
@@ -51,6 +51,11 @@ const lay = (input: {
 
 const content = (paper: PaperSize, role: 'student' | 'solution' = 'student') => buildFrame({ paper, header, labels, role }).content;
 const frameSize = (paper: PaperSize, role: 'student' | 'solution') => buildFrame({ paper, header, labels, role }).primitives.length;
+// Cada hoja es marco · bloques · marca de página: la marca vive en los márgenes y se recorta aparte de los bloques.
+const stampSize = (paper: PaperSize, role: 'student' | 'solution') =>
+  stampPrimitives({ paper, labels, role, stamp: { page: 1, pages: 2, code: 'v1-MAQUET' } }).length;
+const blocksOf = (paper: PaperSize, page: SheetPage): Primitive[] =>
+  page.primitives.slice(frameSize(paper, page.role), page.primitives.length - stampSize(paper, page.role));
 
 const INDEX = /^\d+\)$/;
 const indices = (page: SheetPage): string[] =>
@@ -104,6 +109,27 @@ describe.each(['a4', 'letter'] as PaperSize[])('capacidad en %s', (paper) => {
     expect(out.capacity.perPage % out.capacity.columns).toBe(0);
   });
 
+  it('la marca de página se queda en los márgenes, fuera de la caja de contenido', () => {
+    const out = lay({ operations: sums(40), paper, columns: 2, includeSolutions: true });
+    if (!out.ok) throw new Error('maquetación');
+    const { widthMm, heightMm } = PAPER[paper];
+    for (const page of out.doc.pages) {
+      const box = content(paper, page.role);
+      const stamp = page.primitives.slice(page.primitives.length - stampSize(paper, page.role));
+      expect(stamp.length).toBeGreaterThan(0);
+      for (const p of stamp) {
+        for (const [x, y] of corners(p)) {
+          expect(x).toBeGreaterThanOrEqual(SHEET_MARGIN_MM - 1e-6);
+          expect(x).toBeLessThanOrEqual(widthMm - SHEET_MARGIN_MM + 1e-6);
+          expect(y).toBeGreaterThanOrEqual(SHEET_MARGIN_MM - 1e-6);
+          expect(y).toBeLessThanOrEqual(heightMm - SHEET_MARGIN_MM + 1e-6);
+          // Ni un milímetro dentro del área de ejercicios: o está por encima de la caja, o por debajo.
+          expect(y <= box.y + 1e-6 || y >= box.y + box.h - 1e-6).toBe(true);
+        }
+      }
+    }
+  });
+
   it('el número de bloques dibujados es el de operaciones, con sus índices en orden', () => {
     const out = lay({ operations: sums(47), paper, columns: 3 });
     if (!out.ok) throw new Error('maquetación');
@@ -119,7 +145,7 @@ describe.each(['a4', 'letter'] as PaperSize[])('capacidad en %s', (paper) => {
       // Los bloques van detrás de las primitivas del marco: se comprueban contra la caja de contenido, más
       // estrecha que la hoja, para que un bloque no pueda invadir el encabezado o el pie sin que salte la prueba.
       const box = content(paper, page.role);
-      for (const p of page.primitives.slice(frameSize(paper, page.role))) {
+      for (const p of blocksOf(paper, page)) {
         for (const [x, y] of corners(p)) {
           expect(x).toBeGreaterThanOrEqual(box.x - 1e-6);
           expect(x).toBeLessThanOrEqual(box.x + box.w + 1e-6);

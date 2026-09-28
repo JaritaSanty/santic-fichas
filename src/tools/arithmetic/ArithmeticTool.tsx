@@ -23,7 +23,7 @@ import {
 import type { Dictionary } from '@/i18n/dictionary';
 import { formatMessage, formatPlural } from '@/i18n/format';
 import { layoutArithmetic } from '@/layout/arithmetic';
-import { buildFrame, fitHeader, type SheetHeader } from '@/layout/common/frame';
+import { buildFrame, fitHeader, stampPages, type SheetHeader } from '@/layout/common/frame';
 import { Docket } from '@/tools/shared/Docket';
 import { DownloadPdfButton } from '@/tools/shared/DownloadPdfButton';
 import { IncludeSolutionsField } from '@/tools/shared/IncludeSolutionsField';
@@ -133,7 +133,18 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
   const ready = settled && hasOperations;
   // Con un código erróneo la ficha no corresponde a ningún código: no se muestra el anterior.
   const shownSeed = seedInvalid || seedCode === '' ? '—' : seedCode;
-  const frameLabels = useMemo(() => ({ name: labels.sheet.name, date: labels.sheet.date, solutions: labels.sheet.solutions }), [labels.sheet]);
+  const paperName = paper === 'a4' ? labels.tool.paperA4 : labels.tool.paperLetter;
+  const frameLabels = useMemo(
+    () => ({
+      name: labels.sheet.name,
+      date: labels.sheet.date,
+      solutions: labels.sheet.solutions,
+      student: labels.sheet.student,
+      pageOf: labels.sheet.pageOf,
+      paperName,
+    }),
+    [labels.sheet, paperName],
+  );
   const laid = useMemo(
     () =>
       result ? layoutArithmetic({ result, header, labels: frameLabels, paper, lang, includeSolutions, layout: sheetLayout, columns }) : null,
@@ -143,8 +154,10 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
   // línea de trabajo anunciaría dos páginas que nadie quiere imprimir.
   const doc = useMemo<SheetDocument>(() => {
     if (laid?.ok && hasOperations) return laid.doc;
-    return { paper, lang, pages: [{ role: 'student', primitives: buildFrame({ paper, header, labels: frameLabels, role: 'student' }).primitives }] };
-  }, [laid, hasOperations, paper, lang, header, frameLabels]);
+    // El marco vacío también lleva su marca de página: es una hoja como las demás, la 1 de 1.
+    const empty = [{ role: 'student' as const, primitives: buildFrame({ paper, header, labels: frameLabels, role: 'student' }).primitives }];
+    return { paper, lang, pages: stampPages(empty, { paper, labels: frameLabels, code: shownSeed }) };
+  }, [laid, hasOperations, paper, lang, header, frameLabels, shownSeed]);
 
   const quote = (chars: string[]) => chars.map((c) => formatMessage(labels.tool.quote, { text: c })).join(' ');
   const headerChars = unsupportedSheetChars(`${header.title}${header.school}`.replace(/\s+/g, ' '));
@@ -211,7 +224,6 @@ export function ArithmeticTool({ lang, labels }: { lang: Lang; labels: Arithmeti
   // previa, así que la línea de trabajo y la prueba dicen siempre lo mismo que se está mirando (mientras se genera la
   // siguiente ficha sigue vigente la anterior, y sus cifras con ella).
   const printable = laid?.ok === true && hasOperations;
-  const paperName = paper === 'a4' ? labels.tool.paperA4 : labels.tool.paperLetter;
   // Cuántas hojas de alumno salen y cuántos ejercicios caben en cada una: un dato del trabajo, no un aviso.
   const sheetsValue =
     printable && laid?.ok ? formatMessage(t.sheets, { pages: laid.capacity.pages, perPage: laid.capacity.perPage }) : '—';

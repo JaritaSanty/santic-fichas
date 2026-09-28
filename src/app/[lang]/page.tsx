@@ -8,7 +8,7 @@ import { generateWordSearch, validateWordSearch } from '@/generators/wordsearch'
 import { getDictionary, type Dictionary } from '@/i18n/dictionary';
 import { SECTION_SLUGS, sectionPath, type SectionKey } from '@/i18n/routes';
 import { layoutArithmetic } from '@/layout/arithmetic';
-import { buildFrame } from '@/layout/common/frame';
+import { buildFrame, stampPages, type FrameLabels } from '@/layout/common/frame';
 import { layoutWordSearch } from '@/layout/wordsearch';
 import { SheetSvg } from '@/render/svg/SheetSvg';
 
@@ -28,6 +28,18 @@ const SAMPLE_ARITHMETIC: ArithmeticInput = {
   columns: 4,
 };
 
+/** Las miniaturas son hojas A4 de verdad, con la misma marca de página que la ficha impresa. */
+function frameLabels(dict: Dictionary): FrameLabels {
+  return {
+    name: dict.sheet.name,
+    date: dict.sheet.date,
+    solutions: dict.sheet.solutions,
+    student: dict.sheet.student,
+    pageOf: dict.sheet.pageOf,
+    paperName: dict.tool.paperA4,
+  };
+}
+
 /** Portada de fase de construcción: prueba una sopa de letras real con el vocabulario de ejemplo. */
 function wordsearchSamplePage(lang: Lang, dict: Dictionary): SheetPage | null {
   const validation = validateWordSearch({ wordsText: dict.wordsearch.sampleWords, size: SAMPLE_SIZE, directions: SAMPLE_DIRECTIONS }, lang);
@@ -36,7 +48,7 @@ function wordsearchSamplePage(lang: Lang, dict: Dictionary): SheetPage | null {
   const layout = layoutWordSearch({
     result,
     header: { title: dict.sections.wordsearch.title, school: '' },
-    labels: { name: dict.sheet.name, date: dict.sheet.date, solutions: dict.sheet.solutions },
+    labels: frameLabels(dict),
     paper: 'a4',
     lang,
     includeSolutions: false,
@@ -52,7 +64,7 @@ function arithmeticSamplePage(lang: Lang, dict: Dictionary): SheetPage | null {
   const layout = layoutArithmetic({
     result,
     header: { title: dict.sections.arithmetic.title, school: '' },
-    labels: { name: dict.sheet.name, date: dict.sheet.date, solutions: dict.sheet.solutions },
+    labels: frameLabels(dict),
     paper: 'a4',
     lang,
     includeSolutions: false,
@@ -63,15 +75,11 @@ function arithmeticSamplePage(lang: Lang, dict: Dictionary): SheetPage | null {
 }
 
 function framePage(lang: Lang, dict: Dictionary, title: string): SheetPage {
-  return {
+  const page: SheetPage = {
     role: 'student',
-    primitives: buildFrame({
-      paper: 'a4',
-      header: { title, school: '' },
-      labels: { name: dict.sheet.name, date: dict.sheet.date, solutions: dict.sheet.solutions },
-      role: 'student',
-    }).primitives,
+    primitives: buildFrame({ paper: 'a4', header: { title, school: '' }, labels: frameLabels(dict), role: 'student' }).primitives,
   };
+  return stampPages([page], { paper: 'a4', labels: frameLabels(dict), code: SAMPLE_SEED })[0] as SheetPage;
 }
 
 function thumbnailPage(key: SectionKey, lang: Lang, dict: Dictionary, title: string): SheetPage {

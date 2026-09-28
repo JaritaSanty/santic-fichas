@@ -2,7 +2,7 @@ import type { Lang } from '@/core/lang';
 import type { PaperSize } from '@/core/paper';
 import type { Primitive, SheetDocument, SheetPage } from '@/core/sheet';
 import type { ArithmeticResult, SheetLayout } from '@/generators/arithmetic';
-import { buildFrame, type ContentBox, type FrameLabels, type SheetHeader } from '@/layout/common/frame';
+import { buildFrame, stampPages, type ContentBox, type FrameLabels, type SheetHeader } from '@/layout/common/frame';
 import { ARITHMETIC_LAYOUT, blockPrimitives, measureBlock, type BlockBox } from './blocks';
 
 const EPS = 1e-9;
@@ -83,11 +83,13 @@ export function layoutArithmetic(input: ArithmeticLayoutInput): ArithmeticLayout
   const operations = result.operations;
 
   const emptyPage = (role: 'student' | 'solution'): SheetPage => ({ role, primitives: buildFrame({ paper, header, labels, role }).primitives });
+  const stamped = (pages: SheetPage[]): SheetPage[] => stampPages(pages, { paper, labels, code: result.seedCode });
+
   if (operations.length === 0) {
     const pages: SheetPage[] = [emptyPage('student')];
     if (input.includeSolutions) pages.push(emptyPage('solution'));
     // Sin operaciones no hay retícula que recortar: se devuelven las columnas pedidas para no anunciar un recorte.
-    return { ok: true, doc: { paper, lang, pages }, capacity: { columns: input.columns, perPage: 0, pages: 1 } };
+    return { ok: true, doc: { paper, lang, pages: stamped(pages) }, capacity: { columns: input.columns, perPage: 0, pages: 1 } };
   }
 
   const boxes = operations.map((op) => measureBlock(op, layout, lang));
@@ -128,5 +130,6 @@ export function layoutArithmetic(input: ArithmeticLayoutInput): ArithmeticLayout
     for (let page = 0; page < pageCount; page++) pages.push(buildPage('solution', page));
   }
 
-  return { ok: true, doc: { paper, lang, pages }, capacity: { columns: grid.columns, perPage: grid.perPage, pages: pageCount } };
+  // La marca de página se pone al final, cuando ya se sabe cuántas hojas tiene el cuadernillo.
+  return { ok: true, doc: { paper, lang, pages: stamped(pages) }, capacity: { columns: grid.columns, perPage: grid.perPage, pages: pageCount } };
 }

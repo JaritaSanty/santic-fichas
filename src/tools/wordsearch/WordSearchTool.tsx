@@ -9,7 +9,7 @@ import type { SheetDocument } from '@/core/sheet';
 import { readSeedInput, suggestAdjustments, validateWordSearch, WORDSEARCH_ALGORITHM_VERSION, WORDSEARCH_LIMITS, type DirectionOptions } from '@/generators/wordsearch';
 import type { Dictionary } from '@/i18n/dictionary';
 import { formatMessage, formatPlural } from '@/i18n/format';
-import { buildFrame, fitHeader, type SheetHeader } from '@/layout/common/frame';
+import { buildFrame, fitHeader, stampPages, type SheetHeader } from '@/layout/common/frame';
 import { layoutWordSearch } from '@/layout/wordsearch';
 import { IncludeSolutionsField } from '@/tools/shared/IncludeSolutionsField';
 import { PaperSelect } from '@/tools/shared/PaperSelect';
@@ -95,15 +95,28 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
   const ready = current && generation.status === 'done' && result !== null;
   // Con un código erróneo la ficha no corresponde a ningún código: no se muestra el anterior.
   const shownSeed = seedInvalid || seedCode === '' ? '—' : seedCode;
-  const frameLabels = useMemo(() => ({ name: labels.sheet.name, date: labels.sheet.date, solutions: labels.sheet.solutions }), [labels.sheet]);
+  const paperName = paper === 'a4' ? labels.tool.paperA4 : labels.tool.paperLetter;
+  const frameLabels = useMemo(
+    () => ({
+      name: labels.sheet.name,
+      date: labels.sheet.date,
+      solutions: labels.sheet.solutions,
+      student: labels.sheet.student,
+      pageOf: labels.sheet.pageOf,
+      paperName,
+    }),
+    [labels.sheet, paperName],
+  );
   const layout = useMemo(
     () => (result ? layoutWordSearch({ result, header, labels: frameLabels, paper, lang, includeSolutions }) : null),
     [result, header, frameLabels, paper, lang, includeSolutions],
   );
   const doc = useMemo<SheetDocument>(() => {
     if (layout?.ok) return layout.doc;
-    return { paper, lang, pages: [{ role: 'student', primitives: buildFrame({ paper, header, labels: frameLabels, role: 'student' }).primitives }] };
-  }, [layout, paper, lang, header, frameLabels]);
+    // El marco vacío también lleva su marca de página: es una hoja como las demás, la 1 de 1.
+    const empty = [{ role: 'student' as const, primitives: buildFrame({ paper, header, labels: frameLabels, role: 'student' }).primitives }];
+    return { paper, lang, pages: stampPages(empty, { paper, labels: frameLabels, code: shownSeed }) };
+  }, [layout, paper, lang, header, frameLabels, shownSeed]);
 
   const quote = (chars: string[]) => chars.map((c) => formatMessage(labels.tool.quote, { text: c })).join(' ');
   const headerChars = unsupportedSheetChars(`${header.title}${header.school}`.replace(/\s+/g, ' '));

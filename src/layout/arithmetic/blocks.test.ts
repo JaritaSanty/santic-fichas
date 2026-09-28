@@ -4,7 +4,7 @@ import { capHeightMm, measureTextMm } from '@/core/measure';
 import type { Primitive } from '@/core/sheet';
 import { ARITHMETIC_LIMITS, type Operation, type OperationKind } from '@/generators/arithmetic';
 import { ARITHMETIC_LAYOUT, blockIndexLabel, blockPrimitives, measureBlock } from './blocks';
-import { corners } from './primitiveBounds';
+import { corners } from '@/layout/common/primitiveBounds';
 
 const L = ARITHMETIC_LAYOUT;
 

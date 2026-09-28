@@ -3,9 +3,9 @@ import type { FontId, Primitive } from '@/core/sheet';
 import { SHEET_FONT_METRICS } from '@/core/sheetFontMetrics';
 
 /**
- * Esquinas en milímetros de la tinta de una primitiva. Lo usan las pruebas de geometría de este módulo
- * (`blocks.test.ts` y `layoutArithmetic.test.ts`) para comprobar que nada se sale de la caja del bloque ni de la
- * caja de contenido de la hoja.
+ * Esquinas en milímetros de la tinta de una primitiva. Lo usan las pruebas de geometría de la hoja (el marco y sus
+ * marcas, los bloques del cuadernillo) para comprobar que nada se sale de su caja, de la caja de contenido ni de los
+ * márgenes de impresión. Vive en `layout/common` porque la comprobación es de la hoja entera, no de un generador.
  *
  * La cota es generosa por los dos lados: el texto va de la altura de mayúscula sobre la línea base hasta el
  * descendente de la tipografía cuando el texto lleva algún carácter que baja (en la ficha, solo el paréntesis del

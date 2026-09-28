@@ -3,9 +3,10 @@ import { BRAND_DOMAIN } from '@/core/brand';
 import { measureTextMm } from '@/core/measure';
 import { PAPER, type PaperSize } from '@/core/paper';
 import type { Primitive } from '@/core/sheet';
-import { buildFrame, fitHeader } from './frame';
+import { buildFrame, fitHeader, stampPages, stampPrimitives } from './frame';
+import { corners } from './primitiveBounds';
 
-const labels = { name: 'Nombre', date: 'Fecha', solutions: 'Soluciones' };
+const labels = { name: 'Nombre', date: 'Fecha', solutions: 'Soluciones', student: 'Alumno', paperName: 'A4', pageOf: 'Página {page}/{pages}' };
 const header = { title: 'Los animales', school: 'Escuela Santa Ana' };
 
 const texts = (ps: Primitive[]) => ps.flatMap((p) => (p.t === 'text' ? [p.text] : []));
@@ -76,6 +77,64 @@ describe('buildFrame contenido', () => {
     expect(texts(frame.primitives)).toContain('Escuela Santa Ana');
   });
 
+});
+
+describe('marca de página', () => {
+  const stamp = { page: 2, pages: 6, code: 'v1-ABC234' };
+  const marks = (paper: PaperSize, role: 'student' | 'solution') => stampPrimitives({ paper, labels, role, stamp });
+
+  it.each(['a4', 'letter'] as PaperSize[])('dice página, papel y código en el margen de %s', (paper) => {
+    expect(texts(marks(paper, 'student'))).toContain('Página 2/6 · A4 · v1-ABC234');
+  });
+
+  it('sin código la línea de datos no lo menciona', () => {
+    expect(texts(stampPrimitives({ paper: 'a4', labels, role: 'student', stamp: { page: 1, pages: 1, code: '' } }))).toContain('Página 1/1 · A4');
+  });
+
+  it('cada hoja lleva su rol: alumno con filete, soluciones con pastilla llena', () => {
+    const student = marks('a4', 'student');
+    const solution = marks('a4', 'solution');
+    expect(texts(student)).toContain('Alumno');
+    expect(texts(solution)).toContain('Soluciones');
+    expect(student.some((p) => p.t === 'rect' && p.stroke === 'faint' && p.fill === undefined)).toBe(true);
+    expect(solution.some((p) => p.t === 'rect' && p.fill === 'faint')).toBe(true);
+  });
+
+  it.each(['a4', 'letter'] as PaperSize[])('se queda en los márgenes y fuera de la caja de contenido en %s', (paper) => {
+    const { widthMm, heightMm } = PAPER[paper];
+    for (const role of ['student', 'solution'] as const) {
+      const { content } = buildFrame({ paper, header, labels, role });
+      for (const p of marks(paper, role)) {
+        for (const [x, y] of corners(p)) {
+          expect(x).toBeGreaterThanOrEqual(12 - 1e-6);
+          expect(x).toBeLessThanOrEqual(widthMm - 12 + 1e-6);
+          expect(y).toBeGreaterThanOrEqual(12 - 1e-6);
+          expect(y).toBeLessThanOrEqual(heightMm - 12 + 1e-6);
+          expect(y <= content.y + 1e-6 || y >= content.y + content.h - 1e-6).toBe(true);
+        }
+      }
+    }
+  });
+
+  it.each(['a4', 'letter'] as PaperSize[])('la línea de datos no pisa la marca del pie en %s', (paper) => {
+    const { primitives } = buildFrame({ paper, header, labels, role: 'student' });
+    const domain = primitives.find((p): p is Extract<Primitive, { t: 'text' }> => p.t === 'text' && p.text === BRAND_DOMAIN);
+    const data = marks(paper, 'student').find((p): p is Extract<Primitive, { t: 'text' }> => p.t === 'text' && p.text.startsWith('Página'));
+    const footerEnd = domain!.x + measureTextMm(domain!.text, domain!.font, domain!.size);
+    expect(data!.x - measureTextMm(data!.text, data!.font, data!.size)).toBeGreaterThan(footerEnd);
+  });
+
+  it('numera las hojas de un documento y deja el resto de primitivas intacto', () => {
+    const page = (role: 'student' | 'solution') => ({ role, primitives: buildFrame({ paper: 'a4', header, labels, role }).primitives });
+    const pages = stampPages([page('student'), page('student'), page('solution')], { paper: 'a4', labels, code: 'v1-ABC234' });
+    expect(pages.map((p) => texts(p.primitives).find((t) => t.startsWith('Página')))).toEqual([
+      'Página 1/3 · A4 · v1-ABC234',
+      'Página 2/3 · A4 · v1-ABC234',
+      'Página 3/3 · A4 · v1-ABC234',
+    ]);
+    expect(pages.map((p) => p.role)).toEqual(['student', 'student', 'solution']);
+    expect(pages[0]!.primitives.slice(0, page('student').primitives.length)).toEqual(page('student').primitives);
+  });
 });
 
 describe('encabezado ajustado por ancho', () => {

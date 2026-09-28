@@ -16,7 +16,7 @@ export const es: Dictionary = {
       cta: 'Crear cuadernillo de operaciones',
     },
   },
-  sheet: { name: 'Nombre', date: 'Fecha', solutions: 'Soluciones', defaultTitle: 'Sopa de letras', previewLabel: 'Vista previa de la ficha' },
+  sheet: { name: 'Nombre', date: 'Fecha', solutions: 'Soluciones', student: 'Alumno', pageOf: 'Página {page}/{pages}', defaultTitle: 'Sopa de letras', previewLabel: 'Vista previa de la ficha' },
   tool: {
     headerLegend: 'Encabezado de la ficha',
     titleLabel: 'Título',
