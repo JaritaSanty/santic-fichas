@@ -24,6 +24,12 @@ const L = ARITHMETIC_LAYOUT;
 export interface BlockBox {
   w: number;
   h: number;
+  /**
+   * Línea base del primer operando, desde el borde superior del bloque. Es la línea por la que se alinean entre sí
+   * los bloques de una fila: cada esquema reparte de otra manera lo que va encima de ella (la galera inglesa pone ahí
+   * el hueco del cociente, las columnas solo el índice), así que alinear por el borde superior desnivelaba la fila.
+   */
+  firstBaseline: number;
 }
 
 /** Signos de la ficha; los cuatro tienen glifo en Andika (métricas de `@/core/sheetFontMetrics`). */
@@ -146,6 +152,8 @@ interface Stroke {
 
 interface DivisionGeometry extends BlockBox {
   indexBaseline: number;
+  /** Línea base del dividendo: el primer operando de la división en los dos esquemas. */
+  firstBaseline: number;
   /** Trazo vertical (de `from` a `to` en vertical) y raya horizontal del esquema. */
   bar: Stroke;
   rule: Stroke;
@@ -194,6 +202,7 @@ function spanishDivisionGeometry(op: Operation): DivisionGeometry {
     w,
     h: quotientBaseline,
     indexBaseline,
+    firstBaseline,
     bar: { at: barX, from: firstBaseline - digitCap, to: quotientBaseline },
     rule: { at: ruleY, from: barX, to: w },
     dividend: { x: leftWidth, baseline: firstBaseline, text: num(op.a), align: 'end' },
@@ -244,6 +253,7 @@ function englishDivisionGeometry(op: Operation, lang: Lang): DivisionGeometry {
     w: unitsX + digitWidth(suffix),
     h: firstBaseline,
     indexBaseline,
+    firstBaseline,
     bar: { at: barX, from: ruleY, to: firstBaseline },
     rule: { at: ruleY, from: barX, to: unitsX },
     dividend: { x: rightX, baseline: firstBaseline, text: num(op.a), align: 'start' },
@@ -296,6 +306,8 @@ function divisionPrimitives(op: Operation, x: number, y: number, lang: Lang, ind
 
 interface InlineGeometry extends BlockBox {
   baseline: number;
+  /** En línea los dos operandos van en el mismo renglón: su línea base es la del renglón. */
+  firstBaseline: number;
   expressionX: number;
   expression: string;
   answerX: number;
@@ -309,11 +321,13 @@ function inlineGeometry(op: Operation, lang: Lang): InlineGeometry {
   const answerX = expressionX + measureTextMm(expression, 'sheet', L.inlineSizeMm);
   // La respuesta reserva lo que más ocupe: la raya del alumno o el texto de la solución.
   const answer = Math.max(L.answerRuleMm, measureTextMm(solutionText(op, lang), 'sheet', L.inlineSizeMm));
+  // El renglón centra el texto: la caja es la altura de línea, no la de la mayúscula.
+  const baseline = (L.inlineLineMm + cap) / 2;
   return {
     w: answerX + answer,
     h: L.inlineLineMm,
-    // El renglón centra el texto: la caja es la altura de línea, no la de la mayúscula.
-    baseline: (L.inlineLineMm + cap) / 2,
+    baseline,
+    firstBaseline: baseline,
     expressionX,
     expression,
     answerX,
@@ -335,10 +349,13 @@ function inlinePrimitives(op: Operation, x: number, y: number, lang: Lang, index
   return out;
 }
 
-/** Caja de un bloque sin dibujarlo: es lo que usa la capacidad de la hoja. */
+/**
+ * Caja de un bloque sin dibujarlo: es lo que usa la capacidad de la hoja. Además del ancho y el alto lleva la línea
+ * base del primer operando, que es por donde se alinean los bloques de una misma fila.
+ */
 export function measureBlock(op: Operation, layout: SheetLayout, lang: Lang): BlockBox {
   const g = layout === 'inline' ? inlineGeometry(op, lang) : op.kind === 'div' ? divisionGeometry(op, lang) : columnsGeometry(op);
-  return { w: g.w, h: g.h };
+  return { w: g.w, h: g.h, firstBaseline: g.firstBaseline };
 }
 
 /**

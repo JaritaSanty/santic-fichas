@@ -54,7 +54,7 @@ export const verticalGapMm = (layout: SheetLayout): number => (layout === 'inlin
  *
  * Devuelve `null` si un solo bloque no cabe en la caja de contenido.
  */
-export function arithmeticCapacity(box: ContentBox, block: BlockBox, columns: number, gapY: number): ArithmeticCapacity | null {
+export function arithmeticCapacity(box: ContentBox, block: Pick<BlockBox, 'w' | 'h'>, columns: number, gapY: number): ArithmeticCapacity | null {
   const L = ARITHMETIC_LAYOUT;
   if (block.w > box.w + EPS || block.h > box.h + EPS) return null;
   const fitting = Math.max(1, Math.floor((box.w + L.blockGapXMm) / (block.w + L.blockGapXMm)));
@@ -91,9 +91,16 @@ export function layoutArithmetic(input: ArithmeticLayoutInput): ArithmeticLayout
   }
 
   const boxes = operations.map((op) => measureBlock(op, layout, lang));
+  // La fila se alinea por la línea base del primer operando, no por el borde superior del bloque: la galera inglesa
+  // reserva el hueco del cociente **encima** del dividendo, así que alineando por arriba una división quedaba un
+  // `answerGapMm` más baja que las sumas de su fila. El alto de fila es entonces lo que sobresale por encima de esa
+  // línea más lo que cuelga por debajo, cada uno del bloque que más mida.
+  const firstBaseline = boxes.reduce((max, b) => Math.max(max, b.firstBaseline), 0);
+  const below = boxes.reduce((max, b) => Math.max(max, b.h - b.firstBaseline), 0);
   const block: BlockBox = {
     w: boxes.reduce((max, b) => Math.max(max, b.w), 0),
-    h: boxes.reduce((max, b) => Math.max(max, b.h), 0),
+    h: firstBaseline + below,
+    firstBaseline,
   };
 
   // La caja de contenido es idéntica en alumno y en soluciones: se calcula una vez y la usan todas las páginas.
@@ -108,7 +115,9 @@ export function layoutArithmetic(input: ArithmeticLayoutInput): ArithmeticLayout
     const start = page * grid.perPage;
     operations.slice(start, start + grid.perPage).forEach((op, slot) => {
       const x = box.x + grid.offsetXMm + (slot % grid.columns) * grid.stepXMm;
-      const y = box.y + Math.floor(slot / grid.columns) * grid.stepYMm;
+      const rowTop = box.y + Math.floor(slot / grid.columns) * grid.stepYMm;
+      // Cada bloque baja lo que le falte para que su primer operando caiga en la línea base común de la fila.
+      const y = rowTop + block.firstBaseline - (boxes[start + slot] as BlockBox).firstBaseline;
       primitives.push(...blockPrimitives(op, x, y, layout, lang, start + slot, role === 'solution', block.w));
     });
     return { role, primitives };

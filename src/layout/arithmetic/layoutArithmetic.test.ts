@@ -185,6 +185,23 @@ describe('retícula', () => {
     }
   });
 
+  // La galera inglesa reserva el hueco del cociente encima del dividendo y la casita lo pone debajo de la raya: si la
+  // fila se alineara por el borde superior del bloque, la misma ficha saldría cuadrada en español y dentada en inglés.
+  it.each(['es', 'en'] as const)('los bloques de una fila comparten la línea base del primer operando (%s)', (lang) => {
+    const mixed = [op('add', 15, 34, 49), op('div', 84, 7, 12), op('mul', 23, 45, 1035), op('sub', 98, 56, 42)];
+    const out = lay({ operations: mixed, paper: 'a4', columns: 4, lang });
+    if (!out.ok) throw new Error('maquetación');
+    const drawn = out.doc.pages[0]!.primitives.slice(frameSize('a4', 'student'));
+    const baselineOf = (value: number): number => {
+      const found = drawn.filter((p): p is Extract<Primitive, { t: 'text' }> => p.t === 'text' && p.text === String(value));
+      expect(found, `primer operando ${value}`).toHaveLength(1);
+      return found[0]!.y;
+    };
+    const baselines = mixed.map((operation) => baselineOf(operation.a));
+    // Una sola fila (cuatro bloques, cuatro columnas) y una sola línea base para los cuatro primeros operandos.
+    expect(new Set(baselines.map((y) => Math.round(y * 1e6))).size).toBe(1);
+  });
+
   it('recorta las columnas pedidas a las que caben de verdad', () => {
     const wide = measureBlock(op('mul', 99999, 999, 99899001), 'columns', 'es');
     expect(arithmeticCapacity(box, wide, 5, gapY)?.columns).toBe(5);
