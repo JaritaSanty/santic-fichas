@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-14T21:45:25.892Z",
+  "generatedAt": "2026-09-28T00:00:00.000Z",
   "title": "Design System: Santic Education — Generador de fichas",
   "extensions": {
     "colorMeta": {
@@ -232,7 +232,19 @@
       },
       "sheet-footer": {
         "displayName": "Sheet footer",
-        "purpose": "Dominio en el pie de hoja a 2.5 mm (≈7 pt)."
+        "purpose": "Dominio del pie, línea de datos del margen y pestaña de rol, 2.5 mm (≈7 pt)."
+      },
+      "sheet-digit": {
+        "displayName": "Sheet digit",
+        "purpose": "Cifras de las operaciones en columnas y de los dos esquemas de división, 5 mm."
+      },
+      "sheet-inline": {
+        "displayName": "Sheet inline",
+        "purpose": "Expresión del renglón en línea, 4.5 mm sobre renglón de 11 mm."
+      },
+      "sheet-index": {
+        "displayName": "Sheet index",
+        "purpose": "Índice del ejercicio, 2.5 mm en gris medio, anclado al borde de la fila."
       }
     },
     "shadows": [],
@@ -272,9 +284,7 @@
     "pending": [
       "Indicio visible de desplazamiento en la ventana 100 % con barras superpuestas (decisión del operador)",
       "Anclaje publicitario móvil oculto cerca de acciones o en flujo antes de activarlo en Fase 6",
-      "Línea de datos en el margen de la prueba (página n/N · papel · código)",
-      "Cuña pegada a la hoja como barra de color",
-      "Marca de rol de página (alumno / soluciones)"
+      "Cuña pegada a la hoja como barra de color"
     ],
     "overlays": [
       {
@@ -304,7 +314,20 @@
         "contentTopMm": 32,
         "footerRuleMm": 8,
         "markHeightMm": 5,
-        "footerTextMm": 2.5
+        "footerTextMm": 2.5,
+        "stamp": {
+          "dataLineSizeMm": 2.5,
+          "dataLineTone": "muted",
+          "dataLineAlign": "end",
+          "dataLineText": "Página n/N · papel · código",
+          "tagTopMm": 28,
+          "tagHeightMm": 3.4,
+          "tagPadXMm": 1.8,
+          "tagTextMm": 2.5,
+          "tagStrokeMm": 0.2,
+          "tagStudent": "filete faint + texto muted",
+          "tagSolution": "relleno faint + texto ink"
+        }
       },
       "wordsearch": {
         "maxCellMm": 14,
@@ -323,8 +346,27 @@
         "Cuadrícula centrada en horizontal arriba del área de contenido; celda la mayor entre 6 y 14 mm que deje sitio a la lista.",
         "Lista alfabética alineada al borde izquierdo de la cuadrícula y sin rebasar su ancho; desborde en páginas de alumno adicionales.",
         "Página de soluciones: «Título — Soluciones», sin Nombre/Fecha, cuadrícula en la misma posición que la del alumno.",
-        "Sin kerning ni ligaduras; medida por suma de avances de Andika, compartida por SVG y PDF."
-      ]
+        "Sin kerning ni ligaduras; medida por suma de avances de Andika, compartida por SVG y PDF.",
+        "Marca de página entera en los márgenes: línea de datos abajo a la derecha y pestaña de rol colgada del filete del encabezado; se aplica al final, cuando ya se sabe cuántas hojas hay.",
+        "Retícula del cuadernillo: todos los bloques con el ancho del más ancho, columnas pedidas recortadas a las que caben, hueco horizontal hasta 14 mm y, si sobra, retícula centrada.",
+        "Los bloques de una fila se alinean por la línea base del primer operando; el índice se ancla al borde de la fila.",
+        "Cada idioma dibuja la división como la enseña: casita en castellano, galera (corchete) en inglés."
+      ],
+      "arithmetic": {
+        "digitSizeMm": 5,
+        "inlineSizeMm": 4.5,
+        "indexSizeMm": 2.5,
+        "ruleWidthMm": 0.3,
+        "lineGapMm": 2.2,
+        "answerGapMm": 7,
+        "blockGapXMm": 6,
+        "maxGapXMm": 14,
+        "blockGapYMm": 6,
+        "inlineLineMm": 11,
+        "answerRuleMm": 20,
+        "columnsMin": 2,
+        "columnsMax": 5
+      }
     }
   },
   "components": [
@@ -415,19 +457,35 @@
       "description": "Hueco publicitario reservado fuera del lienzo; único borde discontinuo.",
       "html": "<aside class=\"ds-ad\" aria-label=\"Publicidad\"><div class=\"ds-ad-box\">Publicidad · 300px × 600px</div></aside>",
       "css": ".ds-ad { width: 300px; max-width: 100%; height: 600px; } .ds-ad-box { display: flex; height: 100%; align-items: center; justify-content: center; border: 1px dashed var(--color-line, #7c8390); background: var(--color-canvas, #e6e9ec); color: var(--color-muted, #565a6b); font-family: Archivo, system-ui, sans-serif; font-size: 0.75rem; }"
+    },
+    {
+      "name": "Shortfall Panel",
+      "kind": "card",
+      "refersTo": "notice-panel",
+      "description": "Panel de ficha corta: la salvedad se dice una vez en la entrada de la lista y cada sugerencia es su acción; la viñeta es un filete de 1 px.",
+      "html": "<section class=\"ds-shortfall\"><h3>Faltan operaciones</h3><p>Con estas opciones no hay ninguna operación posible.</p><div class=\"ds-shortfall-list\"><p class=\"ds-shortfall-lead\">Estos ajustes amplían las operaciones posibles, aunque puede que no lleguen para todas las pedidas:</p><ul><li><span aria-hidden=\"true\"></span><span>Ampliar el máximo del primer número hasta 105.</span></li><li><span aria-hidden=\"true\"></span><span>Ampliar el segundo número al rango 5–7.</span></li><li><span aria-hidden=\"true\"></span><span>Cambiar la división a «con resto».</span></li></ul></div></section>",
+      "css": ".ds-shortfall { font-family: Archivo, system-ui, sans-serif; display: grid; gap: 12px; max-width: 34rem; background: #fff; border: 1px solid var(--color-line, #7c8390); border-radius: 0; padding: 16px; font-size: 0.875rem; line-height: 1.43; color: var(--color-ink, #23252f); } .ds-shortfall h3 { margin: 0; font-size: 1rem; font-weight: 600; } .ds-shortfall p { margin: 0; } .ds-shortfall-list { display: grid; gap: 8px; } .ds-shortfall-lead { color: var(--color-muted, #565a6b); } .ds-shortfall ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; } .ds-shortfall li { display: grid; grid-template-columns: 0.75rem 1fr; gap: 8px; } .ds-shortfall li span[aria-hidden] { margin-top: 0.7em; display: block; height: 1px; width: 12px; background: var(--color-line, #7c8390); }"
+    },
+    {
+      "name": "Named Sheet State",
+      "kind": "custom",
+      "refersTo": "sheet-state",
+      "description": "Pastilla de papel con filete sobre la prueba cuando lo que se ve no es imprimible; no entra en el SVG ni se imprime.",
+      "html": "<div class=\"ds-state-proof\"><div class=\"ds-state-paper\"><p class=\"ds-state\">Hoja sin ejercicios</p></div></div>",
+      "css": ".ds-state-proof { background: var(--color-canvas, #e6e9ec); padding: 20px; max-width: 22rem; } .ds-state-paper { position: relative; border: 1px solid var(--color-line, #7c8390); background: #fff; height: 260px; } .ds-state { position: absolute; inset-inline: 0; top: 33%; margin: 0 auto; width: max-content; max-width: 80%; border: 1px solid var(--color-line, #7c8390); background: #fff; padding: 8px 16px; text-align: center; font-family: Archivo, system-ui, sans-serif; font-size: 0.875rem; line-height: 1.43; font-weight: 600; color: var(--color-muted, #565a6b); }"
     }
   ],
   "narrative": {
     "northStar": "La mesa de pruebas",
-    "overview": "La interfaz es una mesa gris fría sobre la que descansa una hoja blanca a escala: la prueba de imprenta que el docente aprueba antes de fotocopiar. La hoja lleva alrededor sus marcas de corte en L y cruces de registro en azul acero, y encima una línea de trabajo que declara papel, páginas y código en cifras tabulares. Todo lo que no es la hoja se comporta como un parte de trabajo técnico: filetes de 1 px, esquinas rectas, etiquetas en mayúsculas con tracking. La densidad es media y ordenada; nada decora, todo encuadra la hoja.\n\nHay dos mundos cromáticos separados por construcción. La interfaz usa los colores del logotipo (azul acero y pizarra) sobre neutros fríos derivados del wordmark. La hoja usa únicamente cuatro grises definidos en código y compartidos por el renderizado SVG y el PDF, porque se imprime y se fotocopia; la cuña de tonos es la única muestra de esos grises fuera de la hoja, como leyenda. La profundidad no existe como sombra: la jerarquía es tonal (mesa frente a papel) y lineal (filetes).\n\nEl movimiento es seco: hover, pulsado e idioma actual cambian sin transiciones. El único movimiento es el paso de registro: al cambiar la ficha, las marcas pasan de 25 % a opaco en dos pasos durante 90 ms, y con reduced-motion no se animan. La construcción rechaza el panel SaaS de tarjetas redondeadas con sombra y la estética infantil de lápices de colores.",
+    "overview": "La interfaz es una mesa gris fría sobre la que descansa una hoja blanca a escala: la prueba de imprenta que el docente aprueba antes de fotocopiar. La hoja lleva alrededor sus marcas de corte en L y cruces de registro en azul acero, y encima una línea de trabajo que declara papel, hojas, páginas y código en cifras tabulares. Todo lo que no es la hoja se comporta como un parte de trabajo técnico: filetes de 1 px, esquinas rectas, etiquetas en mayúsculas con tracking. La densidad es media y ordenada; nada decora, todo encuadra la hoja.\n\nDos generadores comparten hoy esa misma superficie —sopa de letras y cuadernillo de operaciones— y no se distinguen por estilo: cambian los campos del parte y lo que se dibuja dentro de la hoja; el marco, la línea de trabajo, la cuña, el zoom y el diálogo «Ampliar» son los mismos. La hoja, además, se autodescribe: cada página lleva en su margen una línea de datos (`Página n/N · papel · código`) y una pestaña con su rol (alumno / soluciones), pensadas para una pila de fotocopias.\n\nHay dos mundos cromáticos separados por construcción. La interfaz usa los colores del logotipo (azul acero y pizarra) sobre neutros fríos derivados del wordmark. La hoja usa únicamente cuatro grises definidos en código y compartidos por el renderizado SVG y el PDF, porque se imprime y se fotocopia; la cuña de tonos es la única muestra de esos grises fuera de la hoja, como leyenda. La profundidad no existe como sombra: la jerarquía es tonal (mesa frente a papel) y lineal (filetes).\n\nEl movimiento es seco: hover, pulsado e idioma actual cambian sin transiciones. El único movimiento es el paso de registro: al cambiar la ficha, las marcas pasan de 25 % a opaco en dos pasos durante 90 ms, y con reduced-motion no se animan. La construcción rechaza el panel SaaS de tarjetas redondeadas con sombra y la estética infantil de lápices de colores.",
     "keyCharacteristics": [
       "Mesa `canvas` gris fría bajo papel `surface` blanco; ninguna sombra.",
       "Filetes de 1 px en `line` como único recurso de separación y contención.",
       "Esquinas rectas en toda la interfaz.",
       "Marcas de corte y registro en azul acero alrededor de cada página de prueba.",
       "Archivo (400/600) para la interfaz; Andika (400/700) para la hoja y para el texto que acabará impreso.",
-      "Cifras tabulares globales; papel, páginas y código siempre visibles en la línea de trabajo.",
-      "Hoja en escala de grises con geometría en milímetros.",
+      "Cifras tabulares globales; papel, hojas, páginas y código siempre visibles en la línea de trabajo.",
+      "Hoja en escala de grises con geometría en milímetros y marca de página en el margen.",
       "Cambios de estado secos; un único paso de registro de 90 ms."
     ],
     "rules": [
@@ -458,7 +516,7 @@
       },
       {
         "name": "The Tabular Figures Rule",
-        "body": "`font-variant-numeric: tabular-nums` está activo en la raíz; toda cantidad (tamaños, contadores, código) se alinea en columnas.",
+        "body": "`font-variant-numeric: tabular-nums` está activo en la raíz; toda cantidad (tamaños, cantidades, columnas, contadores, código) se alinea en columnas.",
         "section": "typography"
       },
       {
@@ -468,7 +526,7 @@
       },
       {
         "name": "The Same Position Rule",
-        "body": "Todas las páginas de una ficha comparten marco; la cuadrícula de soluciones ocupa la misma posición que la del alumno para poder superponerlas.",
+        "body": "Todas las páginas de una ficha comparten marco; la cuadrícula y los bloques de la hoja de soluciones ocupan la misma posición que los del alumno para poder superponerlos.",
         "section": "layout"
       },
       {
@@ -480,17 +538,30 @@
         "name": "The Filete Rule",
         "body": "Contener es trazar: un borde de 1 px en `line` delimita campos, parte de trabajo, línea de trabajo, hoja, ventana 100 %, paneles de aviso, cabecera y pie. No se usan sombras ni fondos tintados para separar.",
         "section": "elevation"
+      },
+      {
+        "name": "The Margin Stamp Rule",
+        "body": "La marca de página (línea de datos y pestaña de rol) vive entera en los márgenes de la hoja, fuera de la caja de contenido y con los grises y la tipografía de la hoja. Ningún generador la mueve, la repinta ni le añade contenido: si algo hay que decir dentro de la caja, no es marca de página.",
+        "section": "layout"
+      },
+      {
+        "name": "The Row Baseline Rule",
+        "body": "En una fila de ejercicios los bloques se alinean por la línea base del primer operando, no por su borde superior (la galera reserva el hueco del cociente encima del dividendo). El índice, en cambio, se ancla al borde de la fila: los ejercicios de una fila se numeran en un solo renglón, sea cual sea el esquema que venga debajo. El precio aceptado es de capacidad, no de dibujo: una hoja inglesa mixta cabe a 20 ejercicios por hoja Carta en vez de 28.",
+        "section": "layout"
       }
     ],
     "dos": [
       "**Do** poner cada página de prueba en papel con filete de 1 px sobre la mesa `canvas`, rodeada de sus marcas de corte y registro en azul acero.",
-      "**Do** abrir la vista previa con la línea de trabajo: acciones primero (Imprimir relleno, PDF con filete), después papel, páginas y código en cifras tabulares.",
+      "**Do** abrir la vista previa con la línea de trabajo: acciones primero (Imprimir relleno, PDF con filete), después papel, hojas, páginas y código en cifras tabulares.",
+      "**Do** marcar cada hoja con su marca de página en el margen: línea de datos abajo a la derecha y pestaña de rol colgada del filete del encabezado, rellena en la hoja de soluciones.",
       "**Do** delimitar con bordes de 1 px en `line` y esquinas rectas (0px).",
       "**Do** reservar el azul acero para acciones, marcas de registro, foco y selección; titulares en pizarra `brand-strong`.",
       "**Do** usar Archivo solo en 400 y 600, y Andika en la hoja o para mostrar texto que irá impreso.",
       "**Do** dibujar la hoja exclusivamente con los grises de `TONE_HEX` y medidas en mm, compartidas por SVG y PDF.",
       "**Do** etiquetar cada campo con su etiqueta visible en mayúsculas con tracking de 0.75rem.",
-      "**Do** escribir avisos y errores en tinta dentro de paneles con filete.",
+      "**Do** escribir avisos y errores en tinta dentro de paneles con filete, y decir la salvedad de una lista una sola vez, en su entrada.",
+      "**Do** dar nombre a la hoja que no es imprimible con una pastilla de papel sobre la prueba, en vez de dejar una hoja en blanco a tamaño real.",
+      "**Do** alinear los bloques de una fila por la línea base del primer operando y anclar el índice al borde de la fila.",
       "**Do** cambiar estados en seco; el único movimiento es el paso de registro de 90 ms en dos pasos, anulado con reduced-motion."
     ],
     "donts": [
@@ -499,6 +570,9 @@
       "**Don't** introducir colores de interfaz, ni la variante terracota #D57044, en la hoja o en la paleta de la herramienta.",
       "**Don't** usar `line` como color de texto: no alcanza contraste de texto.",
       "**Don't** ofrecer zoom continuo: solo Ajustar, 100 % y Ampliar.",
+      "**Don't** convertir en aviso un dato permanente del trabajo (cuántas hojas salen, cuántos ejercicios caben): va en la línea de trabajo.",
+      "**Don't** meter la marca de página dentro de la caja de contenido ni dejar que un generador la redibuje.",
+      "**Don't** repetir la misma coletilla al final de cada sugerencia de una lista.",
       "**Don't** colocar anuncios dentro del lienzo de la herramienta, junto a acciones o en impresión."
     ]
   }
