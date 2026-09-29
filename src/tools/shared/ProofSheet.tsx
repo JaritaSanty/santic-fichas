@@ -32,10 +32,15 @@ function ProofMarks() {
   );
 }
 
-export function ProofSheet({ doc, docKey, label, labels }: {
+export function ProofSheet({ doc, docKey, label, state, labels }: {
   doc: SheetDocument;
   docKey: string;
   label: string;
+  /**
+   * Estado con nombre sobre la hoja cuando lo que se ve no es imprimible (una hoja en blanco a tamaño real parece
+   * salida de la copiadora aunque Imprimir esté deshabilitado). Sin él, la prueba es la ficha y nada se superpone.
+   */
+  state?: string;
   labels: { zoomLegend: string; zoomFit: string; zoomActual: string; enlarge: string; close: string };
 }) {
   const [zoom, setZoom] = useState<Zoom>('fit');
@@ -74,8 +79,13 @@ export function ProofSheet({ doc, docKey, label, labels }: {
             <div key={i} className={`relative p-5 ${zoom === 'actual' ? 'w-max' : ''}`}>
               {/* La clave reinicia el paso seco de las marcas en cada ficha nueva. */}
               <ProofMarks key={docKey} />
-              <div className="border border-line bg-surface">
+              <div className="relative border border-line bg-surface">
                 <PageSvg paper={doc.paper} page={page} sizing={zoom === 'actual' ? 'physical' : 'fluid'} label={`${label} ${i + 1}/${doc.pages.length}`} />
+                {state !== undefined && (
+                  <p data-sheet-state className="absolute inset-x-0 top-1/3 mx-auto w-max max-w-[80%] border border-line bg-surface px-4 py-2 text-center text-sm font-semibold text-muted">
+                    {state}
+                  </p>
+                )}
               </div>
             </div>
           ))}

@@ -9,7 +9,18 @@ export interface Dictionary {
   nav: { languageSwitch: string; languageName: Record<Lang, string>; skipToContent: string; home: string };
   home: { heading: string; intro: string };
   sections: Record<SectionKey, { title: string; description: string; cta: string }>;
-  sheet: { name: string; date: string; solutions: string; defaultTitle: string; previewLabel: string };
+  sheet: {
+    name: string;
+    date: string;
+    /** Marca de rol de la hoja del docente, y sufijo de su título. */
+    solutions: string;
+    /** Marca de rol de la hoja del alumno, en el marco. */
+    student: string;
+    /** Línea de datos del margen de la hoja: lleva {page} y {pages}. */
+    pageOf: string;
+    defaultTitle: string;
+    previewLabel: string;
+  };
   tool: {
     headerLegend: string;
     titleLabel: string;
@@ -23,6 +34,8 @@ export interface Dictionary {
     optionsDetail: PluralMessage;
     headerUnsupportedChars: string;
     headerTitleShortened: string;
+    /** Comillas del idioma para citar un carácter dentro de una frase; las usan las dos herramientas. */
+    quote: string;
   };
   wordsearch: {
     sampleWords: string;
@@ -44,7 +57,6 @@ export interface Dictionary {
     includeSolutions: string;
     generating: string;
     retry: string;
-    quote: string;
     errors: {
       noWords: string;
       tooManyWords: string;
@@ -61,6 +73,87 @@ export interface Dictionary {
     warnings: { duplicate: string; contained: string; containedReversed: string; largeList: string };
     unplaced: { title: string; intro: PluralMessage; increaseSize: string; enableDiagonal: string; enableReversed: string; removeWords: string; generateWithout: string };
   };
+  arithmetic: {
+    /** Título con el que sale la hoja antes de que el docente escriba el suyo (equivale a `sheet.defaultTitle`). */
+    defaultTitle: string;
+    kindsLegend: string;
+    /** Etiquetas de los controles: forma suelta, con mayúscula inicial. */
+    kinds: { add: string; sub: string; mul: string; div: string };
+    /** Los mismos nombres dentro de una frase: minúscula y singular. */
+    kindNames: { add: string; sub: string; mul: string; div: string };
+    /** Leyenda del grupo de llevada, división, cantidad, disposición y columnas. */
+    optionsLegend: string;
+    operandsLegend: string;
+    firstLabel: string;
+    secondLabel: string;
+    /** Nombre de cada operando dentro de una frase («el primer número»). */
+    firstName: string;
+    secondName: string;
+    minLabel: string;
+    maxLabel: string;
+    digitsLabel: string;
+    digitsHelp: string;
+    carryLegend: string;
+    carryAny: string;
+    carryWith: string;
+    carryWithout: string;
+    carryHelp: string;
+    divisionLegend: string;
+    divisionExact: string;
+    divisionRemainder: string;
+    countLabel: string;
+    countHelp: string;
+    layoutLegend: string;
+    layoutColumns: string;
+    layoutInline: string;
+    columnsLabel: string;
+    columnsHelp: string;
+    seedLabel: string;
+    seedHelp: string;
+    seedInvalid: string;
+    seedOtherVersion: string;
+    newSheet: string;
+    includeSolutions: string;
+    generating: string;
+    retry: string;
+    /** Resumen del parte plegado en móvil; `count` es el número de operaciones pedidas. */
+    optionsDetail: PluralMessage;
+    /**
+     * Hojas de alumno y máximo por hoja, como dato de la línea de trabajo (no como aviso: el número de hojas es una
+     * propiedad permanente del trabajo, no una condición).
+     */
+    sheets: string;
+    /** Estado con nombre sobre la prueba cuando la hoja no lleva ningún ejercicio. */
+    emptySheet: string;
+    errors: {
+      noKind: string;
+      rangeInverted: string;
+      operandOutOfRange: string;
+      countOutOfRange: string;
+      columnsOutOfRange: string;
+      divisorZero: string;
+      emptySpace: string;
+      blockTooLarge: string;
+      workerFailed: string;
+    };
+    warnings: { carryIgnored: string; factorCapped: string; kindMissing: string; columnsReduced: string };
+    /**
+     * Ficha incompleta: menos operaciones distintas que las pedidas. `suggestionsFill` y `suggestionsPartial` son la
+     * entrada de la lista de ajustes: dicen **una sola vez** si aplicarlos deja sitio para todo lo pedido, para que
+     * cada sugerencia sea solo su acción.
+     */
+    shortfall: { title: string; none: string; intro: PluralMessage; apply: PluralMessage; suggestionsFill: string; suggestionsPartial: string };
+    /** Un texto por código de sugerencia: la acción y nada más; la salvedad la dice la entrada del panel. */
+    suggestions: {
+      raiseFirstMax: string;
+      lowerFirstMin: string;
+      widenSecond: string;
+      allowRemainder: string;
+      allowCarry: string;
+      allowAnyCarry: string;
+      reduceCount: string;
+    };
+  };
   proof: {
     zoomLegend: string;
     zoomFit: string;
@@ -70,6 +163,8 @@ export interface Dictionary {
     toneLegend: string;
     jobPaper: string;
     jobPages: string;
+    /** Hojas de alumno del trabajo; el cuadernillo añade el máximo por hoja al valor. */
+    jobSheets: string;
     jobSeed: string;
     downloadPdf: string;
     preparingPdf: string;

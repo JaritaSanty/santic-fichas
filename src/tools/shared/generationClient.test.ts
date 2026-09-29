@@ -1,12 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { WordSearchResponse } from '@/workers/wordsearch';
-import { createGenerationClient, GENERATION_TIMEOUT_MS, type WorkerLike } from './wordSearchClient';
+import { createGenerationClient, GENERATION_TIMEOUT_MS, type WorkerLike } from './generationClient';
 
-class FakeWorker implements WorkerLike {
+// Petición y respuesta de juguete: el cliente es genérico y no conoce ningún generador.
+interface TestRequest {
+  requestId: number;
+  value: string;
+}
+type TestResponse = { requestId: number; ok: true; result: string } | { requestId: number; ok: false };
+
+class FakeWorker implements WorkerLike<TestResponse> {
   static created: FakeWorker[] = [];
   messages: Array<{ requestId: number }> = [];
   terminated = false;
-  onmessage: ((event: { data: WordSearchResponse }) => void) | null = null;
+  onmessage: ((event: { data: TestResponse }) => void) | null = null;
   onerror: ((event: unknown) => void) | null = null;
   constructor() {
     FakeWorker.created.push(this);
@@ -17,13 +23,16 @@ class FakeWorker implements WorkerLike {
   terminate() {
     this.terminated = true;
   }
-  reply(response: WordSearchResponse) {
+  reply(response: TestResponse) {
     this.onmessage?.({ data: response });
   }
 }
 
-const message = { value: { entries: [], size: 10, directions: { horizontal: true, vertical: false, diagonal: false, reversed: false } }, seedCode: 'v1-FAKE22', lang: 'es' as const };
-const okResponse = (requestId: number) => ({ requestId, ok: true, result: { size: 10, cells: [], placements: [], unplaced: [], seedCode: 'v1-FAKE22' } }) as WordSearchResponse;
+const newClient = (createWorker: () => WorkerLike<TestResponse> = () => new FakeWorker()) =>
+  createGenerationClient<TestRequest, TestResponse>(createWorker);
+
+const message = { value: 'peticion' };
+const okResponse = (requestId: number): TestResponse => ({ requestId, ok: true, result: 'ficha' });
 
 describe('createGenerationClient', () => {
   beforeEach(() => {
@@ -35,13 +44,13 @@ describe('createGenerationClient', () => {
   });
 
   it('no crea el Worker hasta la primera petición', () => {
-    const client = createGenerationClient(() => new FakeWorker());
+    const client = newClient();
     expect(FakeWorker.created).toHaveLength(0);
     expect(client.getSnapshot()).toEqual({ status: 'idle', key: null, response: null });
   });
 
   it('pasa por pending y done notificando a los suscriptores', () => {
-    const client = createGenerationClient(() => new FakeWorker());
+    const client = newClient();
     const listener = vi.fn();
     client.subscribe(listener);
     client.request('k1', message);
@@ -53,7 +62,7 @@ describe('createGenerationClient', () => {
   });
 
   it('no reenvía una clave ya servida', () => {
-    const client = createGenerationClient(() => new FakeWorker());
+    const client = newClient();
     client.request('k1', message);
     const worker = FakeWorker.created[0]!;
     worker.reply(okResponse(worker.messages[0]!.requestId));
@@ -62,7 +71,7 @@ describe('createGenerationClient', () => {
   });
 
   it('una petición nueva con el Worker ocupado lo termina y descarta la respuesta vieja', () => {
-    const client = createGenerationClient(() => new FakeWorker());
+    const client = newClient();
     client.request('k1', message);
     const first = FakeWorker.created[0]!;
     client.request('k2', message);
@@ -75,7 +84,7 @@ describe('createGenerationClient', () => {
   });
 
   it('agota el tiempo, termina el Worker y permite reintentar la misma clave', () => {
-    const client = createGenerationClient(() => new FakeWorker());
+    const client = newClient();
     client.request('k1', message);
     vi.advanceTimersByTime(GENERATION_TIMEOUT_MS + 1);
     expect(client.getSnapshot()).toEqual({ status: 'failed', key: 'k1', response: null });
@@ -85,7 +94,7 @@ describe('createGenerationClient', () => {
   });
 
   it('un error del Worker marca la petición como fallida', () => {
-    const client = createGenerationClient(() => new FakeWorker());
+    const client = newClient();
     client.request('k1', message);
     FakeWorker.created[0]!.onerror?.(new Event('error'));
     expect(client.getSnapshot().status).toBe('failed');
@@ -93,7 +102,7 @@ describe('createGenerationClient', () => {
 
   it('si crear el Worker lanza, la petición falla en vez de quedar pendiente y se puede reintentar', () => {
     let fail = true;
-    const client = createGenerationClient(() => {
+    const client = newClient(() => {
       if (fail) throw new Error('Worker bloqueado');
       return new FakeWorker();
     });
@@ -108,7 +117,7 @@ describe('createGenerationClient', () => {
   });
 
   it('dispose termina el Worker y cancela el temporizador', () => {
-    const client = createGenerationClient(() => new FakeWorker());
+    const client = newClient();
     client.request('k1', message);
     client.dispose();
     expect(FakeWorker.created[0]!.terminated).toBe(true);

@@ -2,6 +2,12 @@
 
 import { useId } from 'react';
 
+/**
+ * Cota del campo: un código es `v1-` más seis caracteres, y el margen sobra para cualquier variante futura. Sin ella,
+ * un código de 150 caracteres viajaba hasta la línea de datos de la hoja (que además lo recorta por ancho medido).
+ */
+const SEED_INPUT_MAX = 24;
+
 export function SeedField({ value, onChange, onNewSeed, error, placeholder, labels }: {
   value: string;
   onChange: (next: string) => void;
@@ -21,6 +27,7 @@ export function SeedField({ value, onChange, onNewSeed, error, placeholder, labe
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
+          maxLength={SEED_INPUT_MAX}
           autoComplete="off"
           spellCheck={false}
           aria-invalid={error ? true : undefined}

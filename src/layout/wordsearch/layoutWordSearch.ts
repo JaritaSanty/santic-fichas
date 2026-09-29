@@ -3,7 +3,7 @@ import { capHeightMm, measureTextMm } from '@/core/measure';
 import type { PaperSize } from '@/core/paper';
 import type { Primitive, SheetDocument, SheetPage } from '@/core/sheet';
 import type { WordSearchResult } from '@/generators/wordsearch';
-import { buildFrame, type FrameLabels, type SheetHeader } from '@/layout/common/frame';
+import { buildFrame, stampPages, type FrameLabels, type SheetHeader } from '@/layout/common/frame';
 
 export const WORDSEARCH_LAYOUT = {
   maxCellMm: 14,
@@ -135,5 +135,6 @@ export function layoutWordSearch(input: LayoutInput): WordSearchLayout {
     pages.push({ role: 'solution', primitives: [...frame.primitives, ...gridPrimitives(result, grid), ...capsules(result, grid)] });
   }
 
-  return { ok: true, doc: { paper, lang, pages } };
+  // La marca de página se pone al final, cuando ya se sabe cuántas hojas tiene la ficha.
+  return { ok: true, doc: { paper, lang, pages: stampPages(pages, { paper, labels, code: result.seedCode }) } };
 }

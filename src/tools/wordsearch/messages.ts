@@ -5,7 +5,8 @@ import { formatMessage } from '@/i18n/format';
 
 type Strings = Dictionary['wordsearch'];
 
-const quoteChars = (chars: readonly string[], t: Strings) => chars.map((c) => formatMessage(t.quote, { text: c })).join(' ');
+/** Las comillas viven en el bloque compartido `tool`: son puntuación del idioma, no vocabulario de la herramienta. */
+const quoteChars = (chars: readonly string[], quote: string) => chars.map((c) => formatMessage(quote, { text: c })).join(' ');
 
 export function describeError(error: WordSearchError, t: Strings): string {
   switch (error.code) {
@@ -24,14 +25,14 @@ export function describeError(error: WordSearchError, t: Strings): string {
   }
 }
 
-export function describeRejected(line: RejectedLine, t: Strings): string {
+export function describeRejected(line: RejectedLine, t: Strings, tool: Dictionary['tool']): string {
   switch (line.code) {
     case 'invalid-chars':
       return formatMessage(t.errors.invalidChars, { line: line.line });
     case 'too-short':
       return formatMessage(t.errors.tooShort, { line: line.line });
     case 'unsupported-glyph':
-      return formatMessage(t.errors.unsupportedGlyph, { line: line.line, chars: quoteChars(line.chars, t) });
+      return formatMessage(t.errors.unsupportedGlyph, { line: line.line, chars: quoteChars(line.chars, tool.quote) });
   }
 }
 

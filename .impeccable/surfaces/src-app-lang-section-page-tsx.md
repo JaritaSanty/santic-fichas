@@ -36,3 +36,21 @@ Pendiente, con motivo:
 - Techo del mundo sin usar: línea de datos en el margen de la prueba (página n/N · papel · código), cuña pegada a la hoja como barra de color y marca de rol de página (alumno / soluciones) — se valorarán al construir crucigrama y cuadernillo.
 
 Condición vigente: los textos de portada e introducción describen funciones de Fases 3–4; no se despliega públicamente nada antes de la Fase 6.
+
+## Estado tras la Fase 3
+
+Construido en la Fase 3 (hasta `7373298`): segundo generador en `/es/operaciones/` y `/en/math-worksheets/` sobre la misma superficie —mismo parte de trabajo, misma línea de trabajo, misma prueba con marcas, mismo zoom, mismo diálogo «Ampliar», misma cuña—; bloques de hoja nuevos (columnas con el signo colgado de la propia columna de cifras, casita castellana, galera inglesa y renglón en línea con raya de respuesta), con las filas alineadas por la línea base del primer operando y el índice anclado al borde de la fila.
+
+Gastado del techo del mundo, ahora en los dos generadores (`src/layout/common/frame.ts`): **línea de datos en el margen** (`página n/N · papel · código`) y **marca de rol de página** (alumno con filete, soluciones rellena). La sopa de letras las hereda sin mover nada de su contenido.
+
+Elementos de interfaz nuevos: la paginación como dato permanente de la línea de trabajo (HOJAS «1 · máx. 28 por hoja»), estado con nombre sobre la prueba cuando la hoja no es imprimible («Hoja sin ejercicios»), aviso de columnas recortadas y panel de ficha corta («Faltan operaciones») con la salvedad dicha una sola vez en la entrada de la lista y sugerencias que son solo su acción.
+
+Pendiente, con motivo:
+- Indicio visible de desplazamiento en la ventana «100 %» cuando el sistema oculta las barras — sin cambios desde la Fase 2; decisión del operador.
+- Anclaje publicitario móvil junto a acciones — desactivado en producción; ocultarlo cerca de acciones o moverlo al flujo sigue siendo condición previa para activarlo en la Fase 6.
+- Las sugerencias del panel de ficha corta siguen siendo prosa: dicen el ajuste, pero no lo aplican con un control de un clic.
+- Techo del mundo sin usar: solo queda la cuña pegada a la hoja como barra de color.
+
+Coste aceptado: con la fila alineada por la línea base del primer operando, una ficha inglesa mixta cabe a **20 ejercicios por hoja Carta** en vez de 28, porque el renglón reserva el hueco del cociente de la galera. Las fichas de un solo tipo de bloque y todas las castellanas conservan su capacidad.
+
+Condición vigente: los textos de portada e introducción describen funciones de las Fases 4–5; no se despliega públicamente nada antes de la Fase 6.

@@ -9,7 +9,7 @@ import type { SheetDocument } from '@/core/sheet';
 import { readSeedInput, suggestAdjustments, validateWordSearch, WORDSEARCH_ALGORITHM_VERSION, WORDSEARCH_LIMITS, type DirectionOptions } from '@/generators/wordsearch';
 import type { Dictionary } from '@/i18n/dictionary';
 import { formatMessage, formatPlural } from '@/i18n/format';
-import { buildFrame, fitHeader, type SheetHeader } from '@/layout/common/frame';
+import { buildFrame, fitHeader, stampPages, type SheetHeader } from '@/layout/common/frame';
 import { layoutWordSearch } from '@/layout/wordsearch';
 import { IncludeSolutionsField } from '@/tools/shared/IncludeSolutionsField';
 import { PaperSelect } from '@/tools/shared/PaperSelect';
@@ -27,7 +27,7 @@ import { GridOptions } from './GridOptions';
 import { describeError, describeRejected, describeSeed, describeSuggestion, describeWarning } from './messages';
 import { UnplacedPanel } from './UnplacedPanel';
 import { generationKey, removeWordLines } from './request';
-import { createGenerationClient, type WorkerLike } from './wordSearchClient';
+import { createWordSearchClient, type WordSearchWorkerLike } from './wordSearchClient';
 import { WordListField } from './WordListField';
 
 export interface WordSearchLabels {
@@ -44,7 +44,8 @@ const serverPaper = (): PaperSize => 'a4';
 let initialSeed: string | null = null;
 const browserSeed = () => (initialSeed ??= newSeedCode(WORDSEARCH_ALGORITHM_VERSION));
 const serverSeed = () => '';
-const createWorker = (): WorkerLike => new Worker(new URL('../../workers/wordsearch.worker.ts', import.meta.url)) as unknown as WorkerLike;
+const createWorker = (): WordSearchWorkerLike =>
+  new Worker(new URL('../../workers/wordsearch.worker.ts', import.meta.url)) as unknown as WordSearchWorkerLike;
 
 const DEFAULT_SIZE = 12;
 const DEFAULT_DIRECTIONS: DirectionOptions = { horizontal: true, vertical: true, diagonal: true, reversed: false };
@@ -64,7 +65,7 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
   const [regeneratedSeed, setRegeneratedSeed] = useState<string | null>(null);
   const initialSeedCode = useSyncExternalStore(noopSubscribe, browserSeed, serverSeed);
 
-  const [client] = useState(() => createGenerationClient(createWorker));
+  const [client] = useState(() => createWordSearchClient(createWorker));
   const generation = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
   useEffect(() => () => client.dispose(), [client]);
 
@@ -94,17 +95,30 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
   const ready = current && generation.status === 'done' && result !== null;
   // Con un código erróneo la ficha no corresponde a ningún código: no se muestra el anterior.
   const shownSeed = seedInvalid || seedCode === '' ? '—' : seedCode;
-  const frameLabels = useMemo(() => ({ name: labels.sheet.name, date: labels.sheet.date, solutions: labels.sheet.solutions }), [labels.sheet]);
+  const paperName = paper === 'a4' ? labels.tool.paperA4 : labels.tool.paperLetter;
+  const frameLabels = useMemo(
+    () => ({
+      name: labels.sheet.name,
+      date: labels.sheet.date,
+      solutions: labels.sheet.solutions,
+      student: labels.sheet.student,
+      pageOf: labels.sheet.pageOf,
+      paperName,
+    }),
+    [labels.sheet, paperName],
+  );
   const layout = useMemo(
     () => (result ? layoutWordSearch({ result, header, labels: frameLabels, paper, lang, includeSolutions }) : null),
     [result, header, frameLabels, paper, lang, includeSolutions],
   );
   const doc = useMemo<SheetDocument>(() => {
     if (layout?.ok) return layout.doc;
-    return { paper, lang, pages: [{ role: 'student', primitives: buildFrame({ paper, header, labels: frameLabels, role: 'student' }).primitives }] };
-  }, [layout, paper, lang, header, frameLabels]);
+    // El marco vacío también lleva su marca de página: es una hoja como las demás, la 1 de 1.
+    const empty = [{ role: 'student' as const, primitives: buildFrame({ paper, header, labels: frameLabels, role: 'student' }).primitives }];
+    return { paper, lang, pages: stampPages(empty, { paper, labels: frameLabels, code: shownSeed }) };
+  }, [layout, paper, lang, header, frameLabels, shownSeed]);
 
-  const quote = (chars: string[]) => chars.map((c) => formatMessage(t.quote, { text: c })).join(' ');
+  const quote = (chars: string[]) => chars.map((c) => formatMessage(labels.tool.quote, { text: c })).join(' ');
   const headerChars = unsupportedSheetChars(`${header.title}${header.school}`.replace(/\s+/g, ' '));
   const headerFit = fitHeader({ paper, header, labels: frameLabels, role: includeSolutions ? 'solution' : 'student' });
   const headerNotices = [
@@ -112,7 +126,7 @@ export function WordSearchTool({ lang, labels }: { lang: Lang; labels: WordSearc
     ...(headerFit.title.truncated ? [labels.tool.headerTitleShortened] : []),
   ];
 
-  const lineMessages = [...validation.rejected.map((r) => describeRejected(r, t)), ...validation.warnings.map((w) => describeWarning(w, t))];
+  const lineMessages = [...validation.rejected.map((r) => describeRejected(r, t, labels.tool)), ...validation.warnings.map((w) => describeWarning(w, t))];
   const wordCount = validation.wordCount;
   const failed = current && generation.status === 'failed';
   const blocking = [

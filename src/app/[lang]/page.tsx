@@ -3,16 +3,42 @@ import { notFound } from 'next/navigation';
 import type { Lang } from '@/core/lang';
 import { isLang } from '@/core/lang';
 import type { SheetPage } from '@/core/sheet';
+import { generateArithmetic, validateArithmetic, type ArithmeticInput } from '@/generators/arithmetic';
 import { generateWordSearch, validateWordSearch } from '@/generators/wordsearch';
 import { getDictionary, type Dictionary } from '@/i18n/dictionary';
 import { SECTION_SLUGS, sectionPath, type SectionKey } from '@/i18n/routes';
-import { buildFrame } from '@/layout/common/frame';
+import { layoutArithmetic } from '@/layout/arithmetic';
+import { buildFrame, stampPages, type FrameLabels } from '@/layout/common/frame';
 import { layoutWordSearch } from '@/layout/wordsearch';
 import { SheetSvg } from '@/render/svg/SheetSvg';
 
 const SAMPLE_SEED = 'v1-PORTADA';
 const SAMPLE_SIZE = 12;
 const SAMPLE_DIRECTIONS = { horizontal: true, vertical: true, diagonal: true, reversed: false } as const;
+// Mismos valores con los que abre `ArithmeticTool` (no se importan: la portada es un componente de servidor y no
+// debe arrastrar la herramienta al paquete de la página).
+const SAMPLE_ARITHMETIC: ArithmeticInput = {
+  kinds: { add: true, sub: true, mul: false, div: false },
+  first: { min: 10, max: 99 },
+  second: { min: 10, max: 99 },
+  carry: 'any',
+  division: 'exact',
+  count: 20,
+  layout: 'columns',
+  columns: 4,
+};
+
+/** Las miniaturas son hojas A4 de verdad, con la misma marca de página que la ficha impresa. */
+function frameLabels(dict: Dictionary): FrameLabels {
+  return {
+    name: dict.sheet.name,
+    date: dict.sheet.date,
+    solutions: dict.sheet.solutions,
+    student: dict.sheet.student,
+    pageOf: dict.sheet.pageOf,
+    paperName: dict.tool.paperA4,
+  };
+}
 
 /** Portada de fase de construcción: prueba una sopa de letras real con el vocabulario de ejemplo. */
 function wordsearchSamplePage(lang: Lang, dict: Dictionary): SheetPage | null {
@@ -22,7 +48,7 @@ function wordsearchSamplePage(lang: Lang, dict: Dictionary): SheetPage | null {
   const layout = layoutWordSearch({
     result,
     header: { title: dict.sections.wordsearch.title, school: '' },
-    labels: { name: dict.sheet.name, date: dict.sheet.date, solutions: dict.sheet.solutions },
+    labels: frameLabels(dict),
     paper: 'a4',
     lang,
     includeSolutions: false,
@@ -30,20 +56,35 @@ function wordsearchSamplePage(lang: Lang, dict: Dictionary): SheetPage | null {
   return layout.ok ? (layout.doc.pages[0] ?? null) : null;
 }
 
+/** Portada: cuadernillo real con la semilla fija, en el idioma de la página (la división se dibuja distinta en cada uno). */
+function arithmeticSamplePage(lang: Lang, dict: Dictionary): SheetPage | null {
+  const validation = validateArithmetic(SAMPLE_ARITHMETIC);
+  if (!validation.ok) return null;
+  const result = generateArithmetic(validation.value, SAMPLE_SEED);
+  const layout = layoutArithmetic({
+    result,
+    header: { title: dict.sections.arithmetic.title, school: '' },
+    labels: frameLabels(dict),
+    paper: 'a4',
+    lang,
+    includeSolutions: false,
+    layout: validation.value.layout,
+    columns: validation.value.columns,
+  });
+  return layout.ok ? (layout.doc.pages[0] ?? null) : null;
+}
+
 function framePage(lang: Lang, dict: Dictionary, title: string): SheetPage {
-  return {
+  const page: SheetPage = {
     role: 'student',
-    primitives: buildFrame({
-      paper: 'a4',
-      header: { title, school: '' },
-      labels: { name: dict.sheet.name, date: dict.sheet.date, solutions: dict.sheet.solutions },
-      role: 'student',
-    }).primitives,
+    primitives: buildFrame({ paper: 'a4', header: { title, school: '' }, labels: frameLabels(dict), role: 'student' }).primitives,
   };
+  return stampPages([page], { paper: 'a4', labels: frameLabels(dict), code: SAMPLE_SEED })[0] as SheetPage;
 }
 
 function thumbnailPage(key: SectionKey, lang: Lang, dict: Dictionary, title: string): SheetPage {
   if (key === 'wordsearch') return wordsearchSamplePage(lang, dict) ?? framePage(lang, dict, title);
+  if (key === 'arithmetic') return arithmeticSamplePage(lang, dict) ?? framePage(lang, dict, title);
   return framePage(lang, dict, title);
 }
 

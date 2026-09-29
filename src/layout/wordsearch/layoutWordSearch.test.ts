@@ -5,7 +5,7 @@ import type { Primitive, SheetPage } from '@/core/sheet';
 import { generateWordSearch, validateWordSearch, type WordSearchResult } from '@/generators/wordsearch';
 import { layoutWordSearch, WORDSEARCH_LAYOUT } from './layoutWordSearch';
 
-const labels = { name: 'Nombre', date: 'Fecha', solutions: 'Soluciones' };
+const labels = { name: 'Nombre', date: 'Fecha', solutions: 'Soluciones', student: 'Alumno', paperName: 'A4', pageOf: 'Página {page}/{pages}' };
 const header = { title: 'Animales', school: 'Escuela Nº 5' };
 const ALL = { horizontal: true, vertical: true, diagonal: true, reversed: true };
 
@@ -73,6 +73,18 @@ describe.each(['a4', 'letter'] as PaperSize[])('layoutWordSearch en %s', (paper)
         }
       }
     }
+  });
+
+  // La marca de página es del marco compartido: la sopa la hereda, con su código y su rol en cada hoja.
+  it('cada hoja lleva su marca de página con el código de la ficha', () => {
+    const r = result(ANIMALS, 12);
+    const out = layoutWordSearch({ result: r, header, labels, paper, lang: 'es', includeSolutions: true });
+    if (!out.ok) throw new Error('layout');
+    const textsOf = (page: SheetPage) => page.primitives.flatMap((p) => (p.t === 'text' ? [p.text] : []));
+    expect(textsOf(out.doc.pages[0]!)).toContain(`Página 1/2 · A4 · ${r.seedCode}`);
+    expect(textsOf(out.doc.pages[1]!)).toContain(`Página 2/2 · A4 · ${r.seedCode}`);
+    expect(textsOf(out.doc.pages[0]!)).toContain('Alumno');
+    expect(textsOf(out.doc.pages[1]!)).toContain('Soluciones');
   });
 
   it('las casillas miden al menos 6 mm con 25×25', () => {

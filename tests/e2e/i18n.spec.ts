@@ -29,6 +29,19 @@ test.describe('idioma', () => {
     await expect(page).toHaveURL(/\/fichas\/en\/$/);
   });
 
+  test('el selector mantiene la sección del cuadernillo en los dos sentidos', async ({ page }) => {
+    await page.goto('es/operaciones/');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Cuadernillo de operaciones');
+
+    await page.getByRole('link', { name: 'English' }).click();
+    await expect(page).toHaveURL(/\/fichas\/en\/math-worksheets\/$/);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Arithmetic booklet');
+
+    await page.getByRole('link', { name: 'Español' }).click();
+    await expect(page).toHaveURL(/\/fichas\/es\/operaciones\/$/);
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Cuadernillo de operaciones');
+  });
+
   test('los recursos de marca respetan el basePath', async ({ page, request }) => {
     await page.goto('es/');
     const icon = await page.locator('link[rel="icon"]').first().getAttribute('href');
@@ -42,5 +55,8 @@ test.describe('idioma', () => {
 
   test('una sección inexistente no se exporta', async ({ request }) => {
     expect((await request.get('en/sopa-de-letras/')).status()).toBe(404);
+    // El slug inglés del cuadernillo es `math-worksheets`: ningún otro se exporta.
+    expect((await request.get('en/arithmetic/')).status()).toBe(404);
+    expect((await request.get('en/operaciones/')).status()).toBe(404);
   });
 });

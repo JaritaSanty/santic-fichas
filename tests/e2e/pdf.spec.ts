@@ -24,6 +24,13 @@ test.describe('descarga en PDF', () => {
     expect(await text(1)).toContain('Animales de la granja: ñandú');
     expect(await text(1)).toContain('pingüino');
     expect(await text(2)).toContain('Soluciones');
+    // Marca de página del marco compartido: cada hoja dice cuál es, en qué papel y con qué código, y la del docente
+    // lleva además su pestaña de rol. El papel es el detectado por el navegador de la prueba (en-US: Carta).
+    const paper = (await page.locator('[data-job-line] dl > div').filter({ hasText: 'Papel' }).locator('dd').textContent()) ?? '';
+    const code = (await page.locator('[data-job-line] dl > div').filter({ hasText: 'Código' }).locator('dd').textContent()) ?? '';
+    expect(await text(1)).toContain(`Página 1/2 · ${paper} · ${code}`);
+    expect(await text(1)).toContain('Alumno');
+    expect(await text(2)).toContain(`Página 2/2 · ${paper} · ${code}`);
 
     // Sin .notdef ni glifos vacíos (§13.1): la lista del alumno extrae cada palabra con tilde, diéresis o Ñ tal cual,
     // y ninguna página contiene U+FFFD ni controles.
@@ -48,6 +55,43 @@ test.describe('descarga en PDF', () => {
     await page.getByLabel('Incluir soluciones').uncheck();
     const { pdf } = await downloadPdf(page);
     expect(pdf.numPages).toBe(1);
+  });
+
+  test('el cuadernillo de operaciones descarga alumno y soluciones con los ejercicios numerados', async ({ page }) => {
+    await page.goto('es/operaciones/');
+    await settle(page);
+    // Hojas de alumno anunciadas por la herramienta: el PDF debe llevar esas y otras tantas de soluciones.
+    const announced = async () => {
+      const sheetsItem = page.locator('[data-job-line] dl > div').filter({ hasText: 'Hojas' }).locator('dd');
+      const [sheets = 0, perPage = 0] = (((await sheetsItem.textContent()) ?? '').match(/\d+/g) ?? []).map(Number);
+      return { sheets, perPage };
+    };
+    // Una operación más de las que caben en una hoja: el cuadernillo se pagina de verdad dentro del PDF.
+    await page.getByLabel('Número de operaciones').fill(String((await announced()).perPage + 1));
+    await settle(page);
+    const { sheets } = await announced();
+    expect(sheets).toBeGreaterThan(1);
+    await expect(page.locator('[data-job-line] dl > div').filter({ hasText: 'Páginas' }).locator('dd')).toHaveText(String(sheets * 2));
+
+    const { download, pdf, text, items } = await downloadPdf(page);
+    expect(download.suggestedFilename()).toBe('operaciones.pdf');
+    expect(pdf.numPages).toBe(sheets * 2);
+    expect(await text(1)).toContain('Operaciones');
+    expect(await text(sheets + 1)).toContain('Soluciones');
+
+    // La hoja del alumno lleva los ejercicios numerados y sus signos; la de soluciones repite la misma numeración.
+    const student = (await items(1)).map((s) => s.trim());
+    expect(student).toContain('1)');
+    expect(student.filter((s) => s === '+' || s === '−').length).toBeGreaterThan(0);
+    expect(student.join('')).not.toContain('�');
+    const indexes = (n: number) => items(n).then((list) => list.map((s) => s.trim()).filter((s) => /^\d+\)$/.test(s)));
+    expect(await indexes(sheets + 1)).toEqual(await indexes(1));
+
+    // La segunda hoja continúa la numeración donde acaba la primera: ni repite ni se salta ningún ejercicio.
+    const firstSheet = await indexes(1);
+    const secondSheet = await indexes(2);
+    expect(secondSheet[0]).toBe(`${firstSheet.length + 1})`);
+    expect(firstSheet.length + secondSheet.length).toBe(Number(await page.getByLabel('Número de operaciones').inputValue()));
   });
 
   test('el PDF se genera sin conexión tras la primera carga', async ({ page, context }) => {
